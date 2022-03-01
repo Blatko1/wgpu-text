@@ -1,8 +1,23 @@
 [package]
 name = "wgpu_text"
+authors = ["Leon (Blatko1)"]
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Simple library for rendering text with wgpu"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Blatko1/wgpu_text"
+keywords = ["wgpu", "text", "ttf", "truetype", "font"]
+resolver = "2"
 
 [dependencies]
+wgpu = "0.12.0"
+glyph_brush = "0.7.3"
+
+[dependencies.bytemuck]
+version = "1.7.3"
+features = ["derive"]
+
+[dev-dependencies]
+winit = "0.26.1"
+pollster = "0.2.5"
