@@ -21,3 +21,5 @@ features = ["derive"]
 [dev-dependencies]
 winit = "0.26.1"
 pollster = "0.2.5"
+env_logger = "0.9.0"
+log = "0.4.14"

@@ -9,6 +9,10 @@ use winit::{
 };
 
 fn main() {
+    std::env::set_var("RUST_LOG", "info");
+    env_logger::init();
+    log::info!("STARTING");
+
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("Simple text rendering")
@@ -32,7 +36,7 @@ fn main() {
     let (device, queue) = block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: Some("Device"),
-            features: Features::empty(),
+            features: Features::POLYGON_MODE_LINE,
             limits: Limits::default(),
         },
         None,
@@ -49,9 +53,11 @@ fn main() {
     surface.configure(&device, &config);
 
     let font: &[u8] = include_bytes!("Inconsolata-Regular.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build();
+    let mut brush = BrushBuilder::using_font_bytes(font)
+        .unwrap()
+        .build(&device, &config);
 
-    let mut section = Section::default()
+    let section = Section::default()
         .add_text(
             Text::new(
                 "* Type text\n\
@@ -73,7 +79,6 @@ fn main() {
         .with_screen_position((0.0, size.height as f32 * 0.5))
         .to_owned();
     brush.queue(&section);
-    brush.draw_queued(&device, &queue);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -106,10 +111,14 @@ fn main() {
             winit::event::Event::MainEventsCleared => window.request_redraw(),
             winit::event::Event::RedrawRequested(_) => {
                 let frame = surface.get_current_texture().unwrap();
-                let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+                let view = frame
+                    .texture
+                    .create_view(&wgpu::TextureViewDescriptor::default());
+
+                brush.draw_queued(&device, &queue, &view);
                 
                 frame.present();
-            },
+            }
             winit::event::Event::RedrawEventsCleared => (),
             _ => (),
         }
