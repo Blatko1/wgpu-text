@@ -28,4 +28,4 @@ brush.queue(&section);
 ```
 ## **Examples**
 Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples) for more.
-* `cargo run --example simple`
+* `cargo run --example <example-name>`
