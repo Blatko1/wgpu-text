@@ -23,20 +23,20 @@ impl Pipeline {
         let shader = device.create_shader_module(&wgpu::include_wgsl!("text.wgsl"));
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("wgpu-rs Vertex Buffer"),
+            label: Some("wgpu-text Vertex Buffer"),
             size: 0,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
         let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("wgpu-rs Matrix Uniform Buffer"),
+            label: Some("wgpu-text Matrix Uniform Buffer"),
             contents: bytemuck::cast_slice(&ortho(width, height)),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("wgpu-rs Matrix Uniform Bind Group Layout"),
+            label: Some("wgpu-text Matrix Uniform Bind Group Layout"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::VERTEX,
@@ -50,7 +50,7 @@ impl Pipeline {
         });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("wgpu-rs Matrix Uniform Bind Group"),
+            label: Some("wgpu-text Matrix Uniform Bind Group"),
             layout: &bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
@@ -117,7 +117,7 @@ impl Pipeline {
         if vertices.len() > self.vertex_buffer_len {
             self.vertex_buffer_len = vertices.len();
             self.vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("wgpu-rs Vertex Buffer"),
+                label: Some("wgpu-text Vertex Buffer"),
                 size: (std::mem::size_of::<Vertex>() * self.vertex_buffer_len) as u64,
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
@@ -131,12 +131,12 @@ impl Pipeline {
 
     pub fn draw(&self, device: &wgpu::Device, view: &wgpu::TextureView) -> CommandBuffer {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("wgpu-rs Command Encoder"),
+            label: Some("wgpu-text Command Encoder"),
         });
 
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("wgpu-rs Render Pass"),
+                label: Some("wgpu-text Render Pass"),
                 color_attachments: &[wgpu::RenderPassColorAttachment {
                     view,
                     resolve_target: None,

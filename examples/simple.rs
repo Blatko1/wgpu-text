@@ -133,12 +133,12 @@ fn main() {
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
                 let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("wgpu-rs Command Encoder"),
+                    label: Some("Command Encoder"),
                 });
 
                 {
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("wgpu-rs Render Pass"),
+                        label: Some("Render Pass"),
                         color_attachments: &[wgpu::RenderPassColorAttachment {
                             view: &view,
                             resolve_target: None,
