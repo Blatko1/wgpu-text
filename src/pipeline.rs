@@ -1,27 +1,42 @@
-use bytemuck::Zeroable;
-use glyph_brush::ab_glyph::{point, Rect};
-use wgpu::util::DeviceExt;
+use glyph_brush::{
+    ab_glyph::{point, Rect},
+    Rectangle,
+};
+use wgpu::{util::DeviceExt, CommandBuffer};
 
 pub struct Pipeline {
-    pipeline: wgpu::RenderPipeline,
-    buffer: wgpu::Buffer,
+    inner: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
+    vertex_buffer_len: usize,
+    matrix_uniform: wgpu::BindGroup,
     matrix_buffer: wgpu::Buffer,
-    bind_group: wgpu::BindGroup,
-    len: u32,
+    vertices: u32,
 }
 
 impl Pipeline {
-    pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> Self {
-        let matrix = ortho(config.width as f32,config.height as f32);
-        println!("matrix: {:?}", matrix);
+    pub fn new(
+        device: &wgpu::Device,
+        render_format: wgpu::TextureFormat,
+        width: f32,
+        height: f32,
+    ) -> Self {
+        let shader = device.create_shader_module(&wgpu::include_wgsl!("text.wgsl"));
+
+        let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("wgpu-rs Vertex Buffer"),
+            size: 0,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("matrix buffer"),
-            contents: bytemuck::cast_slice(&matrix),
-            usage: wgpu::BufferUsages::UNIFORM,
+            label: Some("wgpu-rs Matrix Uniform Buffer"),
+            contents: bytemuck::cast_slice(&ortho(width, height)),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Matrix bind group layout"),
+            label: Some("wgpu-rs Matrix Uniform Bind Group Layout"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::VERTEX,
@@ -33,8 +48,9 @@ impl Pipeline {
                 count: None,
             }],
         });
+
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Matrix bind group"),
+            label: Some("wgpu-rs Matrix Uniform Bind Group"),
             layout: &bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
@@ -42,24 +58,23 @@ impl Pipeline {
             }],
         });
 
-        let shader = device.create_shader_module(&wgpu::include_wgsl!("text.wgsl"));
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Text rendering pipeline layout"),
+            label: Some("wgpu-text Render Pipeline Layout"),
             bind_group_layouts: &[&bind_group_layout],
             push_constant_ranges: &[],
         });
+
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Text rendering pipeline"),
+            label: Some("wgpu-text Render Pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[Vertex::vertex_layout()],
+                buffers: &[Vertex::buffer_layout()],
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleStrip,
                 strip_index_format: Some(wgpu::IndexFormat::Uint16),
-                front_face: wgpu::FrontFace::Cw,
                 ..Default::default()
             },
             depth_stencil: None,
@@ -68,51 +83,60 @@ impl Pipeline {
                 module: &shader,
                 entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
-                    format: config.format,
+                    format: render_format,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 }],
             }),
             multiview: None,
         });
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Buffer"),
-            size: 10000,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
 
         Self {
-            pipeline,
-            buffer,
+            inner: pipeline,
+            vertex_buffer,
+            vertex_buffer_len: 0,
+            matrix_uniform: bind_group,
             matrix_buffer,
-            bind_group,
-            len: 0,
+            vertices: 0,
         }
     }
 
-    pub fn draw(
-        &mut self,
-        device: &wgpu::Device,
-        view: &wgpu::TextureView,
-        queue: &wgpu::Queue,
-        vertices: Vec<Vertex>,
-    ) {
+    pub fn update_matrix(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
+        queue.write_buffer(
+            &self.matrix_buffer,
+            0,
+            bytemuck::cast_slice(&ortho(width, height)),
+        );
+    }
+
+    pub fn update(&mut self, vertices: Vec<Vertex>, device: &wgpu::Device, queue: &wgpu::Queue) {
         if vertices.is_empty() {
-            self.redraw(device, view, queue);
             return;
         }
-        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&vertices));
-        self.len = vertices.len() as u32;
-        println!("len: {}", self.len);
 
+        if vertices.len() > self.vertex_buffer_len {
+            self.vertex_buffer_len = vertices.len();
+            self.vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("wgpu-rs Vertex Buffer"),
+                size: (std::mem::size_of::<Vertex>() * self.vertex_buffer_len) as u64,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+        }
+
+        queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&vertices));
+
+        self.vertices = vertices.len() as u32;
+    }
+
+    pub fn draw(&self, device: &wgpu::Device, view: &wgpu::TextureView) -> CommandBuffer {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Glyph Command Encoder"),
+            label: Some("wgpu-rs Command Encoder"),
         });
 
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Engine Render Pass"),
+                label: Some("wgpu-rs Render Pass"),
                 color_attachments: &[wgpu::RenderPassColorAttachment {
                     view,
                     resolve_target: None,
@@ -124,49 +148,22 @@ impl Pipeline {
                 depth_stencil_attachment: None,
             });
 
-            rpass.set_pipeline(&self.pipeline);
-            rpass.set_vertex_buffer(0, self.buffer.slice(..));
-            rpass.set_bind_group(0, &self.bind_group, &[]);
-            rpass.draw(0..4, 0..self.len);
+            rpass.set_pipeline(&self.inner);
+            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            rpass.set_bind_group(0, &self.matrix_uniform, &[]);
+            rpass.draw(0..4, 0..self.vertices);
         }
 
-        queue.submit(Some(encoder.finish()));
+        encoder.finish()
     }
 
-    pub fn redraw(&self, device: &wgpu::Device, view: &wgpu::TextureView, queue: &wgpu::Queue) {
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Glyph Command Encoder"),
-        });
+    pub fn update_texture(&mut self, _rect: Rectangle<u32>, _data: &[u8]) {}
 
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Engine Render Pass"),
-                color_attachments: &[wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
-                }],
-                depth_stencil_attachment: None,
-            });
-
-            rpass.set_pipeline(&self.pipeline);
-            rpass.set_vertex_buffer(0, self.buffer.slice(..));
-            rpass.set_bind_group(0, &self.bind_group, &[]);
-            rpass.draw(0..4, 0..self.len);
-        }
-
-        queue.submit(Some(encoder.finish()));
-    }
+    pub fn resize_texture(&mut self, _x: u32, _y: u32) {}
 }
 
 #[rustfmt::skip]
-pub fn ortho(width: f32, height: f32) -> [f32; 16] {
-    //let tx = -(right + left) / (right - left);
-    //let ty = -(top + bottom) / (top - bottom);
-    //let tz = -(far + near) / (far - near);
+fn ortho(width: f32, height: f32) -> [f32; 16] {
     [
         2.0 / width, 0.0, 0.0, 0.0,
         0.0, -2.0 / height, 0.0, 0.0,
@@ -186,39 +183,6 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    fn vertex_layout<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Instance,
-            attributes: &[
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x3,
-                    offset: 0,
-                    shader_location: 0,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-                    shader_location: 1,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: std::mem::size_of::<[f32; 5]>() as wgpu::BufferAddress,
-                    shader_location: 2,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: std::mem::size_of::<[f32; 7]>() as wgpu::BufferAddress,
-                    shader_location: 3,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x4,
-                    offset: std::mem::size_of::<[f32; 11]>() as wgpu::BufferAddress,
-                    shader_location: 4,
-                },
-            ],
-        }
-    }
     pub fn to_vertex(
         glyph_brush::GlyphVertex {
             mut tex_coords,
@@ -264,12 +228,38 @@ impl Vertex {
             color: extra.color,
         }
     }
-}
 
-#[rustfmt::skip]
-const IDENTITY_MATRIX: [f32; 16] = [
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 1.0,
-];
+    pub fn buffer_layout() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Instance,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    shader_location: 1,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: std::mem::size_of::<[f32; 5]>() as wgpu::BufferAddress,
+                    shader_location: 2,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: std::mem::size_of::<[f32; 7]>() as wgpu::BufferAddress,
+                    shader_location: 3,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: std::mem::size_of::<[f32; 9]>() as wgpu::BufferAddress,
+                    shader_location: 4,
+                },
+            ],
+        }
+    }
+}

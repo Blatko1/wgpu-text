@@ -1,11 +1,11 @@
 mod brush;
 mod pipeline;
 
-pub use brush::{BrushBuilder, GlyphBrush};
+pub use brush::{BrushBuilder, TextBrush};
 
 pub mod section {
     pub use glyph_brush::{
-        BuiltInLineBreaker, Color, HorizontalAlign, Layout, OwnedSection, Section, Text,
+        BuiltInLineBreaker, Color, HorizontalAlign, Layout, OwnedSection, OwnedText, Section, Text,
         VerticalAlign,
     };
 }

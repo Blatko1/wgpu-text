@@ -30,7 +30,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     var top: f32 = in.top_left.y;
     var bottom: f32 = in.bottom_right.y;
 
-    switch (i32(in.vertex_index)) {
+    switch (in.vertex_index) {
         case 0: {
             pos = vec2<f32>(left, top); 
             break;

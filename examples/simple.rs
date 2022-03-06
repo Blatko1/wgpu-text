@@ -1,6 +1,8 @@
-use glyph_brush::{BuiltInLineBreaker, Layout, Section, Text, VerticalAlign};
+use std::time::SystemTime;
+
 use pollster::block_on;
 use wgpu::{Features, Limits};
+use wgpu_text::section::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign};
 use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
@@ -42,10 +44,10 @@ fn main() {
         None,
     ))
     .unwrap();
-
+    let format = surface.get_preferred_format(&adapter).unwrap();
     let mut config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format: surface.get_preferred_format(&adapter).unwrap(),
+        format: format,
         width: size.width,
         height: size.height,
         present_mode: wgpu::PresentMode::Fifo,
@@ -53,18 +55,21 @@ fn main() {
     surface.configure(&device, &config);
 
     let font: &[u8] = include_bytes!("Inconsolata-Regular.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font)
-        .unwrap()
-        .build(&device, &config);
+    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
+        &device,
+        format,
+        config.width as f32,
+        size.height as f32,
+    );
 
-    let section = Section::default()
+    let mut section = Section::default()
         .add_text(
             Text::new(
                 "* Type text\n\
                  * Scroll to set typed size (see window title)\n\
                  * ctrl r  Clear & reorder draw cache\n\
-                 * ctrl shift r  Reset & resize draw cache\n\
-                 * ctrl backspace  Delete all text\n\
+                 * ct           rl shift r  Reset & resize draw cache\n\
+                 * ctrl bac  kspace  Delete all text\n\
                 ",
             )
             .with_scale(25.0)
@@ -76,10 +81,13 @@ fn main() {
                 .v_align(VerticalAlign::Center)
                 .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
         )
-        .with_screen_position((0.0, size.height as f32 * 0.5))
+        .with_screen_position((50.0, size.height as f32 * 0.5))
         .to_owned();
     brush.queue(&section);
 
+    let mut then = SystemTime::now();
+    let mut now = SystemTime::now();
+    let mut fps = 0;
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
 
@@ -90,12 +98,21 @@ fn main() {
                     new_inner_size: &mut new_size,
                     ..
                 } => {
-                    config.width = new_size.width;
-                    config.height = new_size.height;
+                    config.width = new_size.width.max(1);
+                    config.height = new_size.height.max(1);
                     surface.configure(&device, &config);
+
+                    section.bounds = (config.width as f32 * 0.5, config.height as _);
+                    section.screen_position.1 =  config.height as f32 * 0.5;
+                    
+                    brush.queue(&section);
+                    brush.resize(config.width as f32, config.height as f32, &queue)
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                WindowEvent::ReceivedCharacter(_) => (),
+                WindowEvent::ReceivedCharacter(c) => {
+                    section.text.push(OwnedText::new(c.to_string()));
+                    brush.queue(&section);
+                }
                 WindowEvent::KeyboardInput {
                     input:
                         KeyboardInput {
@@ -115,9 +132,41 @@ fn main() {
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                brush.draw_queued(&device, &queue, &view);
-                
+                let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("wgpu-rs Command Encoder"),
+                });
+
+                {
+                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some("wgpu-rs Render Pass"),
+                        color_attachments: &[wgpu::RenderPassColorAttachment {
+                            view: &view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(wgpu::Color {
+                                    r: 0.2,
+                                    g: 0.2,
+                                    b: 0.3,
+                                    a: 1.,
+                                }),
+                                store: true,
+                            },
+                        }],
+                        depth_stencil_attachment: None,
+                    });
+                }
+                let cmd_buffer = brush.draw_queued(&device, &view, &queue);
+                // Has to be submitted last so it won't be overlapped.
+                queue.submit([encoder.finish(), cmd_buffer]);
                 frame.present();
+
+                fps += 1;
+                if now.duration_since(then).unwrap().as_millis() > 1000 {
+                    println!("FPS: {}", fps);
+                    fps = 0;
+                    then = now;
+                }
+                now = SystemTime::now();
             }
             winit::event::Event::RedrawEventsCleared => (),
             _ => (),
