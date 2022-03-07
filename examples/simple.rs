@@ -78,7 +78,23 @@ fn main() {
         )
         .with_screen_position((50.0, size.height as f32 * 0.5))
         .to_owned();
-    //brush.queue(&section);
+
+    let section2 = Section::default()
+        .add_text(
+            Text::new(
+                "* Test 2",
+            )
+            .with_scale(40.0)
+            .with_color([0.2, 0.5, 0.8, 1.0]),
+        )
+        .with_bounds((size.width as f32 / 2.0, size.height as f32))
+        .with_layout(
+            Layout::default()
+                .v_align(VerticalAlign::Top)
+                .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+        )
+        .with_screen_position((300.0, size.height as f32 * 0.5))
+        .to_owned();
 
     let mut then = SystemTime::now();
     let mut now = SystemTime::now();
@@ -148,7 +164,10 @@ fn main() {
                         depth_stencil_attachment: None,
                     });
                 }
+                // Has to be queued every frame.
                 brush.queue(&section);
+                brush.queue(&section2);
+
                 let cmd_buffer = brush.draw_queued(&device, &view, &queue);
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
@@ -156,6 +175,7 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
+                    // Remove comment do print your FPS.
                     //println!("FPS: {}", fps);
                     fps = 0;
                     then = now;
