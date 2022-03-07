@@ -175,7 +175,7 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    // Remove comment do print your FPS.
+                    // Remove comment to print your FPS.
                     //println!("FPS: {}", fps);
                     fps = 0;
                     then = now;
