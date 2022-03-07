@@ -19,6 +19,7 @@ let section = Section::default()
 
 // window event loop:
     winit::event::Event::RedrawRequested(_) => {
+        // Has to be queued every frame.
         brush.queue(&section);
         let cmd_buffer = brush.draw_queued(&device, &view, &queue);
         // Has to be submitted last so text won't be overlapped.
