@@ -11,7 +11,7 @@ use winit::{
 };
 
 fn main() {
-    std::env::set_var("RUST_LOG", "info");
+    std::env::set_var("RUST_LOG", "error");
     env_logger::init();
     log::info!("STARTING");
 
@@ -83,7 +83,7 @@ fn main() {
         )
         .with_screen_position((50.0, size.height as f32 * 0.5))
         .to_owned();
-    brush.queue(&section);
+    //brush.queue(&section);
 
     let mut then = SystemTime::now();
     let mut now = SystemTime::now();
@@ -103,15 +103,13 @@ fn main() {
                     surface.configure(&device, &config);
 
                     section.bounds = (config.width as f32 * 0.5, config.height as _);
-                    section.screen_position.1 =  config.height as f32 * 0.5;
-                    
-                    brush.queue(&section);
+                    section.screen_position.1 = config.height as f32 * 0.5;
+
                     brush.resize(config.width as f32, config.height as f32, &queue)
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::ReceivedCharacter(c) => {
                     section.text.push(OwnedText::new(c.to_string()));
-                    brush.queue(&section);
                 }
                 WindowEvent::KeyboardInput {
                     input:
@@ -155,6 +153,7 @@ fn main() {
                         depth_stencil_attachment: None,
                     });
                 }
+                brush.queue(&section);
                 let cmd_buffer = brush.draw_queued(&device, &view, &queue);
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
@@ -162,7 +161,7 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    println!("FPS: {}", fps);
+                    //println!("FPS: {}", fps);
                     fps = 0;
                     then = now;
                 }

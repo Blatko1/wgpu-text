@@ -110,23 +110,21 @@ impl Pipeline {
     }
 
     pub fn update(&mut self, vertices: Vec<Vertex>, device: &wgpu::Device, queue: &wgpu::Queue) {
-        if vertices.is_empty() {
-            return;
-        }
+        self.vertices = vertices.len() as u32;
 
         if vertices.len() > self.vertex_buffer_len {
             self.vertex_buffer_len = vertices.len();
+
             self.vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("wgpu-text Vertex Buffer"),
-                size: (std::mem::size_of::<Vertex>() * self.vertex_buffer_len) as u64,
+                size: (std::mem::size_of::<Vertex>() * self.vertex_buffer_len)
+                    as wgpu::BufferAddress,
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             });
         }
 
         queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&vertices));
-
-        self.vertices = vertices.len() as u32;
     }
 
     pub fn draw(&self, device: &wgpu::Device, view: &wgpu::TextureView) -> CommandBuffer {
