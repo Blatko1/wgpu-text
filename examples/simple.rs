@@ -65,12 +65,7 @@ fn main() {
     let mut section = Section::default()
         .add_text(
             Text::new(
-                "* Type text\n\
-                 * Scroll to set typed size (see window title)\n\
-                 * ctrl r  Clear & reorder draw cache\n\
-                 * ct           rl shift r  Reset & resize draw cache\n\
-                 * ctrl bac  kspace  Delete all text\n\
-                ",
+                "* Type text\n",
             )
             .with_scale(25.0)
             .with_color([0.5, 0.5, 0.5, 1.0]),
