@@ -16,10 +16,11 @@ let brush = BrushBuilder::using_font_bytes(font).unwrap().build(
 let section = Section::default()
     .add_text(Text::new("Hello World"))
     .with_layout(Layout::default().h_align(HorizontalAlign::Center));
-brush.queue(&section);
 
 // window event loop:
     winit::event::Event::RedrawRequested(_) => {
+        // Has to be queued every frame.
+        brush.queue(&section);
         let cmd_buffer = brush.draw_queued(&device, &view, &queue);
         // Has to be submitted last so text won't be overlapped.
         queue.submit(cmd_buffer);
