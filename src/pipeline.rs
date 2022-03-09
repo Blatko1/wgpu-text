@@ -20,7 +20,7 @@ impl Pipeline {
         width: f32,
         height: f32,
     ) -> Self {
-        let shader = device.create_shader_module(&wgpu::include_wgsl!("text.wgsl"));
+        let shader = device.create_shader_module(&wgpu::include_wgsl!("shader\\text.wgsl"));
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("wgpu-text Vertex Buffer"),
