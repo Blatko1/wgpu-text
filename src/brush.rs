@@ -35,7 +35,7 @@ impl<F: Font + Sync, H: BuildHasher> TextBrush<F, H> {
 
         loop {
             brush_action = self.inner.process_queued(
-                |rect, data| self.pipeline.update_texture(rect, data),
+                |rect, data| self.pipeline.update_texture(rect, data, queue),
                 Vertex::to_vertex,
             );
 
@@ -56,7 +56,7 @@ impl<F: Font + Sync, H: BuildHasher> TextBrush<F, H> {
     }
 
     pub fn resize(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        self.pipeline.update_matrix(width, height, queue);
+        self.pipeline.resize(width, height, queue);
     }
 }
 
@@ -94,7 +94,12 @@ impl<F: Font, H: BuildHasher> BrushBuilder<F, H> {
         height: f32,
     ) -> TextBrush<F, H> {
         let inner = self.inner.build();
-        let pipeline = Pipeline::new(device, render_format, width, height);
+        let pipeline = Pipeline::new(
+            device,
+            render_format,
+            inner.texture_dimensions(),
+            (width, height),
+        );
         TextBrush { inner, pipeline }
     }
 }

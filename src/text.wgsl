@@ -32,31 +32,45 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 
     switch (in.vertex_index) {
         case 0: {
-            pos = vec2<f32>(left, top); 
+            pos = vec2<f32>(left, top);
+            out.tex_pos = in.tex_top_left;
             break;
         }
         case 1: {
-            pos = vec2<f32>(right, top); 
+            pos = vec2<f32>(right, top);
+            out.tex_pos = vec2<f32>(in.tex_bottom_right.x, in.tex_top_left.y);
             break;
         }
         case 2: {
-            pos = vec2<f32>(left, bottom); 
+            pos = vec2<f32>(left, bottom);
+            out.tex_pos = vec2<f32>(in.tex_top_left.x, in.tex_bottom_right.y);
             break;
         }
         case 3: {
-            pos = vec2<f32>(right, bottom); 
+            pos = vec2<f32>(right, bottom);
+            out.tex_pos = in.tex_bottom_right;
             break;
         }
         default: {}
     }
 
     out.clip_position = ortho.matrix * vec4<f32>(pos, in.top_left.z, 1.0);
-    out.tex_pos = in.tex_top_left;
     out.color = in.color;
     return out;
 }
 
+[[group(0), binding(1)]]
+var texture: texture_2d<f32>;
+[[group(0), binding(2)]]
+var tex_sampler: sampler;
+
 [[stage(fragment)]]
 fn fs_main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
-    return vec4<f32>(1.0, 1.0, 1.0, 0.5);
+    var alpha: f32 = textureSample(texture, tex_sampler, in.tex_pos).r;
+
+    if (alpha <= 0.) {
+        discard;
+    }
+
+    return in.color * vec4<f32>(1.0, 1.0, 1.0, 1.);
 }

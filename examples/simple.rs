@@ -64,11 +64,9 @@ fn main() {
 
     let mut section = Section::default()
         .add_text(
-            Text::new(
-                "* Type text\n",
-            )
-            .with_scale(25.0)
-            .with_color([0.5, 0.5, 0.5, 1.0]),
+            Text::new("* Type text\n")
+                .with_scale(25.0)
+                .with_color([0.9, 0.5, 0.5, 1.0]),
         )
         .with_bounds((size.width as f32 / 2.0, size.height as f32))
         .with_layout(
@@ -81,11 +79,9 @@ fn main() {
 
     let section2 = Section::default()
         .add_text(
-            Text::new(
-                "* Test 2",
-            )
-            .with_scale(40.0)
-            .with_color([0.2, 0.5, 0.8, 1.0]),
+            Text::new("* Test 2")
+                .with_scale(40.0)
+                .with_color([0.2, 0.5, 0.8, 1.0]),
         )
         .with_bounds((size.width as f32 / 2.0, size.height as f32))
         .with_layout(
@@ -120,7 +116,11 @@ fn main() {
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::ReceivedCharacter(c) => {
-                    section.text.push(OwnedText::new(c.to_string()));
+                    section.text.push(
+                        OwnedText::new(c.to_string())
+                            .with_color([0.9, 0.5, 0.5, 1.0])
+                            .with_scale(25.0),
+                    );
                 }
                 WindowEvent::KeyboardInput {
                     input:
