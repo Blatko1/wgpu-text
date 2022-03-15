@@ -2,14 +2,15 @@ use glyph_brush::{
     ab_glyph::{point, Rect},
     Rectangle,
 };
-use wgpu::{util::DeviceExt, CommandBuffer};
+use wgpu::CommandBuffer;
+
+use crate::uniform::Uniform;
 
 pub struct Pipeline {
     inner: wgpu::RenderPipeline,
+    uniform: Uniform,
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_len: usize,
-    matrix_uniform: wgpu::BindGroup,
-    matrix_buffer: wgpu::Buffer,
     vertices: u32,
 }
 
@@ -17,10 +18,12 @@ impl Pipeline {
     pub fn new(
         device: &wgpu::Device,
         render_format: wgpu::TextureFormat,
-        width: f32,
-        height: f32,
+        tex_dimensions: (u32, u32),
+        window_size: (f32, f32),
     ) -> Self {
-        let shader = device.create_shader_module(&wgpu::include_wgsl!("shader\\text.wgsl"));
+        let uniform = Uniform::new(device, tex_dimensions, window_size);
+
+        let shader = device.create_shader_module(&wgpu::include_wgsl!("shader/text.wgsl"));
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("wgpu-text Vertex Buffer"),
@@ -29,38 +32,9 @@ impl Pipeline {
             mapped_at_creation: false,
         });
 
-        let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("wgpu-text Matrix Uniform Buffer"),
-            contents: bytemuck::cast_slice(&ortho(width, height)),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("wgpu-text Matrix Uniform Bind Group Layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }],
-        });
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("wgpu-text Matrix Uniform Bind Group"),
-            layout: &bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: matrix_buffer.as_entire_binding(),
-            }],
-        });
-
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("wgpu-text Render Pipeline Layout"),
-            bind_group_layouts: &[&bind_group_layout],
+            bind_group_layouts: &[&uniform.bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -84,7 +58,18 @@ impl Pipeline {
                 entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
                     format: render_format,
-                    blend: Some(wgpu::BlendState::REPLACE),
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                    }),
                     write_mask: wgpu::ColorWrites::ALL,
                 }],
             }),
@@ -93,20 +78,11 @@ impl Pipeline {
 
         Self {
             inner: pipeline,
+            uniform,
             vertex_buffer,
             vertex_buffer_len: 0,
-            matrix_uniform: bind_group,
-            matrix_buffer,
             vertices: 0,
         }
-    }
-
-    pub fn update_matrix(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        queue.write_buffer(
-            &self.matrix_buffer,
-            0,
-            bytemuck::cast_slice(&ortho(width, height)),
-        );
     }
 
     pub fn update(&mut self, vertices: Vec<Vertex>, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -148,26 +124,22 @@ impl Pipeline {
 
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            rpass.set_bind_group(0, &self.matrix_uniform, &[]);
+            rpass.set_bind_group(0, &self.uniform.bind_group, &[]);
             rpass.draw(0..4, 0..self.vertices);
         }
 
         encoder.finish()
     }
 
-    pub fn update_texture(&mut self, _rect: Rectangle<u32>, _data: &[u8]) {}
+    pub fn resize(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
+        self.uniform.update_matrix(width, height, queue);
+    }
+
+    pub fn update_texture(&mut self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
+        self.uniform.update_texture(size, data, queue);
+    }
 
     pub fn resize_texture(&mut self, _x: u32, _y: u32) {}
-}
-
-#[rustfmt::skip]
-fn ortho(width: f32, height: f32) -> [f32; 16] {
-    [
-        2.0 / width, 0.0, 0.0, 0.0,
-        0.0, -2.0 / height, 0.0, 0.0,
-        0.0, 0.0, 1., 0.0,
-        -1., 1., 0., 1.0,
-    ]
 }
 
 #[repr(C)]
@@ -219,8 +191,8 @@ impl Vertex {
         }
 
         Vertex {
-            top_left: [rect.min.x, rect.max.y, extra.z],
-            bottom_right: [rect.max.x, rect.min.y],
+            top_left: [rect.min.x, rect.min.y, extra.z],
+            bottom_right: [rect.max.x, rect.max.y],
             tex_top_left: [tex_coords.min.x, tex_coords.min.y],
             tex_bottom_right: [tex_coords.max.x, tex_coords.max.y],
             color: extra.color,

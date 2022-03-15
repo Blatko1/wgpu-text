@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::time::{Duration, Instant, SystemTime};
 
 use pollster::block_on;
 use wgpu::{Features, Limits};
@@ -38,7 +38,7 @@ fn main() {
     let (device, queue) = block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: Some("Device"),
-            features: Features::POLYGON_MODE_LINE,
+            features: Features::empty(),
             limits: Limits::default(),
         },
         None,
@@ -47,10 +47,10 @@ fn main() {
     let format = surface.get_preferred_format(&adapter).unwrap();
     let mut config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format: format,
+        format,
         width: size.width,
         height: size.height,
-        present_mode: wgpu::PresentMode::Fifo,
+        present_mode: wgpu::PresentMode::Mailbox,
     };
     surface.configure(&device, &config);
 
@@ -64,11 +64,9 @@ fn main() {
 
     let mut section = Section::default()
         .add_text(
-            Text::new(
-                "* Type text\n",
-            )
-            .with_scale(25.0)
-            .with_color([0.5, 0.5, 0.5, 1.0]),
+            Text::new("* Type text\n")
+                .with_scale(25.0)
+                .with_color([0.9, 0.5, 0.5, 1.0]),
         )
         .with_bounds((size.width as f32 / 2.0, size.height as f32))
         .with_layout(
@@ -81,11 +79,9 @@ fn main() {
 
     let section2 = Section::default()
         .add_text(
-            Text::new(
-                "* Test 2",
-            )
-            .with_scale(40.0)
-            .with_color([0.2, 0.5, 0.8, 1.0]),
+            Text::new("* Test 2")
+                .with_scale(40.0)
+                .with_color([0.2, 0.5, 0.8, 1.0]),
         )
         .with_bounds((size.width as f32 / 2.0, size.height as f32))
         .with_layout(
@@ -99,6 +95,8 @@ fn main() {
     let mut then = SystemTime::now();
     let mut now = SystemTime::now();
     let mut fps = 0;
+    let target_framerate = Duration::from_secs_f64(1.0 / 60.0);
+    let mut delta_time = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
 
@@ -120,7 +118,11 @@ fn main() {
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::ReceivedCharacter(c) => {
-                    section.text.push(OwnedText::new(c.to_string()));
+                    section.text.push(
+                        OwnedText::new(c.to_string())
+                            .with_color([0.9, 0.5, 0.5, 1.0])
+                            .with_scale(25.0),
+                    );
                 }
                 WindowEvent::KeyboardInput {
                     input:
@@ -134,9 +136,26 @@ fn main() {
                 _ => (),
             },
 
-            winit::event::Event::MainEventsCleared => window.request_redraw(),
+            winit::event::Event::MainEventsCleared => {
+                if target_framerate <= delta_time.elapsed() {
+                    window.request_redraw();
+                    delta_time = Instant::now();
+                } else {
+                    *control_flow = ControlFlow::WaitUntil(
+                        Instant::now() + target_framerate - delta_time.elapsed(),
+                    );
+                }
+            }
             winit::event::Event::RedrawRequested(_) => {
-                let frame = surface.get_current_texture().unwrap();
+                let frame = match surface.get_current_texture() {
+                    Ok(frame) => frame,
+                    Err(_) => {
+                        surface.configure(&device, &config);
+                        surface
+                            .get_current_texture()
+                            .expect("Failed to acquire next surface texture!")
+                    }
+                };
                 let view = frame
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());

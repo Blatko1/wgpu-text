@@ -1,5 +1,6 @@
 mod brush;
 mod pipeline;
+mod uniform;
 
 pub use brush::{BrushBuilder, TextBrush};
 
