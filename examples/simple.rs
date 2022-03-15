@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::time::{Duration, Instant, SystemTime};
 
 use pollster::block_on;
 use wgpu::{Features, Limits};
@@ -38,7 +38,7 @@ fn main() {
     let (device, queue) = block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: Some("Device"),
-            features: Features::POLYGON_MODE_LINE,
+            features: Features::empty(),
             limits: Limits::default(),
         },
         None,
@@ -47,10 +47,10 @@ fn main() {
     let format = surface.get_preferred_format(&adapter).unwrap();
     let mut config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format: format,
+        format,
         width: size.width,
         height: size.height,
-        present_mode: wgpu::PresentMode::Fifo,
+        present_mode: wgpu::PresentMode::Immediate,
     };
     surface.configure(&device, &config);
 
@@ -95,6 +95,8 @@ fn main() {
     let mut then = SystemTime::now();
     let mut now = SystemTime::now();
     let mut fps = 0;
+    let target_framerate = Duration::from_secs_f64(1.0 / 60.0);
+    let mut delta_time = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
 
@@ -134,9 +136,26 @@ fn main() {
                 _ => (),
             },
 
-            winit::event::Event::MainEventsCleared => window.request_redraw(),
+            winit::event::Event::MainEventsCleared => {
+                if target_framerate <= delta_time.elapsed() {
+                    window.request_redraw();
+                    delta_time = Instant::now();
+                } else {
+                    *control_flow = ControlFlow::WaitUntil(
+                        Instant::now() + target_framerate - delta_time.elapsed(),
+                    );
+                }
+            }
             winit::event::Event::RedrawRequested(_) => {
-                let frame = surface.get_current_texture().unwrap();
+                let frame = match surface.get_current_texture() {
+                    Ok(frame) => frame,
+                    Err(_) => {
+                        surface.configure(&device, &config);
+                        surface
+                            .get_current_texture()
+                            .expect("Failed to acquire next surface texture!")
+                    }
+                };
                 let view = frame
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
@@ -176,7 +195,7 @@ fn main() {
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
                     // Remove comment to print your FPS.
-                    //println!("FPS: {}", fps);
+                    println!("FPS: {}", fps);
                     fps = 0;
                     then = now;
                 }
