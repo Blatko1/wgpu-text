@@ -50,7 +50,7 @@ fn main() {
         format,
         width: size.width,
         height: size.height,
-        present_mode: wgpu::PresentMode::Immediate,
+        present_mode: wgpu::PresentMode::Mailbox,
     };
     surface.configure(&device, &config);
 
@@ -195,7 +195,7 @@ fn main() {
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
                     // Remove comment to print your FPS.
-                    println!("FPS: {}", fps);
+                    //println!("FPS: {}", fps);
                     fps = 0;
                     then = now;
                 }
