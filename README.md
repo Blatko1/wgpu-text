@@ -1,8 +1,6 @@
 # wgpu-text
 **wgpu-text** is a wrapper over **_[glyph-brush](https://github.com/alexheretic/glyph-brush)_** for simpler text rendering in **_[wgpu](https://github.com/gfx-rs/wgpu)_**.
 
-- **Not usable at the moment. Work in progress.**
-
 This project was inspired by and is similar to **_[wgpu_glyph](https://github.com/hecrj/wgpu_glyph)_**, but has additional features and is simpler. Also there is no need to include **glyph-brush** in your project.
 
 Some features are directly implemented from **glyph-brush** so you should go trough [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html) for better understanding of adding and managing text.
