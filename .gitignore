@@ -3,3 +3,4 @@
 /.vscode
 /Cargo.lock
 /wgpu_text.iml
+/.github
