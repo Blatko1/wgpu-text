@@ -6,8 +6,9 @@ edition = "2021"
 description = "Simple library for rendering text with wgpu"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/Blatko1/wgpu_text"
+repository = "https://github.com/Blatko1/wgpu-text"
 keywords = ["wgpu", "text", "ttf", "truetype", "font"]
+categories = ["graphics", "rendering"]
 resolver = "2"
 
 [dependencies]
