@@ -6,7 +6,7 @@ This project was inspired by and is similar to **_[wgpu_glyph](https://github.co
 Some features are directly implemented from **glyph-brush** so you should go trough [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html) for better understanding of adding and managing text.
 
 Example:
-``` Rust
+```rust
 use wgpu_text::BrushBuilder;
 use wgpu_text::section::{Section, Text, Layout, HorizontalAlign};
 let brush = BrushBuilder::using_font_bytes(font).unwrap().build(
