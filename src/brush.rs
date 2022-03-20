@@ -8,7 +8,7 @@ use wgpu::CommandBuffer;
 
 use crate::pipeline::{Pipeline, Vertex};
 
-/// Wrapper over glyph_brush::GlyphBrush.
+/// Wrapper over [`glyph_brush::GlyphBrush`].
 ///
 /// Used for queuing and rendering text with [`TextBrush::queue`] and [`TextBrush::draw_queued`].
 pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
@@ -60,6 +60,7 @@ impl<F: Font + Sync, H: BuildHasher> TextBrush<F, H> {
     }
 }
 
+/// Builder for [`TextBrush`].
 pub struct BrushBuilder<F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
 }

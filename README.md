@@ -1,4 +1,8 @@
 # wgpu-text
+[![Licence](https://img.shields.io/github/license/Blatko1/wgpu-text)](https://github.com/Blatko1/wgpu-text/blob/master/LICENSE)
+[![crates.io](https://img.shields.io/crates/v/wgpu-text)](https://crates.io/crates/wgpu_text)
+[![Documentation](https://img.shields.io/docsrs/wgpu_text)](https://docs.rs/wgpu_text/0.1.1/wgpu_text/)
+
 **wgpu-text** is a wrapper over **_[glyph-brush](https://github.com/alexheretic/glyph-brush)_** for simpler text rendering in **_[wgpu](https://github.com/gfx-rs/wgpu)_**.
 
 This project was inspired by and is similar to **_[wgpu_glyph](https://github.com/hecrj/wgpu_glyph)_**, but has additional features and is simpler. Also there is no need to include **glyph-brush** in your project.
@@ -25,6 +29,11 @@ let section = Section::default()
         frame.submit();
     }
 ```
-## **Examples**
+### **Examples**
 Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples) for more.
 * `cargo run --example <example-name>`
+
+#### **Goals**
+- improve docs
+- improve examples
+- maybe some new features

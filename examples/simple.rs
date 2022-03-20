@@ -64,7 +64,7 @@ fn main() {
 
     let mut section = Section::default()
         .add_text(
-            Text::new("* Type text\n")
+            Text::new("Try typing some text\n")
                 .with_scale(25.0)
                 .with_color([0.9, 0.5, 0.5, 1.0]),
         )
@@ -89,7 +89,7 @@ fn main() {
                 .v_align(VerticalAlign::Top)
                 .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
         )
-        .with_screen_position((300.0, size.height as f32 * 0.5))
+        .with_screen_position((700.0, size.height as f32 * 0.5))
         .to_owned();
 
     let mut then = SystemTime::now();

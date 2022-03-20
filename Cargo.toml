@@ -1,7 +1,7 @@
 [package]
 name = "wgpu_text"
 authors = ["Leon (Blatko1)"]
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Simple library for rendering text with wgpu"
 license = "MIT"
@@ -16,7 +16,7 @@ wgpu = "0.12.0"
 glyph_brush = "0.7.3"
 
 [dependencies.bytemuck]
-version = "1.7.3"
+version = "1.8"
 features = ["derive"]
 
 [dev-dependencies]
