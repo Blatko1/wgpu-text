@@ -6,13 +6,14 @@ use wgpu::util::DeviceExt;
 pub struct Uniform {
     matrix_buffer: wgpu::Buffer,
     texture: wgpu::Texture,
+    sampler: wgpu::Sampler,
     pub bind_group: wgpu::BindGroup,
     pub bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl Uniform {
-    pub fn new(device: &wgpu::Device, tex_dimensions: (u32, u32), window_size: (f32, f32)) -> Self {
-        let texture = Self::new_cache_texture(device, tex_dimensions);
+    pub fn new(device: &wgpu::Device, tex_width: u32, tex_height: u32, window_size: (f32, f32)) -> Self {
+        let texture = Self::new_cache_texture(device, tex_width, tex_height);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("wgpu-text Cache Texture Sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -85,9 +86,34 @@ impl Uniform {
         Self {
             matrix_buffer,
             texture,
+            sampler,
             bind_group,
             bind_group_layout,
         }
+    }
+
+    pub fn recreate_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        self.texture = Self::new_cache_texture(device, width, height);
+        self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("wgpu-rs Bind Group"),
+            layout: &self.bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.matrix_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(
+                        &self.texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                    ),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&self.sampler),
+                },
+            ],
+        });
     }
 
     pub fn update_matrix(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
@@ -124,10 +150,10 @@ impl Uniform {
         )
     }
 
-    pub fn new_cache_texture(device: &wgpu::Device, dimensions: (u32, u32)) -> wgpu::Texture {
+    fn new_cache_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
         let size = wgpu::Extent3d {
-            width: dimensions.0,
-            height: dimensions.1,
+            width,
+            height,
             depth_or_array_layers: 1,
         };
         device.create_texture(&wgpu::TextureDescriptor {

@@ -42,7 +42,8 @@ impl<F: Font + Sync, H: BuildHasher> TextBrush<F, H> {
             match brush_action {
                 Ok(_) => break,
                 Err(BrushError::TextureTooSmall { suggested }) => {
-                    self.pipeline.resize_texture(suggested.0, suggested.1)
+                    self.inner.resize_texture(suggested.0, suggested.1);
+                    self.pipeline.resize_texture(device, suggested.0, suggested.1);
                 }
             }
         }

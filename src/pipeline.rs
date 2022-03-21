@@ -21,7 +21,7 @@ impl Pipeline {
         tex_dimensions: (u32, u32),
         window_size: (f32, f32),
     ) -> Self {
-        let uniform = Uniform::new(device, tex_dimensions, window_size);
+        let uniform = Uniform::new(device, tex_dimensions.0, tex_dimensions.1, window_size);
 
         let shader = device.create_shader_module(&wgpu::include_wgsl!("shader/text.wgsl"));
 
@@ -139,7 +139,9 @@ impl Pipeline {
         self.uniform.update_texture(size, data, queue);
     }
 
-    pub fn resize_texture(&mut self, _x: u32, _y: u32) {}
+    pub fn resize_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        self.uniform.recreate_texture(device, width, height);
+    }
 }
 
 #[repr(C)]

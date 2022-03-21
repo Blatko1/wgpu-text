@@ -61,11 +61,11 @@ fn main() {
         config.width as f32,
         size.height as f32,
     );
-
+    let mut font_size = 25.;
     let mut section = Section::default()
         .add_text(
             Text::new("Try typing some text\n")
-                .with_scale(25.0)
+                .with_scale(font_size)
                 .with_color([0.9, 0.5, 0.5, 1.0]),
         )
         .with_bounds((size.width as f32 / 2.0, size.height as f32))
@@ -117,23 +117,56 @@ fn main() {
                     brush.resize(config.width as f32, config.height as f32, &queue)
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                WindowEvent::ReceivedCharacter(c) => {
-                    section.text.push(
-                        OwnedText::new(c.to_string())
-                            .with_color([0.9, 0.5, 0.5, 1.0])
-                            .with_scale(25.0),
-                    );
-                }
                 WindowEvent::KeyboardInput {
                     input:
                         KeyboardInput {
-                            virtual_keycode: Some(VirtualKeyCode::Escape),
                             state: ElementState::Pressed,
+                            virtual_keycode: Some(keypress),
                             ..
                         },
                     ..
-                } => *control_flow = ControlFlow::Exit,
-                _ => (),
+                } => match keypress {
+                    VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
+                    VirtualKeyCode::Delete => section.text.clear(),
+                    VirtualKeyCode::Back if !section.text.is_empty() => {
+                        let mut end_text = section.text.remove(section.text.len() - 1);
+                        end_text.text.pop();
+                        if !end_text.text.is_empty() {
+                            section.text.push(end_text);
+                        }
+                    }
+                    _ => ()
+                },
+                WindowEvent::ReceivedCharacter(c) => {
+                    if c != '\u{7f}' && c != '\u{8}' {
+                        if section.text.is_empty() {
+                            section.text.push(
+                                OwnedText::default()
+                                    .with_scale(font_size)
+                                    .with_color([0.9, 0.5, 0.5, 1.0]),
+                            );
+                        }
+                        section.text.push(
+                                OwnedText::new(c.to_string())
+                                    .with_scale(font_size)
+                                    .with_color([0.9, 0.5, 0.5, 1.0]),
+                            );
+                    }
+                },
+                WindowEvent::MouseWheel {
+                    delta: winit::event::MouseScrollDelta::LineDelta(_, y),
+                    ..
+                } => {
+                    // increase/decrease font size
+                    let mut size = font_size;
+                    if y > 0.0 {
+                        size += (size / 4.0).max(2.0)
+                    } else {
+                        size *= 4.0 / 5.0
+                    };
+                    font_size = (size.max(3.0).min(2000.0) * 2.0).round() / 2.0;
+                }
+                _ => ()
             },
 
             winit::event::Event::MainEventsCleared => {
@@ -195,7 +228,7 @@ fn main() {
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
                     // Remove comment to print your FPS.
-                    //println!("FPS: {}", fps);
+                    println!("FPS: {}", fps);
                     fps = 0;
                     then = now;
                 }
