@@ -135,7 +135,7 @@ fn main() {
                             section.text.push(end_text);
                         }
                     }
-                    _ => ()
+                    _ => (),
                 },
                 WindowEvent::ReceivedCharacter(c) => {
                     if c != '\u{7f}' && c != '\u{8}' {
@@ -147,12 +147,12 @@ fn main() {
                             );
                         }
                         section.text.push(
-                                OwnedText::new(c.to_string())
-                                    .with_scale(font_size)
-                                    .with_color([0.9, 0.5, 0.5, 1.0]),
-                            );
+                            OwnedText::new(c.to_string())
+                                .with_scale(font_size)
+                                .with_color([0.9, 0.5, 0.5, 1.0]),
+                        );
                     }
-                },
+                }
                 WindowEvent::MouseWheel {
                     delta: winit::event::MouseScrollDelta::LineDelta(_, y),
                     ..
@@ -166,7 +166,7 @@ fn main() {
                     };
                     font_size = (size.max(3.0).min(2000.0) * 2.0).round() / 2.0;
                 }
-                _ => ()
+                _ => (),
             },
 
             winit::event::Event::MainEventsCleared => {

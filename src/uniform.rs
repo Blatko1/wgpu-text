@@ -12,7 +12,12 @@ pub struct Uniform {
 }
 
 impl Uniform {
-    pub fn new(device: &wgpu::Device, tex_width: u32, tex_height: u32, window_size: (f32, f32)) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        tex_width: u32,
+        tex_height: u32,
+        window_size: (f32, f32),
+    ) -> Self {
         let texture = Self::new_cache_texture(device, tex_width, tex_height);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("wgpu-text Cache Texture Sampler"),
@@ -105,7 +110,9 @@ impl Uniform {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::TextureView(
-                        &self.texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                        &self
+                            .texture
+                            .create_view(&wgpu::TextureViewDescriptor::default()),
                     ),
                 },
                 wgpu::BindGroupEntry {
