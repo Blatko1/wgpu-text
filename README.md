@@ -26,7 +26,7 @@ let section = Section::default()
         let cmd_buffer = brush.draw_queued(&device, &view, &queue);
         // Has to be submitted last so text won't be overlapped.
         queue.submit(cmd_buffer);
-        frame.submit();
+        frame.present();
     }
 ```
 ### **Examples**
