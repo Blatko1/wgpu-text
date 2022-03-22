@@ -87,7 +87,7 @@ impl Pipeline {
 
     pub fn update(&mut self, vertices: Vec<Vertex>, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.vertices = vertices.len() as u32;
-
+        println!("ve: {}", self.vertices);
         if vertices.len() > self.vertex_buffer_len {
             self.vertex_buffer_len = vertices.len();
 
@@ -99,7 +99,6 @@ impl Pipeline {
                 mapped_at_creation: false,
             });
         }
-
         queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&vertices));
     }
 

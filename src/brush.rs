@@ -41,10 +41,22 @@ impl<F: Font + Sync, H: BuildHasher> TextBrush<F, H> {
 
             match brush_action {
                 Ok(_) => break,
+
+                // If texture is too small use BrushBuilder::initial_cache_size 
+                // because resizing texture should be avoided.
                 Err(BrushError::TextureTooSmall { suggested }) => {
-                    self.inner.resize_texture(suggested.0, suggested.1);
-                    self.pipeline
-                        .resize_texture(device, suggested.0, suggested.1);
+                    let max_image_dimension = device.limits().max_texture_dimension_2d;
+                    let (width, height) = if (suggested.0 > max_image_dimension
+                        || suggested.1 > max_image_dimension)
+                        && (self.inner.texture_dimensions().0 < max_image_dimension
+                            || self.inner.texture_dimensions().1 < max_image_dimension)
+                    {
+                        (max_image_dimension, max_image_dimension)
+                    } else {
+                        suggested
+                    };
+                    self.pipeline.resize_texture(device, width, height);
+                    self.inner.resize_texture(width, height);
                 }
             }
         }

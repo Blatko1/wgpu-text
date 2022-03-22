@@ -33,7 +33,13 @@ let section = Section::default()
 Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples) for more.
 * `cargo run --example <example-name>`
 
-#### **Goals**
+### **Goals**
+- improve performance
 - improve docs
 - improve examples
+- rendering text with custom matrix
+- rendering text with scissor region
 - maybe some new features
+
+### **Working on Issue**
+In the _simple_ example, after adding around 1000 characters, every time there is a modification FPS drops but pulls back when it redraws. So every time vertex buffer is being updated with more than 1000 vertices it starts lagging.
