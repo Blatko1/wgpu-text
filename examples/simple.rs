@@ -38,7 +38,7 @@ fn main() {
     let (device, queue) = block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: Some("Device"),
-            features: Features::empty(),
+            features: Features::MAPPABLE_PRIMARY_BUFFERS,
             limits: Limits::default(),
         },
         None,
