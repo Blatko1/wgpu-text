@@ -2,7 +2,7 @@ use glyph_brush::{
     ab_glyph::{point, Rect},
     Rectangle,
 };
-use wgpu::{CommandBuffer, util::DeviceExt};
+use wgpu::{util::DeviceExt, CommandBuffer};
 
 use crate::uniform::Uniform;
 
@@ -87,28 +87,21 @@ impl Pipeline {
 
     pub fn update(&mut self, vertices: Vec<Vertex>, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.vertices = vertices.len() as u32;
-        println!("ve: {}", self.vertices);
-        /*if vertices.len() > self.vertex_buffer_len {
-            self.vertex_buffer_len = vertices.len();
+        let data: &[u8] = bytemuck::cast_slice(&vertices);
 
-            self.vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("wgpu-text Vertex Buffer"),
-                size: (std::mem::size_of::<Vertex>() * self.vertex_buffer_len)
-                    as wgpu::BufferAddress,
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::MAP_WRITE | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-        }
-        queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&vertices));*/
         if vertices.len() > self.vertex_buffer_len {
             self.vertex_buffer_len = vertices.len();
 
             self.vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("wgpu-text Vertex Buffer"),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::MAP_WRITE,
-                contents: bytemuck::cast_slice(&vertices),
+                usage: wgpu::BufferUsages::VERTEX
+                    | wgpu::BufferUsages::COPY_DST,
+                contents: data,
             });
+
+            return;
         }
+        queue.write_buffer(&self.vertex_buffer, 0, data);
     }
 
     pub fn draw(&self, device: &wgpu::Device, view: &wgpu::TextureView) -> CommandBuffer {

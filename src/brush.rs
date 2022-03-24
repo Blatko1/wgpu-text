@@ -42,7 +42,7 @@ impl<F: Font + Sync, H: BuildHasher> TextBrush<F, H> {
             match brush_action {
                 Ok(_) => break,
 
-                // If texture is too small use BrushBuilder::initial_cache_size 
+                // If texture is too small use BrushBuilder::initial_cache_size
                 // because resizing texture should be avoided.
                 Err(BrushError::TextureTooSmall { suggested }) => {
                     let max_image_dimension = device.limits().max_texture_dimension_2d;
