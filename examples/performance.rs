@@ -3,7 +3,7 @@ use std::time::{Duration, Instant, SystemTime};
 use pollster::block_on;
 use rand::Rng;
 use wgpu::{Features, Limits};
-use wgpu_text::section::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign};
+use wgpu_text::section::{BuiltInLineBreaker, Layout, Section, Text};
 use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
@@ -16,7 +16,7 @@ const RANDOM_CHARACTERS: usize = 30_000;
 fn main() {
     std::env::set_var("RUST_LOG", "error");
     env_logger::init();
-    log::info!("STARTING");
+
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("Simple text rendering")

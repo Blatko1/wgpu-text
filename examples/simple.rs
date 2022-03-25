@@ -13,7 +13,6 @@ use winit::{
 fn main() {
     std::env::set_var("RUST_LOG", "error");
     env_logger::init();
-    log::info!("STARTING");
 
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new()
