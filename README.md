@@ -1,7 +1,7 @@
 # wgpu-text
 [![Licence](https://img.shields.io/github/license/Blatko1/wgpu-text?color=%23537aed)](https://github.com/Blatko1/wgpu-text/blob/master/LICENSE)
 [![crates.io](https://img.shields.io/crates/v/wgpu-text)](https://crates.io/crates/wgpu_text)
-[![Documentation](https://img.shields.io/docsrs/wgpu_text)](https://docs.rs/wgpu_text/0.1.1/wgpu_text/)
+[![Documentation](https://img.shields.io/docsrs/wgpu_text)](https://docs.rs/wgpu_text)
 
 **wgpu-text** is a wrapper over **_[glyph-brush](https://github.com/alexheretic/glyph-brush)_** for simpler text rendering in **_[wgpu](https://github.com/gfx-rs/wgpu)_**.
 
