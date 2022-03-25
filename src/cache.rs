@@ -3,7 +3,8 @@ use std::num::NonZeroU32;
 use glyph_brush::Rectangle;
 use wgpu::util::DeviceExt;
 
-pub struct Uniform {
+/// Responsible for texture caching and orthogonal matrix.
+pub struct Cache {
     matrix_buffer: wgpu::Buffer,
     texture: wgpu::Texture,
     sampler: wgpu::Sampler,
@@ -11,7 +12,7 @@ pub struct Uniform {
     pub bind_group_layout: wgpu::BindGroupLayout,
 }
 
-impl Uniform {
+impl Cache {
     pub fn new(
         device: &wgpu::Device,
         tex_width: u32,
@@ -30,13 +31,13 @@ impl Uniform {
         });
 
         let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("wgpu-text Matrix Uniform Buffer"),
+            label: Some("wgpu-text Matrix Buffer"),
             contents: bytemuck::cast_slice(&ortho(window_size.0, window_size.1)),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("wgpu-text Matrix, Texture, Sampler Bind Group Layout"),
+            label: Some("wgpu-text Matrix, Texture and Sampler Bind Group Layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -68,7 +69,7 @@ impl Uniform {
         });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("wgpu-rs Bind Group"),
+            label: Some("wgpu-text Bind Group"),
             layout: &bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
@@ -100,7 +101,7 @@ impl Uniform {
     pub fn recreate_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
         self.texture = Self::new_cache_texture(device, width, height);
         self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("wgpu-rs Bind Group"),
+            label: Some("wgpu-text Bind Group"),
             layout: &self.bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {

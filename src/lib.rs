@@ -7,8 +7,8 @@
 //! * Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
 mod brush;
+mod cache;
 mod pipeline;
-mod uniform;
 
 pub use brush::{BrushBuilder, TextBrush};
 

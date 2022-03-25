@@ -38,7 +38,7 @@ fn main() {
     let (device, queue) = block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: Some("Device"),
-            features: Features::MAPPABLE_PRIMARY_BUFFERS,
+            features: Features::empty(),
             limits: Limits::default(),
         },
         None,
@@ -89,7 +89,7 @@ fn main() {
                 .v_align(VerticalAlign::Top)
                 .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
         )
-        .with_screen_position((700.0, size.height as f32 * 0.5))
+        .with_screen_position((500.0, size.height as f32 * 0.2))
         .to_owned();
 
     let mut then = SystemTime::now();

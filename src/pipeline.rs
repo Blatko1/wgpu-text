@@ -4,11 +4,12 @@ use glyph_brush::{
 };
 use wgpu::{util::DeviceExt, CommandBuffer};
 
-use crate::uniform::Uniform;
+use crate::cache::Cache;
 
+/// Responsible for drawing text.
 pub struct Pipeline {
     inner: wgpu::RenderPipeline,
-    uniform: Uniform,
+    cache: Cache,
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_len: usize,
     vertices: u32,
@@ -21,7 +22,7 @@ impl Pipeline {
         tex_dimensions: (u32, u32),
         window_size: (f32, f32),
     ) -> Self {
-        let uniform = Uniform::new(device, tex_dimensions.0, tex_dimensions.1, window_size);
+        let cache = Cache::new(device, tex_dimensions.0, tex_dimensions.1, window_size);
 
         let shader = device.create_shader_module(&wgpu::include_wgsl!("shader/text.wgsl"));
 
@@ -34,7 +35,7 @@ impl Pipeline {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("wgpu-text Render Pipeline Layout"),
-            bind_group_layouts: &[&uniform.bind_group_layout],
+            bind_group_layouts: &[&cache.bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -78,7 +79,7 @@ impl Pipeline {
 
         Self {
             inner: pipeline,
-            uniform,
+            cache,
             vertex_buffer,
             vertex_buffer_len: 0,
             vertices: 0,
@@ -94,8 +95,7 @@ impl Pipeline {
 
             self.vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("wgpu-text Vertex Buffer"),
-                usage: wgpu::BufferUsages::VERTEX
-                    | wgpu::BufferUsages::COPY_DST,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
                 contents: data,
             });
 
@@ -125,7 +125,7 @@ impl Pipeline {
 
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            rpass.set_bind_group(0, &self.uniform.bind_group, &[]);
+            rpass.set_bind_group(0, &self.cache.bind_group, &[]);
             rpass.draw(0..4, 0..self.vertices);
         }
 
@@ -133,15 +133,15 @@ impl Pipeline {
     }
 
     pub fn resize(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        self.uniform.update_matrix(width, height, queue);
+        self.cache.update_matrix(width, height, queue);
     }
 
     pub fn update_texture(&mut self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
-        self.uniform.update_texture(size, data, queue);
+        self.cache.update_texture(size, data, queue);
     }
 
     pub fn resize_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        self.uniform.recreate_texture(device, width, height);
+        self.cache.recreate_texture(device, width, height);
     }
 }
 
