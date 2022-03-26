@@ -10,6 +10,7 @@ use winit::{
     window::WindowBuilder,
 };
 
+#[allow(unused)]
 fn main() {
     std::env::set_var("RUST_LOG", "error");
     env_logger::init();
@@ -20,82 +21,54 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
-    let instance = wgpu::Instance::new(backends);
-    let (size, surface) = unsafe {
-        let size = window.inner_size();
-        let surface = instance.create_surface(&window);
-        (size, surface)
-    };
-    let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-        power_preference: wgpu::PowerPreference::HighPerformance,
-        compatible_surface: Some(&surface),
-        ..Default::default()
-    }))
-    .expect("No adapters found!");
+    let (device, queue, surface, _, mut config, format) = WgpuUtils::init(&window);
 
-    let (device, queue) = block_on(adapter.request_device(
-        &wgpu::DeviceDescriptor {
-            label: Some("Device"),
-            features: Features::empty(),
-            limits: Limits::default(),
-        },
-        None,
-    ))
-    .unwrap();
-    let format = surface.get_preferred_format(&adapter).unwrap();
-    let mut config = wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format,
-        width: size.width,
-        height: size.height,
-        present_mode: wgpu::PresentMode::Mailbox,
-    };
-    surface.configure(&device, &config);
-
+    // All wgpu-text related below:
     let font: &[u8] = include_bytes!("Inconsolata-Regular.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
         &device,
         format,
         config.width as f32,
-        size.height as f32,
+        config.height as f32,
     );
     let mut font_size = 25.;
     let mut section = Section::default()
         .add_text(
-            Text::new("Try typing some text\n")
-                .with_scale(font_size)
-                .with_color([0.9, 0.5, 0.5, 1.0]),
+            Text::new(
+                "Try typing some text,\n \
+                del - delete all, backspace - remove last character",
+            )
+            .with_scale(font_size)
+            .with_color([0.9, 0.5, 0.5, 1.0]),
         )
-        .with_bounds((size.width as f32 / 2.0, size.height as f32))
+        .with_bounds((config.width as f32 / 2.0, config.height as f32))
         .with_layout(
             Layout::default()
                 .v_align(VerticalAlign::Center)
                 .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
         )
-        .with_screen_position((50.0, size.height as f32 * 0.5))
+        .with_screen_position((50.0, config.height as f32 * 0.5))
         .to_owned();
 
     let section2 = Section::default()
         .add_text(
-            Text::new("* Test 2")
+            Text::new("Other section")
                 .with_scale(40.0)
                 .with_color([0.2, 0.5, 0.8, 1.0]),
         )
-        .with_bounds((size.width as f32 / 2.0, size.height as f32))
+        .with_bounds((config.width as f32 / 2.0, config.height as f32))
         .with_layout(
             Layout::default()
                 .v_align(VerticalAlign::Top)
                 .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
         )
-        .with_screen_position((500.0, size.height as f32 * 0.2))
+        .with_screen_position((500.0, config.height as f32 * 0.2))
         .to_owned();
 
+    // FPS and window updating:
     let mut then = SystemTime::now();
     let mut now = SystemTime::now();
     let mut fps = 0;
-    let target_framerate = Duration::from_secs_f64(1.0 / 60.0);
-    let mut delta_time = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
 
@@ -167,17 +140,6 @@ fn main() {
                 }
                 _ => (),
             },
-
-            winit::event::Event::MainEventsCleared => {
-                if target_framerate <= delta_time.elapsed() {
-                    window.request_redraw();
-                    delta_time = Instant::now();
-                } else {
-                    *control_flow = ControlFlow::WaitUntil(
-                        Instant::now() + target_framerate - delta_time.elapsed(),
-                    );
-                }
-            }
             winit::event::Event::RedrawRequested(_) => {
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
@@ -220,6 +182,7 @@ fn main() {
                 brush.queue(&section2);
 
                 let cmd_buffer = brush.draw_queued(&device, &view, &queue);
+                
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
                 frame.present();
@@ -233,8 +196,68 @@ fn main() {
                 }
                 now = SystemTime::now();
             }
-            winit::event::Event::RedrawEventsCleared => (),
+            winit::event::Event::MainEventsCleared => {
+                let target_framerate = Duration::from_secs_f64(1.0 / 60.0); //<-- change '60.0' if you want other FPS cap
+                let mut delta_time = Instant::now();
+                if target_framerate <= delta_time.elapsed() {
+                    window.request_redraw();
+                    delta_time = Instant::now();
+                } else {
+                    *control_flow = ControlFlow::WaitUntil(
+                        Instant::now() + target_framerate - delta_time.elapsed(),
+                    );
+                }
+            }
             _ => (),
         }
     });
+}
+
+pub struct WgpuUtils;
+
+impl WgpuUtils {
+    pub fn init(
+        window: &winit::window::Window,
+    ) -> (
+        wgpu::Device,
+        wgpu::Queue,
+        wgpu::Surface,
+        wgpu::Adapter,
+        wgpu::SurfaceConfiguration,
+        wgpu::TextureFormat,
+    ) {
+        let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
+        let instance = wgpu::Instance::new(backends);
+        let (size, surface) = unsafe {
+            let size = window.inner_size();
+            let surface = instance.create_surface(&window);
+            (size, surface)
+        };
+        let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            compatible_surface: Some(&surface),
+            ..Default::default()
+        }))
+        .expect("No adapters found!");
+
+        let (device, queue) = block_on(adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                label: Some("Device"),
+                features: Features::empty(),
+                limits: Limits::default(),
+            },
+            None,
+        ))
+        .unwrap();
+        let format = surface.get_preferred_format(&adapter).unwrap();
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format,
+            width: size.width,
+            height: size.height,
+            present_mode: wgpu::PresentMode::Mailbox,
+        };
+        surface.configure(&device, &config);
+        (device, queue, surface, adapter, config, format)
+    }
 }

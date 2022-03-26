@@ -13,8 +13,9 @@ Example:
 ```rust
 use wgpu_text::BrushBuilder;
 use wgpu_text::section::{Section, Text, Layout, HorizontalAlign};
-let brush = BrushBuilder::using_font_bytes(font).unwrap().build(
-        &device, format, width, height);
+let brush = BrushBuilder::using_font_bytes(font).unwrap()
+ /* .initial_cache_size((1024, 1024))) */ // use this to avoid resizing cache texture
+    .build(&device, format, width, height);
 let section = Section::default()
     .add_text(Text::new("Hello World"))
     .with_layout(Layout::default().h_align(HorizontalAlign::Center));
@@ -35,7 +36,7 @@ Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples
 
 ### **Goals**
 - improve docs
-- improve examples
+- add more examples
 - rendering text with custom matrix
 - rendering text with scissor region
 - maybe some new features

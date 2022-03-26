@@ -1,8 +1,8 @@
-use std::time::{Duration, Instant, SystemTime};
+mod simple;
 
-use pollster::block_on;
 use rand::Rng;
-use wgpu::{Features, Limits};
+use simple::*;
+use std::time::{Duration, Instant, SystemTime};
 use wgpu_text::section::{BuiltInLineBreaker, Layout, Section, Text};
 use wgpu_text::BrushBuilder;
 use winit::{
@@ -23,45 +23,14 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
-    let instance = wgpu::Instance::new(backends);
-    let (size, surface) = unsafe {
-        let size = window.inner_size();
-        let surface = instance.create_surface(&window);
-        (size, surface)
-    };
-    let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-        power_preference: wgpu::PowerPreference::HighPerformance,
-        compatible_surface: Some(&surface),
-        ..Default::default()
-    }))
-    .expect("No adapters found!");
-
-    let (device, queue) = block_on(adapter.request_device(
-        &wgpu::DeviceDescriptor {
-            label: Some("Device"),
-            features: Features::empty(),
-            limits: Limits::default(),
-        },
-        None,
-    ))
-    .unwrap();
-    let format = surface.get_preferred_format(&adapter).unwrap();
-    let mut config = wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format,
-        width: size.width,
-        height: size.height,
-        present_mode: wgpu::PresentMode::Mailbox,
-    };
-    surface.configure(&device, &config);
+    let (device, queue, surface, _, mut config, format) = WgpuUtils::init(&window);
 
     let font: &[u8] = include_bytes!("DejaVuSans.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
         &device,
         format,
         config.width as f32,
-        size.height as f32,
+        config.height as f32,
     );
     let mut random_text = generate_random_chars();
     let mut font_size: f32 = 9.;
@@ -69,8 +38,6 @@ fn main() {
     let mut then = SystemTime::now();
     let mut now = SystemTime::now();
     let mut fps = 0;
-    let target_framerate = Duration::from_secs_f64(1.0 / 60.0);
-    let mut delta_time = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
 
@@ -122,17 +89,6 @@ fn main() {
                 }
                 _ => (),
             },
-
-            winit::event::Event::MainEventsCleared => {
-                if target_framerate <= delta_time.elapsed() {
-                    window.request_redraw();
-                    delta_time = Instant::now();
-                } else {
-                    *control_flow = ControlFlow::WaitUntil(
-                        Instant::now() + target_framerate - delta_time.elapsed(),
-                    );
-                }
-            }
             winit::event::Event::RedrawRequested(_) => {
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
@@ -198,19 +154,30 @@ fn main() {
                 }
                 now = SystemTime::now();
             }
-            winit::event::Event::RedrawEventsCleared => (),
+            winit::event::Event::MainEventsCleared => {
+                let target_framerate = Duration::from_secs_f64(1.0 / 60.0); //<-- change '60.0' if you want other FPS cap
+                let mut delta_time = Instant::now();
+                if target_framerate <= delta_time.elapsed() {
+                    window.request_redraw();
+                    delta_time = Instant::now();
+                } else {
+                    *control_flow = ControlFlow::WaitUntil(
+                        Instant::now() + target_framerate - delta_time.elapsed(),
+                    );
+                }
+            }
             _ => (),
         }
     });
 }
 
 fn generate_random_chars() -> String {
-    let mut random = String::new();
+    let mut result = String::new();
     let mut rng = rand::thread_rng();
     for _ in 0..RANDOM_CHARACTERS {
         let rand = rng.gen_range(0x0041..0x0070);
         let char = char::from_u32(rand).unwrap();
-        random.push(char);
+        result.push(char);
     }
-    random.trim().to_owned()
+    result.trim().to_owned()
 }
