@@ -86,7 +86,12 @@ impl Pipeline {
         }
     }
 
-    pub fn update(&mut self, vertices: Vec<Vertex>, device: &wgpu::Device, queue: &wgpu::Queue) {
+    pub fn update_buffer(
+        &mut self,
+        vertices: Vec<Vertex>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
         self.vertices = vertices.len() as u32;
         let data: &[u8] = bytemuck::cast_slice(&vertices);
 

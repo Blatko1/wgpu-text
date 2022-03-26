@@ -182,7 +182,7 @@ fn main() {
                 brush.queue(&section2);
 
                 let cmd_buffer = brush.draw_queued(&device, &view, &queue);
-                
+
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
                 frame.present();
