@@ -38,6 +38,8 @@ fn main() {
     let mut then = SystemTime::now();
     let mut now = SystemTime::now();
     let mut fps = 0;
+    let target_framerate = Duration::from_secs_f64(1.0 / 60.0); //<-- change '60.0' if you want other FPS cap
+    let mut delta_time = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
 
@@ -155,8 +157,6 @@ fn main() {
                 now = SystemTime::now();
             }
             winit::event::Event::MainEventsCleared => {
-                let target_framerate = Duration::from_secs_f64(1.0 / 60.0); //<-- change '60.0' if you want other FPS cap
-                let mut delta_time = Instant::now();
                 if target_framerate <= delta_time.elapsed() {
                     window.request_redraw();
                     delta_time = Instant::now();
