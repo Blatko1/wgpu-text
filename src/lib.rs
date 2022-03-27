@@ -44,12 +44,12 @@ impl<F: Font + Sync, H: std::hash::BuildHasher> TextBrush<F, H> {
         self.inner.queue(section);
     }
 
-    /// Draws all queued text and sections with [`queue`](#method.queue) function.
-    pub fn draw_queued(
+    fn draw_queued(
         &mut self,
         device: &wgpu::Device,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
+        matrix: Option<[f32; 16]>,
     ) -> wgpu::CommandBuffer {
         let mut brush_action;
 
@@ -96,12 +96,51 @@ impl<F: Font + Sync, H: std::hash::BuildHasher> TextBrush<F, H> {
         self.pipeline.draw(device, view)
     }
 
-    /// Resizes text rendering pipeline.
+    /// Draws all queued text and sections with [`queue`](#method.queue) function.
+    /// 
+    /// Use [`TextBrush::draw_custom`] for more rendering options.
+    pub fn draw(
+        &mut self,
+        device: &wgpu::Device,
+        view: &wgpu::TextureView,
+        queue: &wgpu::Queue,
+    ) -> wgpu::CommandBuffer {
+        self.draw_queued(device, view, queue, None)
+    }
+
+    /// Draws all queued text and sections with [`queue`](#method.queue) function.
+    ///
+    /// TODO more doc
+    pub fn draw_custom<M>(
+        &mut self,
+        device: &wgpu::Device,
+        view: &wgpu::TextureView,
+        queue: &wgpu::Queue,
+        matrix: Option<M>,
+    ) -> wgpu::CommandBuffer
+    where
+        M: Into<[f32; 16]>,
+    {
+        self.draw_queued(device, view, queue, matrix.map(|m| m.into()))
+    }
+
+    /// Resizes "_camera_". Updates default orthogonal view matrix with given arguments.
     ///
     /// Run this function whenever the surface is resized.
     /// _width_ and _height_ should be **surfaces** dimensions.
-    pub fn resize(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        self.pipeline.resize(width, height, queue);
+    #[inline]
+    pub fn resize_view(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
+        let matrix = ortho(width, height);
+        self.pipeline.update_matrix(matrix, queue);
+    }
+
+    /// Provide your own matrix which will be used instead of default orthogonal view matrix.
+    #[inline]
+    pub fn custom_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
+    where
+        M: Into<[f32; 16]>,
+    {
+        self.pipeline.update_matrix(matrix.into(), queue);
     }
 }
 
@@ -151,12 +190,18 @@ impl<F: Font, H: std::hash::BuildHasher> BrushBuilder<F, H> {
         height: f32,
     ) -> TextBrush<F, H> {
         let inner = self.inner.build();
-        let pipeline = Pipeline::new(
-            device,
-            render_format,
-            inner.texture_dimensions(),
-            (width, height),
-        );
+        let matrix = ortho(width, height);
+        let pipeline = Pipeline::new(device, render_format, inner.texture_dimensions(), matrix);
         TextBrush { inner, pipeline }
     }
+}
+
+#[rustfmt::skip]
+fn ortho(width: f32, height: f32) -> [f32; 16] {
+    [
+        2.0 / width, 0.0,          0.0, 0.0,
+        0.0,        -2.0 / height, 0.0, 0.0,
+        0.0,         0.0,          1.0, 0.0,
+       -1.0,         1.0,          0.0, 1.0,
+    ]
 }

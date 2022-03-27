@@ -5,20 +5,16 @@ use wgpu::util::DeviceExt;
 
 /// Responsible for texture caching and orthogonal matrix.
 pub struct Cache {
+    pub bind_group_layout: wgpu::BindGroupLayout,
+    pub bind_group: wgpu::BindGroup,
+
     matrix_buffer: wgpu::Buffer,
     texture: wgpu::Texture,
     sampler: wgpu::Sampler,
-    pub bind_group: wgpu::BindGroup,
-    pub bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl Cache {
-    pub fn new(
-        device: &wgpu::Device,
-        tex_width: u32,
-        tex_height: u32,
-        window_size: (f32, f32),
-    ) -> Self {
+    pub fn new(device: &wgpu::Device, tex_width: u32, tex_height: u32, matrix: [f32; 16]) -> Self {
         let texture = Self::new_cache_texture(device, tex_width, tex_height);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("wgpu-text Cache Texture Sampler"),
@@ -32,7 +28,7 @@ impl Cache {
 
         let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("wgpu-text Matrix Buffer"),
-            contents: bytemuck::cast_slice(&ortho(window_size.0, window_size.1)),
+            contents: bytemuck::cast_slice(&matrix),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -124,12 +120,8 @@ impl Cache {
         });
     }
 
-    pub fn update_matrix(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        queue.write_buffer(
-            &self.matrix_buffer,
-            0,
-            bytemuck::cast_slice(&ortho(width, height)),
-        );
+    pub fn update_matrix(&mut self, matrix: [f32; 16], queue: &wgpu::Queue) {
+        queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&matrix));
     }
 
     pub fn update_texture(&mut self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
@@ -174,14 +166,4 @@ impl Cache {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
         })
     }
-}
-
-#[rustfmt::skip]
-fn ortho(width: f32, height: f32) -> [f32; 16] {
-    [
-        2.0 / width, 0.0,          0.0, 0.0,
-        0.0,        -2.0 / height, 0.0, 0.0,
-        0.0,         0.0,          1.0, 0.0,
-       -1.0,         1.0,          0.0, 1.0,
-    ]
 }

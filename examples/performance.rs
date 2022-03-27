@@ -63,7 +63,7 @@ fn main() {
                     config.height = new_size.height.max(1);
                     surface.configure(&device, &config);
 
-                    brush.resize(config.width as f32, config.height as f32, &queue)
+                    brush.resize_view(config.width as f32, config.height as f32, &queue)
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::KeyboardInput {
@@ -151,7 +151,7 @@ fn main() {
 
                 brush.queue(&section);
 
-                let cmd_buffer = brush.draw_queued(&device, &view, &queue);
+                let cmd_buffer = brush.draw(&device, &view, &queue);
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
                 frame.present();

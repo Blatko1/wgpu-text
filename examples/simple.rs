@@ -90,7 +90,7 @@ fn main() {
                     section.bounds = (config.width as f32 * 0.5, config.height as _);
                     section.screen_position.1 = config.height as f32 * 0.5;
 
-                    brush.resize(config.width as f32, config.height as f32, &queue)
+                    brush.resize_view(config.width as f32, config.height as f32, &queue)
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::KeyboardInput {
@@ -185,7 +185,7 @@ fn main() {
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                let cmd_buffer = brush.draw_queued(&device, &view, &queue);
+                let cmd_buffer = brush.draw(&device, &view, &queue);
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
