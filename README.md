@@ -35,7 +35,7 @@ let section = Section::default()
 Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples) for more.
 * `cargo run --example <example-name>`
 
-Some examples have to be run with `--release` for true performance.
+Run examples with `--release` for true performance.
 
 ## **Goals**
 - improve docs

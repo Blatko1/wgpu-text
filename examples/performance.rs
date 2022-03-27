@@ -14,12 +14,21 @@ use winit::{
 const RANDOM_CHARACTERS: usize = 30_000;
 
 fn main() {
-    std::env::set_var("RUST_LOG", "error");
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "error");
+    }
     env_logger::init();
+
+    if cfg!(debug_assertions) {
+        eprintln!(
+            "You should probably run an example called 'performance' in release mode.\n\
+            e.g. use `cargo run --example performance --release`\n"
+        );
+    }
 
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("Simple text rendering")
+        .with_title("wgpu-text: 'performance' example, glyphs: 30000")
         .build(&event_loop)
         .unwrap();
 
@@ -139,7 +148,7 @@ fn main() {
                     .with_layout(
                         Layout::default().line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
                     );
-                // Has to be queued every frame.
+
                 brush.queue(&section);
 
                 let cmd_buffer = brush.draw_queued(&device, &view, &queue);
@@ -149,8 +158,11 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    // Remove comment to print your FPS.
-                    println!("FPS: {}", fps);
+                    window.set_title(&format!(
+                        "wgpu-text: 'performance' example, FPS: {}, glyphs: {}",
+                        fps,
+                        random_text.len()
+                    ));
                     fps = 0;
                     then = now;
                 }

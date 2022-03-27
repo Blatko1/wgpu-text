@@ -12,12 +12,14 @@ use winit::{
 
 #[allow(unused)]
 fn main() {
-    std::env::set_var("RUST_LOG", "error");
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "error");
+    }
     env_logger::init();
 
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("Simple text rendering")
+        .with_title("wgpu-text: 'simple' example")
         .build(&event_loop)
         .unwrap();
 
@@ -179,7 +181,7 @@ fn main() {
                         depth_stencil_attachment: None,
                     });
                 }
-                // Has to be queued every frame.
+
                 brush.queue(&section);
                 brush.queue(&section2);
 
@@ -191,16 +193,13 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    // Remove comment to print your FPS.
-                    println!("FPS: {}", fps);
+                    window.set_title(&format!("wgpu-text: 'simple' example, FPS: {}", fps));
                     fps = 0;
                     then = now;
                 }
                 now = SystemTime::now();
             }
             winit::event::Event::MainEventsCleared => {
-                let target_framerate = Duration::from_secs_f64(1.0 / 60.0); //<-- change '60.0' if you want other FPS cap
-                let mut delta_time = Instant::now();
                 if target_framerate <= delta_time.elapsed() {
                     window.request_redraw();
                     delta_time = Instant::now();
