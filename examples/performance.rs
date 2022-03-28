@@ -34,7 +34,7 @@ fn main() {
 
     let (device, queue, surface, _, mut config, format) = WgpuUtils::init(&window);
 
-    let font: &[u8] = include_bytes!("fonts\\DejaVuSans.ttf");
+    let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
         &device,
         format,
