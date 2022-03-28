@@ -1,7 +1,7 @@
 [package]
 name = "wgpu_text"
 authors = ["Leon (Blatko1)"]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Simple library for rendering text with wgpu"
 license = "MIT"
@@ -10,6 +10,7 @@ repository = "https://github.com/Blatko1/wgpu-text"
 keywords = ["wgpu", "text", "ttf", "truetype", "font"]
 categories = ["graphics", "rendering"]
 resolver = "2"
+include = ["src/**/*", "LICENSE", "README.md", "Cargo.toml", ".gitignore"]
 
 [dependencies]
 wgpu = "0.12.0"
