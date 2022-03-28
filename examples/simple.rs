@@ -1,5 +1,5 @@
-use std::time::{Duration, Instant, SystemTime};
 use pollster::block_on;
+use std::time::{Duration, Instant, SystemTime};
 use wgpu_text::section::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign};
 use wgpu_text::BrushBuilder;
 use winit::{
