@@ -1,7 +1,5 @@
-use std::time::{Duration, Instant, SystemTime};
-
 use pollster::block_on;
-use wgpu::{Features, Limits};
+use std::time::{Duration, Instant, SystemTime};
 use wgpu_text::section::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign};
 use wgpu_text::BrushBuilder;
 use winit::{
@@ -26,7 +24,7 @@ fn main() {
     let (device, queue, surface, _, mut config, format) = WgpuUtils::init(&window);
 
     // All wgpu-text related below:
-    let font: &[u8] = include_bytes!("Inconsolata-Regular.ttf");
+    let font: &[u8] = include_bytes!("fonts/Inconsolata-Regular.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
         &device,
         format,
@@ -90,7 +88,7 @@ fn main() {
                     section.bounds = (config.width as f32 * 0.5, config.height as _);
                     section.screen_position.1 = config.height as f32 * 0.5;
 
-                    brush.resize(config.width as f32, config.height as f32, &queue)
+                    brush.resize_view(config.width as f32, config.height as f32, &queue)
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::KeyboardInput {
@@ -181,11 +179,10 @@ fn main() {
                         depth_stencil_attachment: None,
                     });
                 }
-
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                let cmd_buffer = brush.draw_queued(&device, &view, &queue);
+                let cmd_buffer = brush.draw(&device, &view, &queue);
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
@@ -244,8 +241,8 @@ impl WgpuUtils {
         let (device, queue) = block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: Some("Device"),
-                features: Features::empty(),
-                limits: Limits::default(),
+                features: wgpu::Features::empty(),
+                limits: wgpu::Limits::default(),
             },
             None,
         ))

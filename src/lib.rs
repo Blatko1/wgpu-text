@@ -1,8 +1,12 @@
-//! wgpu-text is a wrapper over [glyph-brush](https://github.com/alexheretic/glyph-brush) for simpler text rendering in [wgpu](https://github.com/gfx-rs/wgpu).
+//! wgpu-text is a wrapper over [glyph-brush](https://github.com/alexheretic/glyph-brush)
+//! for simpler text rendering in [wgpu](https://github.com/gfx-rs/wgpu).
 //!
-//! This project was inspired by and is similar to [wgpu_glyph](https://github.com/hecrj/wgpu_glyph), but has additional features and is simpler. Also there is no need to include glyph-brush in your project.
+//! This project was inspired by and is similar to [wgpu_glyph](https://github.com/hecrj/wgpu_glyph),
+//! but has additional features and is simpler. Also there is no need to include glyph-brush in your project.
 //!
-//! Some features are directly implemented from glyph-brush so you should go trough [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html) for better understanding of adding and managing text.
+//! Some features are directly implemented from glyph-brush so you should go trough
+//! [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html)
+//! for better understanding of adding and managing text.
 //!
 //! * Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
@@ -10,10 +14,15 @@ mod cache;
 mod pipeline;
 
 /// Contains all needed structs and enums for inserting and styling text. Directly taken from glyph_brush.
+///
+/// Look into [glyph_brush_layout docs](https://docs.rs/glyph_brush_layout/latest/glyph_brush_layout/#enums)
+/// for the real, detailed, documentation.
+/// - If anything is missing create an issue on github and I'll add it.
 pub mod section {
+    #[doc(hidden)]
     pub use glyph_brush::{
-        BuiltInLineBreaker, Color, HorizontalAlign, Layout, OwnedSection, OwnedText, Section, Text,
-        VerticalAlign,
+        BuiltInLineBreaker, Color, FontId, HorizontalAlign, Layout, LineBreak, OwnedSection,
+        OwnedText, Section, SectionText, Text, VerticalAlign,
     };
 }
 
@@ -23,9 +32,57 @@ use glyph_brush::{
 };
 use pipeline::{Pipeline, Vertex};
 
+/// Marks scissor region and tries to fit it in inside the specified surface dimensions
+/// to avoid `wgpu` related rendering errors. `s_width` and `s_height` are most likely
+/// to be your windows width and height.
+pub struct ScissorRegion {
+    /// x coordinate of top left region point.
+    pub x: u32,
+
+    /// y coordinate of top left region point.
+    pub y: u32,
+
+    /// Width of scissor region.
+    pub width: u32,
+
+    /// Height of scissor region.
+    pub height: u32,
+
+    /// Surface height.
+    pub s_width: u32,
+
+    /// Surface width.
+    pub s_height: u32,
+}
+
+impl ScissorRegion {
+    /// Checks if the region is contained in surface bounds at all.
+    pub(crate) fn is_contained(&self) -> bool {
+        if self.x < self.s_width && self.y < self.s_height {
+            return true;
+        }
+        false
+    }
+
+    /// Gives available bounds paying attention to `s_width` and `s_height`.
+    pub(crate) fn available_bounds(&self) -> (u32, u32) {
+        let width = if (self.x + self.width) > self.s_width {
+            self.s_width - self.x
+        } else {
+            self.width
+        };
+        let height = if (self.y + self.height) > self.s_height {
+            self.s_height - self.y
+        } else {
+            self.height
+        };
+        (width, height)
+    }
+}
+
 /// Wrapper over [`glyph_brush::GlyphBrush`]. Draws text.
 ///
-/// Used for queuing and rendering text with [`TextBrush::queue`] and [`TextBrush::draw_queued`].
+/// Used for queuing and rendering text with [`TextBrush::draw`] and [`TextBrush::draw_custom`].
 pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
     pipeline: Pipeline,
@@ -44,12 +101,12 @@ impl<F: Font + Sync, H: std::hash::BuildHasher> TextBrush<F, H> {
         self.inner.queue(section);
     }
 
-    /// Draws all queued text and sections with [`queue`](#method.queue) function.
-    pub fn draw_queued(
+    fn draw_queued(
         &mut self,
         device: &wgpu::Device,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
+        region: Option<ScissorRegion>,
     ) -> wgpu::CommandBuffer {
         let mut brush_action;
 
@@ -62,8 +119,6 @@ impl<F: Font + Sync, H: std::hash::BuildHasher> TextBrush<F, H> {
             match brush_action {
                 Ok(_) => break,
 
-                // If texture is too small use BrushBuilder::initial_cache_size
-                // because resizing texture should be avoided.
                 Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
                     if log::log_enabled!(log::Level::Warn) {
                         log::warn!(
@@ -93,15 +148,56 @@ impl<F: Font + Sync, H: std::hash::BuildHasher> TextBrush<F, H> {
             BrushAction::ReDraw => (),
         }
 
-        self.pipeline.draw(device, view)
+        self.pipeline.draw(device, view, region)
     }
 
-    /// Resizes text rendering pipeline.
+    /// Draws all queued sections with [`queue`](#method.queue) function.
+    ///
+    /// Use [`TextBrush::draw_custom`] for more rendering options.
+    pub fn draw(
+        &mut self,
+        device: &wgpu::Device,
+        view: &wgpu::TextureView,
+        queue: &wgpu::Queue,
+    ) -> wgpu::CommandBuffer {
+        self.draw_queued(device, view, queue, None)
+    }
+
+    /// Draws all queued text with extra options.
+    ///
+    /// # Scissoring
+    /// With scissoring, you can filter out each glyph fragment that crosses the given `region`.
+    pub fn draw_custom<R>(
+        &mut self,
+        device: &wgpu::Device,
+        view: &wgpu::TextureView,
+        queue: &wgpu::Queue,
+        region: Option<R>,
+    ) -> wgpu::CommandBuffer
+    where
+        R: Into<ScissorRegion>,
+    {
+        self.draw_queued(device, view, queue, region.map(|r| r.into()))
+    }
+
+    /// Resizes "_camera_". Updates default orthogonal view matrix
+    /// with given arguments and uses it for rendering.
     ///
     /// Run this function whenever the surface is resized.
     /// _width_ and _height_ should be **surfaces** dimensions.
-    pub fn resize(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        self.pipeline.resize(width, height, queue);
+    #[inline]
+    pub fn resize_view(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
+        let matrix = ortho(width, height);
+        self.pipeline.update_matrix(matrix, queue);
+    }
+
+    /// Provides your own matrix for rendering instead of default orthogonal view matrix.
+    #[inline]
+    pub fn custom_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
+    where
+        M: Into<[f32; 16]>,
+    {
+        self.pipeline.update_matrix(matrix.into(), queue);
     }
 }
 
@@ -151,12 +247,18 @@ impl<F: Font, H: std::hash::BuildHasher> BrushBuilder<F, H> {
         height: f32,
     ) -> TextBrush<F, H> {
         let inner = self.inner.build();
-        let pipeline = Pipeline::new(
-            device,
-            render_format,
-            inner.texture_dimensions(),
-            (width, height),
-        );
+        let matrix = ortho(width, height);
+        let pipeline = Pipeline::new(device, render_format, inner.texture_dimensions(), matrix);
         TextBrush { inner, pipeline }
     }
+}
+
+#[rustfmt::skip]
+fn ortho(width: f32, height: f32) -> [f32; 16] {
+    [
+        2.0 / width, 0.0,          0.0, 0.0,
+        0.0,        -2.0 / height, 0.0, 0.0,
+        0.0,         0.0,          1.0, 0.0,
+       -1.0,         1.0,          0.0, 1.0,
+    ]
 }

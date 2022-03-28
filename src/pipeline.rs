@@ -9,10 +9,12 @@ use crate::cache::Cache;
 /// Responsible for drawing text.
 pub struct Pipeline {
     inner: wgpu::RenderPipeline,
-    cache: Cache,
+
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_len: usize,
     vertices: u32,
+
+    cache: Cache,
 }
 
 impl Pipeline {
@@ -20,9 +22,9 @@ impl Pipeline {
         device: &wgpu::Device,
         render_format: wgpu::TextureFormat,
         tex_dimensions: (u32, u32),
-        window_size: (f32, f32),
+        matrix: [f32; 16],
     ) -> Self {
-        let cache = Cache::new(device, tex_dimensions.0, tex_dimensions.1, window_size);
+        let cache = Cache::new(device, tex_dimensions.0, tex_dimensions.1, matrix);
 
         let shader = device.create_shader_module(&wgpu::include_wgsl!("shader/text.wgsl"));
 
@@ -79,10 +81,10 @@ impl Pipeline {
 
         Self {
             inner: pipeline,
-            cache,
             vertex_buffer,
             vertex_buffer_len: 0,
             vertices: 0,
+            cache,
         }
     }
 
@@ -109,7 +111,12 @@ impl Pipeline {
         queue.write_buffer(&self.vertex_buffer, 0, data);
     }
 
-    pub fn draw(&self, device: &wgpu::Device, view: &wgpu::TextureView) -> CommandBuffer {
+    pub fn draw(
+        &self,
+        device: &wgpu::Device,
+        view: &wgpu::TextureView,
+        region: Option<crate::ScissorRegion>,
+    ) -> CommandBuffer {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("wgpu-text Command Encoder"),
         });
@@ -131,14 +138,22 @@ impl Pipeline {
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_bind_group(0, &self.cache.bind_group, &[]);
+
+            if let Some(r) = region {
+                if r.is_contained() {
+                    let (w, h) = r.available_bounds();
+                    rpass.set_scissor_rect(r.x, r.y, w, h);
+                }
+            }
+
             rpass.draw(0..4, 0..self.vertices);
         }
 
         encoder.finish()
     }
 
-    pub fn resize(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        self.cache.update_matrix(width, height, queue);
+    pub fn update_matrix(&mut self, matrix: [f32; 16], queue: &wgpu::Queue) {
+        self.cache.update_matrix(matrix, queue);
     }
 
     pub fn update_texture(&mut self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
