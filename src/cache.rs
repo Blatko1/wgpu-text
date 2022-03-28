@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use glyph_brush::Rectangle;
 use wgpu::util::DeviceExt;
 
-/// Responsible for texture caching and orthogonal matrix.
+/// Responsible for texture caching and matrix.
 pub struct Cache {
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub bind_group: wgpu::BindGroup,

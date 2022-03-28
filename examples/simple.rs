@@ -1,7 +1,5 @@
 use std::time::{Duration, Instant, SystemTime};
-
 use pollster::block_on;
-use wgpu::{Features, Limits};
 use wgpu_text::section::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign};
 use wgpu_text::BrushBuilder;
 use winit::{
@@ -26,7 +24,7 @@ fn main() {
     let (device, queue, surface, _, mut config, format) = WgpuUtils::init(&window);
 
     // All wgpu-text related below:
-    let font: &[u8] = include_bytes!("Inconsolata-Regular.ttf");
+    let font: &[u8] = include_bytes!("fonts\\Inconsolata-Regular.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
         &device,
         format,
@@ -181,7 +179,6 @@ fn main() {
                         depth_stencil_attachment: None,
                     });
                 }
-
                 brush.queue(&section);
                 brush.queue(&section2);
 
@@ -244,8 +241,8 @@ impl WgpuUtils {
         let (device, queue) = block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: Some("Device"),
-                features: Features::empty(),
-                limits: Limits::default(),
+                features: wgpu::Features::empty(),
+                limits: wgpu::Limits::default(),
             },
             None,
         ))

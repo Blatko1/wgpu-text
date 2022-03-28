@@ -81,10 +81,10 @@ impl Pipeline {
 
         Self {
             inner: pipeline,
-            cache,
             vertex_buffer,
             vertex_buffer_len: 0,
             vertices: 0,
+            cache,
         }
     }
 
@@ -111,7 +111,12 @@ impl Pipeline {
         queue.write_buffer(&self.vertex_buffer, 0, data);
     }
 
-    pub fn draw(&self, device: &wgpu::Device, view: &wgpu::TextureView) -> CommandBuffer {
+    pub fn draw(
+        &self,
+        device: &wgpu::Device,
+        view: &wgpu::TextureView,
+        region: Option<crate::ScissorRegion>,
+    ) -> CommandBuffer {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("wgpu-text Command Encoder"),
         });
@@ -133,6 +138,14 @@ impl Pipeline {
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_bind_group(0, &self.cache.bind_group, &[]);
+
+            if let Some(r) = region {
+                if r.is_contained() {
+                    let (w, h) = r.available_bounds();
+                    rpass.set_scissor_rect(r.x, r.y, w, h);
+                }
+            }
+
             rpass.draw(0..4, 0..self.vertices);
         }
 
