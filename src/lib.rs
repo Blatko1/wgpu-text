@@ -88,7 +88,11 @@ pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
     pipeline: Pipeline,
 }
 
-impl<F: Font + Sync, H: std::hash::BuildHasher> TextBrush<F, H> {
+impl<F, H> TextBrush<F, H>
+where
+    F: Font + Sync,
+    H: std::hash::BuildHasher,
+{
     /// Queues section for drawing. This should be called every frame for every section that is going to be drawn.
     ///
     /// This can be called multiple times for different sections that want to use the
@@ -235,7 +239,11 @@ impl BrushBuilder<()> {
     }
 }
 
-impl<F: Font, H: std::hash::BuildHasher> BrushBuilder<F, H> {
+impl<F, H> BrushBuilder<F, H>
+where
+    F: Font,
+    H: std::hash::BuildHasher,
+{
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
 
     /// Builds a [`TextBrush`] consuming [`BrushBuilder`].
