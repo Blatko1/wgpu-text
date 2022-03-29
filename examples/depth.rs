@@ -3,7 +3,7 @@ mod simple;
 use simple::WgpuUtils;
 use std::time::{Duration, Instant, SystemTime};
 use wgpu_text::section::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign};
-use wgpu_text::{BrushBuilder, ScissorRegion};
+use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
@@ -19,7 +19,7 @@ fn main() {
 
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("wgpu-text: 'scissoring' example")
+        .with_title("wgpu-text: 'depth' example")
         .build(&event_loop)
         .unwrap();
 
@@ -33,7 +33,7 @@ fn main() {
         config.width as f32,
         config.height as f32,
     );
-    let mut font_size = 25.;
+    let mut font_size = 45.;
     let mut section = Section::default()
         .add_text(
             Text::new(
@@ -41,12 +41,29 @@ fn main() {
                 del - delete all, backspace - remove last character",
             )
             .with_scale(font_size)
-            .with_color([0.9, 0.5, 0.5, 1.0]),
+            .with_color([0.9, 0.5, 0.5, 1.0])
+            .with_z(0.9), // In range 0.0 - 1.0 bigger number means it's more at the back
         )
         .with_bounds((config.width as f32 / 2.0, config.height as f32))
         .with_layout(
             Layout::default()
                 .v_align(VerticalAlign::Center)
+                .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+        )
+        .with_screen_position((50.0, config.height as f32 * 0.5))
+        .to_owned();
+
+    let section2 = Section::default()
+        .add_text(
+            Text::new("Other section")
+                .with_scale(80.0)
+                .with_color([0.2, 0.5, 0.8, 1.0])
+                .with_z(0.1), // In range 0.0 - 1.0 bigger number means it's more at the back
+        )
+        .with_bounds((config.width as f32 / 2.0, config.height as f32))
+        .with_layout(
+            Layout::default()
+                .v_align(VerticalAlign::Top)
                 .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
         )
         .with_screen_position((50.0, config.height as f32 * 0.5))
@@ -104,13 +121,15 @@ fn main() {
                             section.text.push(
                                 OwnedText::default()
                                     .with_scale(font_size)
-                                    .with_color([0.9, 0.5, 0.5, 1.0]),
+                                    .with_color([0.9, 0.5, 0.5, 1.0])
+                                    .with_z(0.5),
                             );
                         }
                         section.text.push(
                             OwnedText::new(c.to_string())
                                 .with_scale(font_size)
-                                .with_color([0.9, 0.5, 0.5, 1.0]),
+                                .with_color([0.9, 0.5, 0.5, 1.0])
+                                .with_z(0.5),
                         );
                     }
                 }
@@ -166,21 +185,10 @@ fn main() {
                         depth_stencil_attachment: None,
                     });
                 }
-
                 brush.queue(&section);
+                brush.queue(&section2);
 
-                let cmd_buffer = brush.draw_custom(
-                    &device,
-                    &view,
-                    &queue,
-                    &config,
-                    Some(ScissorRegion {
-                        x: 53,
-                        y: 20,
-                        width: 350,
-                        height: 350,
-                    })
-                );
+                let cmd_buffer = brush.draw(&device, &view, &queue, &config);
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
@@ -188,7 +196,7 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    window.set_title(&format!("wgpu-text: 'scissoring' example, FPS: {}", fps));
+                    window.set_title(&format!("wgpu-text: 'depth' example, FPS: {}", fps));
                     fps = 0;
                     then = now;
                 }
