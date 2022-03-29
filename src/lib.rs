@@ -286,6 +286,10 @@ where
 {
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
 
+    /// Defaults to `false`. If set to true all text will be depth tested. 
+    /// Depth can be for each section can be set by z coordinate.
+    /// 
+    /// When enabled, section `z` coordinate should be in range 0.0 - 1.0 not including 1.0.
     pub fn with_depth_testing(mut self, depth_test: bool) -> Self {
         self.depth_test = depth_test;
         self
