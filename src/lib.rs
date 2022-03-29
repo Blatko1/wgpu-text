@@ -7,7 +7,7 @@
 //! Some features are directly implemented from glyph-brush so you should go trough
 //! [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html)
 //! for better understanding of adding and managing text.
-//! 
+//!
 //! If you want to learn about GPU texture caching see [caching behaviour](#caching-behaviour).
 //!
 //! * Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples).
@@ -59,7 +59,7 @@ impl ScissorRegion {
         false
     }
 
-    /// Gives available bounds paying attention to `s_width` and `s_height`.
+    /// Gives available bounds paying attention to `width` and `height`.
     pub(crate) fn available_bounds(&self, width: u32, height: u32) -> (u32, u32) {
         let width = if (self.x + self.width) > width {
             width - self.x
@@ -81,6 +81,7 @@ impl ScissorRegion {
 pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
     pipeline: Pipeline,
+    depth_test: bool,
 }
 
 impl<F, H> TextBrush<F, H>
@@ -148,12 +149,27 @@ where
             BrushAction::ReDraw => (),
         }
 
-        self.pipeline.draw(device, view, config, region)
+        let depth_view = Pipeline::depth_texture_view(device, config);
+        let depth = if self.depth_test {
+            Some(wgpu::RenderPassDepthStencilAttachment {
+                view: &depth_view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.0),
+                    store: true,
+                }),
+                stencil_ops: None,
+            })
+        } else {
+            None
+        };
+
+        self.pipeline.draw(device, view, config, depth, region)
     }
 
     /// Draws all queued sections with [`queue`](#method.queue) function.
     ///
     /// Use [`TextBrush::draw_custom`] for more rendering options.
+    #[inline]
     pub fn draw(
         &mut self,
         device: &wgpu::Device,
@@ -168,6 +184,7 @@ where
     ///
     /// # Scissoring
     /// With scissoring, you can filter out each glyph fragment that crosses the given `region`.
+    #[inline]
     pub fn draw_custom<R>(
         &mut self,
         device: &wgpu::Device,
@@ -187,7 +204,7 @@ where
     ///
     /// Run this function whenever the surface is resized.
     /// _width_ and _height_ should be **surfaces** dimensions.
-    /// 
+    ///
     /// **Matrix**:
     /// ```rust
     /// fn ortho(width: f32, height: f32) -> [f32; 16] {
@@ -204,6 +221,7 @@ where
         let matrix = ortho(width, height);
         self.pipeline.update_matrix(matrix, queue);
     }
+
     // TODO
     /* /// Multiplies builtin orthogonal matrix with `matrix` and updates matrix buffer.
     #[inline]
@@ -228,6 +246,7 @@ where
 /// Builder for [`TextBrush`].
 pub struct BrushBuilder<F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
+    depth_test: bool,
 }
 
 impl BrushBuilder<()> {
@@ -255,6 +274,7 @@ impl BrushBuilder<()> {
     pub fn using_fonts<F: Font>(fonts: Vec<F>) -> BrushBuilder<F> {
         BrushBuilder {
             inner: glyph_brush::GlyphBrushBuilder::using_fonts(fonts),
+            depth_test: false,
         }
     }
 }
@@ -266,6 +286,11 @@ where
 {
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
 
+    pub fn with_depth_testing(mut self, depth_test: bool) -> Self {
+        self.depth_test = depth_test;
+        self
+    }
+
     /// Builds a [`TextBrush`] consuming [`BrushBuilder`].
     pub fn build(
         self,
@@ -274,10 +299,28 @@ where
         width: f32,
         height: f32,
     ) -> TextBrush<F, H> {
+        let depth = if self.depth_test {
+            Some(Pipeline::depth_state())
+        } else {
+            None
+        };
+
         let inner = self.inner.build();
         let matrix = ortho(width, height);
-        let pipeline = Pipeline::new(device, render_format, inner.texture_dimensions(), matrix);
-        TextBrush { inner, pipeline }
+
+        let pipeline = Pipeline::new(
+            device,
+            render_format,
+            depth,
+            inner.texture_dimensions(),
+            matrix,
+        );
+
+        TextBrush {
+            inner,
+            pipeline,
+            depth_test: self.depth_test,
+        }
     }
 }
 

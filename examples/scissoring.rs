@@ -179,7 +179,7 @@ fn main() {
                         y: 20,
                         width: 350,
                         height: 350,
-                    })
+                    }),
                 );
 
                 // Has to be submitted last so it won't be overlapped.

@@ -23,6 +23,7 @@ impl Pipeline {
     pub fn new(
         device: &wgpu::Device,
         render_format: wgpu::TextureFormat,
+        depth_stencil: Option<wgpu::DepthStencilState>,
         tex_dimensions: (u32, u32),
         matrix: [f32; 16],
     ) -> Self {
@@ -56,13 +57,7 @@ impl Pipeline {
                 strip_index_format: Some(wgpu::IndexFormat::Uint16),
                 ..Default::default()
             },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: Self::DEPTH_FORMAT,
-                depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState::default(),
-            }),
+            depth_stencil,
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -124,6 +119,7 @@ impl Pipeline {
         device: &wgpu::Device,
         view: &wgpu::TextureView,
         config: &wgpu::SurfaceConfiguration,
+        depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>,
         region: Option<crate::ScissorRegion>,
     ) -> CommandBuffer {
         let width = config.width;
@@ -134,7 +130,6 @@ impl Pipeline {
         });
 
         {
-            let depth_view = Self::depth_texture_view(device, config);
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("wgpu-text Render Pass"),
                 color_attachments: &[wgpu::RenderPassColorAttachment {
@@ -145,20 +140,14 @@ impl Pipeline {
                         store: true,
                     },
                 }],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &depth_view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
-                        store: true,
-                    }),
-                    stencil_ops: None,
-                }),
+                depth_stencil_attachment,
             });
 
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_bind_group(0, &self.cache.bind_group, &[]);
 
+            // Region scissoring
             if let Some(r) = region {
                 if r.is_contained_in(width, height) {
                     let (w, h) = r.available_bounds(width, height);
@@ -172,19 +161,22 @@ impl Pipeline {
         encoder.finish()
     }
 
+    #[inline]
     pub fn update_matrix(&mut self, matrix: [f32; 16], queue: &wgpu::Queue) {
         self.cache.update_matrix(matrix, queue);
     }
 
+    #[inline]
     pub fn update_texture(&mut self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
         self.cache.update_texture(size, data, queue);
     }
 
+    #[inline]
     pub fn resize_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
         self.cache.recreate_texture(device, width, height);
     }
 
-    fn depth_texture_view(
+    pub fn depth_texture_view(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
     ) -> wgpu::TextureView {
@@ -203,6 +195,16 @@ impl Pipeline {
         });
 
         depth_texture.create_view(&wgpu::TextureViewDescriptor::default())
+    }
+
+    pub fn depth_state() -> wgpu::DepthStencilState {
+        wgpu::DepthStencilState {
+            format: Pipeline::DEPTH_FORMAT,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::Less,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }
     }
 }
 

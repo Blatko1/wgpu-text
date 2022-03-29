@@ -27,12 +27,11 @@ fn main() {
 
     // All wgpu-text related below:
     let font: &[u8] = include_bytes!("fonts/Inconsolata-Regular.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
-        &device,
-        format,
-        config.width as f32,
-        config.height as f32,
-    );
+    let mut brush = BrushBuilder::using_font_bytes(font)
+        .unwrap()
+        .with_depth_testing(true)
+        .build(&device, format, config.width as f32, config.height as f32);
+
     let mut font_size = 45.;
     let mut section = Section::default()
         .add_text(
