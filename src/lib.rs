@@ -7,6 +7,8 @@
 //! Some features are directly implemented from glyph-brush so you should go trough
 //! [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html)
 //! for better understanding of adding and managing text.
+//! 
+//! If you want to learn about GPU texture caching see [caching behaviour](#caching-behaviour).
 //!
 //! * Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
@@ -185,11 +187,33 @@ where
     ///
     /// Run this function whenever the surface is resized.
     /// _width_ and _height_ should be **surfaces** dimensions.
+    /// 
+    /// **Matrix**:
+    /// ```rust
+    /// fn ortho(width: f32, height: f32) -> [f32; 16] {
+    ///     [
+    ///         2.0 / width, 0.0,          0.0, 0.0,
+    ///         0.0,        -2.0 / height, 0.0, 0.0,
+    ///         0.0,         0.0,          1.0, 0.0,
+    ///        -1.0,         1.0,          0.0, 1.0,
+    ///     ]
+    /// }
+    /// ```
     #[inline]
     pub fn resize_view(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
         let matrix = ortho(width, height);
         self.pipeline.update_matrix(matrix, queue);
     }
+    // TODO
+    /* /// Multiplies builtin orthogonal matrix with `matrix` and updates matrix buffer.
+    #[inline]
+    pub fn add_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
+    where
+        M: Into<[f32; 16]>,
+    {
+        let matrix = ;
+        self.pipeline.update_matrix(matrix.into(), queue);
+    }*/
 
     /// Provides your own matrix for rendering instead of default orthogonal view matrix.
     #[inline]

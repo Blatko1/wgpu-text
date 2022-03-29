@@ -25,12 +25,19 @@ let section = Section::default()
     winit::event::Event::RedrawRequested(_) => {
         // Has to be queued every frame.
         brush.queue(&section);
-        let text_buffer = brush.draw(&device, &view, &queue);
+        let text_buffer = brush.draw(&device, &view, &queue, &surface_config);
         // Has to be submitted last so text won't be overlapped.
         queue.submit([app_encoder.finish(), text_buffer]);
         frame.present();
     }
 ```
+
+## **Features**
+Besides basic text rendering and **glyph-brush** features, there are some features that add customization:
+- **builtin matrix** - default matrix for orthogonal projection
+- **custom matrix** - ability of providing a custom matrix for purposes of custom view, rotation...
+- **depth testing** - by adding z coordinate text can be set on top or below other text
+
 ## **Examples**
 Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples) for more.
 * `cargo run --example <example-name>`
@@ -41,6 +48,7 @@ Run examples with `--release` for true performance.
 - improve docs
 - add more examples
 - maybe some new features
+- (wgpu stuff: maybe change to StagingBelt instead of Queue)
 
 ## **Contributing**
 All contributions are welcome.
