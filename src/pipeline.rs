@@ -18,6 +18,8 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
+    const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
+
     pub fn new(
         device: &wgpu::Device,
         render_format: wgpu::TextureFormat,
@@ -54,7 +56,13 @@ impl Pipeline {
                 strip_index_format: Some(wgpu::IndexFormat::Uint16),
                 ..Default::default()
             },
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: Self::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -115,13 +123,18 @@ impl Pipeline {
         &self,
         device: &wgpu::Device,
         view: &wgpu::TextureView,
+        config: &wgpu::SurfaceConfiguration,
         region: Option<crate::ScissorRegion>,
     ) -> CommandBuffer {
+        let width = config.width;
+        let height = config.height;
+
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("wgpu-text Command Encoder"),
         });
 
         {
+            let depth_view = Self::depth_texture_view(device, config);
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("wgpu-text Render Pass"),
                 color_attachments: &[wgpu::RenderPassColorAttachment {
@@ -132,7 +145,14 @@ impl Pipeline {
                         store: true,
                     },
                 }],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &depth_view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
             });
 
             rpass.set_pipeline(&self.inner);
@@ -140,8 +160,8 @@ impl Pipeline {
             rpass.set_bind_group(0, &self.cache.bind_group, &[]);
 
             if let Some(r) = region {
-                if r.is_contained() {
-                    let (w, h) = r.available_bounds();
+                if r.is_contained_in(width, height) {
+                    let (w, h) = r.available_bounds(width, height);
                     rpass.set_scissor_rect(r.x, r.y, w, h);
                 }
             }
@@ -162,6 +182,27 @@ impl Pipeline {
 
     pub fn resize_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
         self.cache.recreate_texture(device, width, height);
+    }
+
+    fn depth_texture_view(
+        device: &wgpu::Device,
+        config: &wgpu::SurfaceConfiguration,
+    ) -> wgpu::TextureView {
+        let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
+            size: wgpu::Extent3d {
+                width: config.width,
+                height: config.height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: Self::DEPTH_FORMAT,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            label: Some("wgpu-text Depth Texture"),
+        });
+
+        depth_texture.create_view(&wgpu::TextureViewDescriptor::default())
     }
 }
 

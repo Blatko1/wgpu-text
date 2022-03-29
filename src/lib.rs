@@ -32,9 +32,8 @@ use glyph_brush::{
 };
 use pipeline::{Pipeline, Vertex};
 
-/// Marks scissor region and tries to fit it in inside the specified surface dimensions
-/// to avoid `wgpu` related rendering errors. `s_width` and `s_height` are most likely
-/// to be your windows width and height.
+/// Marks scissor region and can test how to fit itself inside the specified window dimensions
+/// to avoid `wgpu` related rendering errors.
 pub struct ScissorRegion {
     /// x coordinate of top left region point.
     pub x: u32,
@@ -47,32 +46,26 @@ pub struct ScissorRegion {
 
     /// Height of scissor region.
     pub height: u32,
-
-    /// Surface height.
-    pub s_width: u32,
-
-    /// Surface width.
-    pub s_height: u32,
 }
 
 impl ScissorRegion {
     /// Checks if the region is contained in surface bounds at all.
-    pub(crate) fn is_contained(&self) -> bool {
-        if self.x < self.s_width && self.y < self.s_height {
+    pub(crate) fn is_contained_in(&self, width: u32, height: u32) -> bool {
+        if self.x < width && self.y < height {
             return true;
         }
         false
     }
 
     /// Gives available bounds paying attention to `s_width` and `s_height`.
-    pub(crate) fn available_bounds(&self) -> (u32, u32) {
-        let width = if (self.x + self.width) > self.s_width {
-            self.s_width - self.x
+    pub(crate) fn available_bounds(&self, width: u32, height: u32) -> (u32, u32) {
+        let width = if (self.x + self.width) > width {
+            width - self.x
         } else {
             self.width
         };
-        let height = if (self.y + self.height) > self.s_height {
-            self.s_height - self.y
+        let height = if (self.y + self.height) > height {
+            height - self.y
         } else {
             self.height
         };
@@ -110,6 +103,7 @@ where
         device: &wgpu::Device,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
+        config: &wgpu::SurfaceConfiguration,
         region: Option<ScissorRegion>,
     ) -> wgpu::CommandBuffer {
         let mut brush_action;
@@ -152,7 +146,7 @@ where
             BrushAction::ReDraw => (),
         }
 
-        self.pipeline.draw(device, view, region)
+        self.pipeline.draw(device, view, config, region)
     }
 
     /// Draws all queued sections with [`queue`](#method.queue) function.
@@ -163,8 +157,9 @@ where
         device: &wgpu::Device,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
+        config: &wgpu::SurfaceConfiguration,
     ) -> wgpu::CommandBuffer {
-        self.draw_queued(device, view, queue, None)
+        self.draw_queued(device, view, queue, config, None)
     }
 
     /// Draws all queued text with extra options.
@@ -176,12 +171,13 @@ where
         device: &wgpu::Device,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
+        config: &wgpu::SurfaceConfiguration,
         region: Option<R>,
     ) -> wgpu::CommandBuffer
     where
         R: Into<ScissorRegion>,
     {
-        self.draw_queued(device, view, queue, region.map(|r| r.into()))
+        self.draw_queued(device, view, queue, config, region.map(|r| r.into()))
     }
 
     /// Resizes "_camera_". Updates default orthogonal view matrix
