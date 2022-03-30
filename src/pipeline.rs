@@ -25,7 +25,7 @@ impl Pipeline {
         render_format: wgpu::TextureFormat,
         depth_stencil: Option<wgpu::DepthStencilState>,
         tex_dimensions: (u32, u32),
-        matrix: [f32; 16],
+        matrix: [[f32; 4]; 4],
     ) -> Self {
         let cache = Cache::new(device, tex_dimensions.0, tex_dimensions.1, matrix);
 
@@ -162,7 +162,7 @@ impl Pipeline {
     }
 
     #[inline]
-    pub fn update_matrix(&mut self, matrix: [f32; 16], queue: &wgpu::Queue) {
+    pub fn update_matrix(&mut self, matrix: [[f32; 4]; 4], queue: &wgpu::Queue) {
         self.cache.update_matrix(matrix, queue);
     }
 

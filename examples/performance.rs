@@ -63,7 +63,9 @@ fn main() {
                     config.height = new_size.height.max(1);
                     surface.configure(&device, &config);
 
-                    brush.resize_view(config.width as f32, config.height as f32, &queue)
+                    brush.resize_view(config.width as f32, config.height as f32, &queue);
+                    // You can also do this!
+                    // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::KeyboardInput {

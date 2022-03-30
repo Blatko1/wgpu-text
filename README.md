@@ -14,6 +14,7 @@ Example:
 ```rust
 use wgpu_text::BrushBuilder;
 use wgpu_text::section::{Section, Text, Layout, HorizontalAlign};
+
 let brush = BrushBuilder::using_font_bytes(font).unwrap()
  /* .initial_cache_size((1024, 1024))) */ // use this to avoid resizing cache texture
  /* .with_depth_testing(true) */ // enable/disable depth testing
@@ -21,6 +22,9 @@ let brush = BrushBuilder::using_font_bytes(font).unwrap()
 let section = Section::default()
     .add_text(Text::new("Hello World"))
     .with_layout(Layout::default().h_align(HorizontalAlign::Center));
+
+// on resize:
+        brush.resize_view(config.width as f32, config.height as f32, &queue);
 
 // window event loop:
     winit::event::Event::RedrawRequested(_) => {
@@ -33,11 +37,22 @@ let section = Section::default()
     }
 ```
 
+# **Installation**
+Add the following to your `Cargo.toml` file:
+
+```toml
+[dependencies]
+wgpu_text = "0.3.0"
+```
+
 ## **Features**
 Besides basic text rendering and **glyph-brush** features, there are some features that add customization:
-- **builtin matrix** - default matrix for orthogonal projection
-- **custom matrix** - ability of providing a custom matrix for purposes of custom view, rotation...
-- **depth testing** - by adding z coordinate text can be set on top or below other text
+
+> **builtin matrix** - default matrix for orthographic projection, feel free to use it for creating custom matrices
+
+> **custom matrix** - ability of providing a custom matrix for purposes of custom view, rotation...
+
+> **depth testing** - by adding z coordinate text can be set on top or below other text
 
 ## **Examples**
 Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples) for more.

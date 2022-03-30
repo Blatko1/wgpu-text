@@ -14,7 +14,12 @@ pub struct Cache {
 }
 
 impl Cache {
-    pub fn new(device: &wgpu::Device, tex_width: u32, tex_height: u32, matrix: [f32; 16]) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        tex_width: u32,
+        tex_height: u32,
+        matrix: [[f32; 4]; 4],
+    ) -> Self {
         let texture = Self::new_cache_texture(device, tex_width, tex_height);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("wgpu-text Cache Texture Sampler"),
@@ -120,7 +125,7 @@ impl Cache {
         });
     }
 
-    pub fn update_matrix(&mut self, matrix: [f32; 16], queue: &wgpu::Queue) {
+    pub fn update_matrix(&mut self, matrix: [[f32; 4]; 4], queue: &wgpu::Queue) {
         queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&matrix));
     }
 

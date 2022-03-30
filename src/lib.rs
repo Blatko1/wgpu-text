@@ -19,7 +19,7 @@ mod pipeline;
 ///
 /// Look into [glyph_brush_layout docs](https://docs.rs/glyph_brush_layout/latest/glyph_brush_layout/#enums)
 /// for the real, detailed, documentation.
-/// - If anything is missing create an issue on github and I'll add it.
+/// - If anything is missing open an issue on github and I'll add it.
 pub mod section {
     #[doc(hidden)]
     pub use glyph_brush::{
@@ -34,7 +34,7 @@ use glyph_brush::{
 };
 use pipeline::{Pipeline, Vertex};
 
-/// Marks scissor region and can test how to fit itself inside the specified window dimensions
+/// Marks scissor region and tests itself automatically if it can fit inside the surface `config` dimensions
 /// to avoid `wgpu` related rendering errors.
 pub struct ScissorRegion {
     /// x coordinate of top left region point.
@@ -199,15 +199,15 @@ where
         self.draw_queued(device, view, queue, config, region.map(|r| r.into()))
     }
 
-    /// Resizes "_camera_". Updates default orthogonal view matrix
+    /// Resizes "_camera_"(view). Updates default orthographic view matrix
     /// with given arguments and uses it for rendering.
     ///
-    /// Run this function whenever the surface is resized.
-    /// _width_ and _height_ should be **surfaces** dimensions.
+    /// Run this function whenever the surface config is resized.
+    /// _width_ and _height_ should be **surface** dimensions.
     ///
     /// **Matrix**:
     /// ```rust
-    /// fn ortho(width: f32, height: f32) -> [f32; 16] {
+    /// pub fn ortho(width: f32, height: f32) -> [[f32; 4]; 4] {
     ///     [
     ///         2.0 / width, 0.0,          0.0, 0.0,
     ///         0.0,        -2.0 / height, 0.0, 0.0,
@@ -218,26 +218,18 @@ where
     /// ```
     #[inline]
     pub fn resize_view(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        let matrix = ortho(width, height);
-        self.pipeline.update_matrix(matrix, queue);
+        self.update_matrix(ortho(width, height), queue);
     }
 
-    // TODO
-    /* /// Multiplies builtin orthogonal matrix with `matrix` and updates matrix buffer.
-    #[inline]
-    pub fn add_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
+    /// Resizes "_camera_"(view). Updates text rendering matrix with the provided one.
+    ///
+    /// Use [`Self::resize_view()`] to update render matrix with default orthographic matrix.
+    ///
+    /// Feel free to use [`ortho()`] for creating more complex matrices by yourself
+    /// (`cross product`-ing).
+    pub fn update_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
     where
-        M: Into<[f32; 16]>,
-    {
-        let matrix = ;
-        self.pipeline.update_matrix(matrix.into(), queue);
-    }*/
-
-    /// Provides your own matrix for rendering instead of default orthogonal view matrix.
-    #[inline]
-    pub fn custom_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
-    where
-        M: Into<[f32; 16]>,
+        M: Into<[[f32; 4]; 4]>,
     {
         self.pipeline.update_matrix(matrix.into(), queue);
     }
@@ -286,9 +278,9 @@ where
 {
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
 
-    /// Defaults to `false`. If set to true all text will be depth tested. 
+    /// Defaults to `false`. If set to true all text will be depth tested.
     /// Depth can be for each section can be set by z coordinate.
-    /// 
+    ///
     /// When enabled, section `z` coordinate should be in range 0.0 - 1.0 not including 1.0.
     pub fn with_depth_testing(mut self, depth_test: bool) -> Self {
         self.depth_test = depth_test;
@@ -328,12 +320,13 @@ where
     }
 }
 
+/// Creates an orthographic matrix with given dimensions `width` and `height`.
 #[rustfmt::skip]
-fn ortho(width: f32, height: f32) -> [f32; 16] {
+pub fn ortho(width: f32, height: f32) -> [[f32; 4]; 4] {
     [
-        2.0 / width, 0.0,          0.0, 0.0,
-        0.0,        -2.0 / height, 0.0, 0.0,
-        0.0,         0.0,          1.0, 0.0,
-       -1.0,         1.0,          0.0, 1.0,
+        [2.0 / width, 0.0,          0.0, 0.0],
+        [0.0,        -2.0 / height, 0.0, 0.0],
+        [0.0,         0.0,          1.0, 0.0],
+        [-1.0,        1.0,          0.0, 1.0]
     ]
 }

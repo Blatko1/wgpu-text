@@ -75,7 +75,9 @@ fn main() {
                     section.bounds = (config.width as f32 * 0.5, config.height as _);
                     section.screen_position.1 = config.height as f32 * 0.5;
 
-                    brush.resize_view(config.width as f32, config.height as f32, &queue)
+                    brush.resize_view(config.width as f32, config.height as f32, &queue);
+                    // You can also do this!
+                    // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::KeyboardInput {
