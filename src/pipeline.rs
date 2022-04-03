@@ -4,7 +4,7 @@ use glyph_brush::{
 };
 use wgpu::{util::DeviceExt, CommandBuffer};
 
-use crate::cache::Cache;
+use crate::{cache::Cache, Matrix};
 
 /// Responsible for drawing text.
 pub struct Pipeline<Depth> {
@@ -26,7 +26,7 @@ impl<Depth> Pipeline<Depth> {
         render_format: wgpu::TextureFormat,
         depth_stencil: Option<wgpu::DepthStencilState>,
         tex_dimensions: (u32, u32),
-        matrix: [[f32; 4]; 4],
+        matrix: Matrix,
     ) -> Pipeline<Depth> {
         let cache = Cache::new(device, tex_dimensions, matrix);
 
@@ -169,7 +169,7 @@ impl<Depth> Pipeline<Depth> {
     }
 
     #[inline]
-    pub fn update_matrix(&mut self, matrix: [[f32; 4]; 4], queue: &wgpu::Queue) {
+    pub fn update_matrix(&mut self, matrix: Matrix, queue: &wgpu::Queue) {
         self.cache.update_matrix(matrix, queue);
     }
 

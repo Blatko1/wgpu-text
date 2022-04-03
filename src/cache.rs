@@ -3,6 +3,8 @@ use std::num::NonZeroU32;
 use glyph_brush::Rectangle;
 use wgpu::util::DeviceExt;
 
+use crate::Matrix;
+
 /// Responsible for texture caching and matrix.
 pub struct Cache {
     pub bind_group_layout: wgpu::BindGroupLayout,
@@ -17,7 +19,7 @@ impl Cache {
     pub fn new(
         device: &wgpu::Device,
         tex_dimensions: (u32, u32),
-        matrix: [[f32; 4]; 4],
+        matrix: Matrix,
     ) -> Self {
         let texture = Self::create_cache_texture(device, tex_dimensions);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -134,7 +136,7 @@ impl Cache {
         });
     }
 
-    pub fn update_matrix(&mut self, matrix: [[f32; 4]; 4], queue: &wgpu::Queue) {
+    pub fn update_matrix(&mut self, matrix: Matrix, queue: &wgpu::Queue) {
         queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&matrix));
     }
 

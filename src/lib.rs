@@ -30,7 +30,8 @@ pub mod section {
     };
 }
 
-use glyph_brush::{
+use glyph_brush::GlyphBrush;
+pub use glyph_brush::{
     ab_glyph::{Font, FontArc, FontRef, InvalidFont},
     BrushAction, DefaultSectionHasher, Extra, Section,
 };
@@ -60,6 +61,8 @@ pub struct ScissorRegion {
     /// Height of outer rectangle.
     pub out_height: u32,
 }
+
+pub type Matrix = [[f32; 4]; 4];
 
 impl ScissorRegion {
     /// Checks if the region is contained in surface bounds at all.
@@ -93,7 +96,7 @@ impl ScissorRegion {
 /// Used for queuing and rendering text with
 /// [`TextBrush::draw`] and [`TextBrush::draw_custom`].
 pub struct TextBrush<Depth, F = FontArc, H = DefaultSectionHasher> {
-    inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
+    inner: GlyphBrush<Vertex, Extra, F, H>,
     pipeline: Pipeline<Depth>,
 }
 
@@ -240,7 +243,7 @@ where
     /// (`cross product`-ing).
     pub fn update_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
     where
-        M: Into<[[f32; 4]; 4]>,
+        M: Into<Matrix>,
     {
         self.pipeline.update_matrix(matrix.into(), queue);
     }
@@ -265,7 +268,7 @@ where
 /// Builder for [`TextBrush`].
 pub struct BrushBuilder<Depth, F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
-    matrix: Option<[[f32; 4]; 4]>,
+    matrix: Option<Matrix>,
     phantom: std::marker::PhantomData<Depth>,
 }
 
@@ -316,7 +319,7 @@ where
     /// To update the render matrix use [`TextBrush::update_matrix()`].
     pub fn with_matrix<M>(mut self, matrix: M) -> Self
     where
-        M: Into<[[f32; 4]; 4]>,
+        M: Into<Matrix>,
     {
         self.matrix = Some(matrix.into());
         self
@@ -348,20 +351,15 @@ where
     pub fn build(
         self,
         device: &wgpu::Device,
-        render_format: wgpu::TextureFormat,
-        dimensions: (u32, u32),
+        config: &wgpu::SurfaceConfiguration,
     ) -> TextBrush<(), F, H> {
-        let inner = self.inner.build();
+        let inner: GlyphBrush<Vertex, Extra, F, H> = self.inner.build();
 
-        let matrix = if let Some(matrix) = self.matrix {
-            matrix
-        } else {
-            ortho(dimensions.0 as f32, dimensions.1 as f32)
-        };
+        let matrix = create_matrix(self.matrix, &config);
 
         let pipeline = Pipeline::new(
             device,
-            render_format,
+            config.format.clone(),
             None,
             inner.texture_dimensions(),
             matrix,
@@ -382,16 +380,11 @@ where
     pub fn build(
         self,
         device: &wgpu::Device,
-        render_format: wgpu::TextureFormat,
-        dimensions: (u32, u32),
+        config: &wgpu::SurfaceConfiguration,
     ) -> TextBrush<wgpu::DepthStencilState, F, H> {
         let inner = self.inner.build();
 
-        let matrix = if let Some(matrix) = self.matrix {
-            matrix
-        } else {
-            ortho(dimensions.0 as f32, dimensions.1 as f32)
-        };
+        let matrix = create_matrix(self.matrix, &config);
 
         let depth = wgpu::DepthStencilState {
             format: Pipeline::DEPTH_FORMAT,
@@ -403,21 +396,29 @@ where
 
         let mut pipeline = Pipeline::new(
             device,
-            render_format,
+            config.format.clone(),
             Some(depth),
             inner.texture_dimensions(),
             matrix,
         )
         .with_depth();
-        pipeline.update_depth(device, dimensions);
+        pipeline.update_depth(device, (config.width, config.height));
 
         TextBrush { inner, pipeline }
     }
 }
 
+fn create_matrix(matrix: Option<Matrix>, config: &wgpu::SurfaceConfiguration) -> Matrix {
+    if let Some(matrix) = matrix {
+        matrix
+    } else {
+        ortho(config.width as f32, config.height as f32)
+    }
+}
+
 /// Creates an orthographic matrix with given dimensions `width` and `height`.
 #[rustfmt::skip]
-pub fn ortho(width: f32, height: f32) -> [[f32; 4]; 4] {
+pub fn ortho(width: f32, height: f32) -> Matrix {
     [
         [2.0 / width, 0.0,          0.0, 0.0],
         [0.0,        -2.0 / height, 0.0, 0.0],

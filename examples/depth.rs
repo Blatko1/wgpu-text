@@ -25,14 +25,14 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let (device, queue, surface, _, mut config, format) = WgpuUtils::init(&window);
+    let (device, queue, surface, mut config) = WgpuUtils::init(&window);
 
     // All wgpu-text related below:
     let font: &[u8] = include_bytes!("fonts/Inconsolata-Regular.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font)
         .unwrap()
         .with_depth_testing()
-        .build(&device, format, (config.width, config.height));
+        .build(&device, &config);
 
     let mut font_size = 45.;
     let mut section = Section::default()
