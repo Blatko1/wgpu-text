@@ -21,16 +21,13 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let (device, queue, surface, _, mut config, format) = WgpuUtils::init(&window);
+    let (device, queue, surface, _, mut config) = WgpuUtils::init(&window);
 
     // All wgpu-text related below:
     let font: &[u8] = include_bytes!("fonts/Inconsolata-Regular.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
-        &device,
-        format,
-        config.width as f32,
-        config.height as f32,
-    );
+    let mut brush = BrushBuilder::using_font_bytes(font)
+        .unwrap()
+        .build(&device, &config);
     let mut font_size = 25.;
     let mut section = Section::default()
         .add_text(
@@ -222,9 +219,7 @@ impl WgpuUtils {
         wgpu::Device,
         wgpu::Queue,
         wgpu::Surface,
-        wgpu::Adapter,
         wgpu::SurfaceConfiguration,
-        wgpu::TextureFormat,
     ) {
         let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
         let instance = wgpu::Instance::new(backends);
@@ -249,6 +244,7 @@ impl WgpuUtils {
             None,
         ))
         .unwrap();
+
         let format = surface.get_preferred_format(&adapter).unwrap();
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -258,6 +254,6 @@ impl WgpuUtils {
             present_mode: wgpu::PresentMode::Mailbox,
         };
         surface.configure(&device, &config);
-        (device, queue, surface, adapter, config, format)
+        (device, queue, surface, config)
     }
 }

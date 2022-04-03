@@ -28,7 +28,7 @@ pub mod section {
     };
 }
 
-use glyph_brush::{
+pub use glyph_brush::{
     ab_glyph::{Font, FontArc, FontRef, InvalidFont},
     BrushAction, DefaultSectionHasher, Extra, Section,
 };
@@ -291,9 +291,7 @@ where
     pub fn build(
         self,
         device: &wgpu::Device,
-        render_format: wgpu::TextureFormat,
-        width: f32,
-        height: f32,
+        config: &wgpu::SurfaceConfiguration,
     ) -> TextBrush<F, H> {
         let depth = if self.depth_test {
             Some(Pipeline::depth_state())
@@ -302,11 +300,11 @@ where
         };
 
         let inner = self.inner.build();
-        let matrix = ortho(width, height);
+        let matrix = ortho(config.width as f32, config.height as f32);
 
         let pipeline = Pipeline::new(
             device,
-            render_format,
+            config.format.clone(),
             depth,
             inner.texture_dimensions(),
             matrix,

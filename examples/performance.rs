@@ -32,15 +32,13 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let (device, queue, surface, _, mut config, format) = WgpuUtils::init(&window);
+    let (device, queue, surface, mut config) = WgpuUtils::init(&window);
 
     let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
-        &device,
-        format,
-        config.width as f32,
-        config.height as f32,
-    );
+    let mut brush = BrushBuilder::using_font_bytes(font)
+        .unwrap()
+        .build(&device, &config);
+
     let mut random_text = generate_random_chars();
     let mut font_size: f32 = 9.;
 
