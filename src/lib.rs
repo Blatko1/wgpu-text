@@ -256,17 +256,9 @@ where
     ///
     /// Should be used every time the window (`wgpu::SurfaceConfiguration`) is resized.
     /// If not used when needed, your program will crash with wgpu error.
+    #[inline]
     pub fn resize_depth(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        if self.pipeline.depth_texture_view.is_some() {
-            self.pipeline.update_depth(device, (width, height));
-        } else {
-            if log::log_enabled!(log::Level::Warn) {
-                log::warn!(
-                    "Resizing depth texture view but depth isn't enabled! \
-                    Recreate TextBrush with BrushBuilder::with_depth_testing(true)."
-                );
-            }
-        }
+        self.pipeline.update_depth(device, (width, height));
     }
 }
 
