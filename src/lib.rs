@@ -62,6 +62,8 @@ pub struct ScissorRegion {
     pub out_height: u32,
 }
 
+pub type Matrix = [[f32; 4]; 4];
+
 impl ScissorRegion {
     /// Checks if the region is contained in surface bounds at all.
     pub(crate) fn is_contained(&self) -> bool {
@@ -241,7 +243,7 @@ where
     /// (`cross product`-ing).
     pub fn update_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
     where
-        M: Into<[[f32; 4]; 4]>,
+        M: Into<Matrix>,
     {
         self.pipeline.update_matrix(matrix.into(), queue);
     }
@@ -266,7 +268,7 @@ where
 /// Builder for [`TextBrush`].
 pub struct BrushBuilder<Depth, F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
-    matrix: Option<[[f32; 4]; 4]>,
+    matrix: Option<Matrix>,
     phantom: std::marker::PhantomData<Depth>,
 }
 
@@ -317,7 +319,7 @@ where
     /// To update the render matrix use [`TextBrush::update_matrix()`].
     pub fn with_matrix<M>(mut self, matrix: M) -> Self
     where
-        M: Into<[[f32; 4]; 4]>,
+        M: Into<Matrix>,
     {
         self.matrix = Some(matrix.into());
         self
@@ -406,10 +408,7 @@ where
     }
 }
 
-fn create_matrix(
-    matrix: Option<[[f32; 4]; 4]>,
-    config: &wgpu::SurfaceConfiguration,
-) -> [[f32; 4]; 4] {
+fn create_matrix(matrix: Option<Matrix>, config: &wgpu::SurfaceConfiguration) -> Matrix {
     if let Some(matrix) = matrix {
         matrix
     } else {
@@ -419,7 +418,7 @@ fn create_matrix(
 
 /// Creates an orthographic matrix with given dimensions `width` and `height`.
 #[rustfmt::skip]
-pub fn ortho(width: f32, height: f32) -> [[f32; 4]; 4] {
+pub fn ortho(width: f32, height: f32) -> Matrix {
     [
         [2.0 / width, 0.0,          0.0, 0.0],
         [0.0,        -2.0 / height, 0.0, 0.0],
