@@ -17,8 +17,8 @@ use wgpu_text::section::{Section, Text, Layout, HorizontalAlign};
 
 let brush = BrushBuilder::using_font_bytes(font).unwrap()
  /* .initial_cache_size((1024, 1024))) */ // use this to avoid resizing cache texture
- /* .with_depth_testing() */ // enables depth testing
-    .build(&device, format, (width, height));
+ /* .with_depth_testing(true) */ // enable/disable depth testing
+    .build(&device, &config);
 let section = Section::default()
     .add_text(Text::new("Hello World"))
     .with_layout(Layout::default().h_align(HorizontalAlign::Center));
