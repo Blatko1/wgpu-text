@@ -251,7 +251,11 @@ where
     F: Font + Sync,
     H: std::hash::BuildHasher,
 {
-    // TODO docs
+    /// Available if *TextBrush* was built with [`BrushBuilder::with_depth_testing()`].
+    /// Resizes depth texture to provided dimensions.
+    ///
+    /// Should be used every time the window (`wgpu::SurfaceConfiguration`) is resized.
+    /// If not used when needed, your program will crash with wgpu error.
     pub fn resize_depth(&mut self, device: &wgpu::Device, width: u32, height: u32) {
         if self.pipeline.depth_texture_view.is_some() {
             self.pipeline.update_depth(device, (width, height));
@@ -315,7 +319,9 @@ where
 {
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
 
-    //TODO docs
+    /// Uses the provided `matrix` when rendering.
+    ///
+    /// To update the render matrix use [`TextBrush::update_matrix()`].
     pub fn with_matrix<M>(mut self, matrix: M) -> Self
     where
         M: Into<[[f32; 4]; 4]>,
@@ -330,11 +336,14 @@ where
     F: Font,
     H: std::hash::BuildHasher,
 {
-    /// Defaults to `false`. If set to true all text will be depth tested.
-    /// Depth can be for each section can be set by z coordinate.
-    /// TODO docs
+    /// If called depth testing will be enabled. By default depth testing
+    /// is disabled.
     ///
-    /// When enabled, section `z` coordinate should be in range 0.0 - 1.0 not including 1.0.
+    /// For each section, depth can be set by modifying
+    /// the z coordinate ([`OwnedText::with_z()`]).
+    ///
+    /// `z` coordinate should be in range
+    ///  0.0 - 1.0 not including 1.0.
     pub fn with_depth_testing(self) -> BrushBuilder<wgpu::DepthStencilState, F, H> {
         BrushBuilder {
             inner: self.inner,
@@ -375,8 +384,9 @@ where
     F: Font,
     H: std::hash::BuildHasher,
 {
-    /// Builds a [`TextBrush`] consuming [`BrushBuilder`].
-    /// TODO docs
+    /// Builds a [`TextBrush`] with depth testing consuming [`BrushBuilder`].
+    ///
+    /// To use this build method call [`Self::with_depth_testing()`].
     pub fn build(
         self,
         device: &wgpu::Device,

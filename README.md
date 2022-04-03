@@ -17,8 +17,8 @@ use wgpu_text::section::{Section, Text, Layout, HorizontalAlign};
 
 let brush = BrushBuilder::using_font_bytes(font).unwrap()
  /* .initial_cache_size((1024, 1024))) */ // use this to avoid resizing cache texture
- /* .with_depth_testing(true) */ // enable/disable depth testing
-    .build(&device, format, width, height);
+ /* .with_depth_testing() */ // enables depth testing
+    .build(&device, format, (width, height));
 let section = Section::default()
     .add_text(Text::new("Hello World"))
     .with_layout(Layout::default().h_align(HorizontalAlign::Center));
@@ -30,7 +30,7 @@ let section = Section::default()
     winit::event::Event::RedrawRequested(_) => {
         // Has to be queued every frame.
         brush.queue(&section);
-        let text_buffer = brush.draw(&device, &view, &queue, &surface_config);
+        let text_buffer = brush.draw(&device, &view, &queue);
         // Has to be submitted last so text won't be overlapped.
         queue.submit([app_encoder.finish(), text_buffer]);
         frame.present();
@@ -42,9 +42,8 @@ Add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-wgpu_text = "0.3.0"
+wgpu_text = "0.5.0"
 ```
-
 ## **Features**
 Besides basic text rendering and **glyph-brush** features, there are some features that add customization:
 
@@ -52,7 +51,7 @@ Besides basic text rendering and **glyph-brush** features, there are some featur
 
 > **custom matrix** - ability of providing a custom matrix for purposes of custom view, rotation...
 
-> **depth testing** - by adding z coordinate text can be set on top or below other text
+> **depth testing** - by adding z coordinate text can be set on top or below other text (if enabled)
 
 ## **Examples**
 Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples) for more.
