@@ -1,6 +1,8 @@
 use pollster::block_on;
 use std::time::{Duration, Instant, SystemTime};
-use wgpu_text::section::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign};
+use wgpu_text::section::{
+    BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
+};
 use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
@@ -21,13 +23,14 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let (device, queue, surface, _, mut config) = WgpuUtils::init(&window);
+    let (device, queue, surface, mut config) = WgpuUtils::init(&window);
 
     // All wgpu-text related below:
     let font: &[u8] = include_bytes!("fonts/Inconsolata-Regular.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font)
         .unwrap()
         .build(&device, &config);
+
     let mut font_size = 25.;
     let mut section = Section::default()
         .add_text(
@@ -155,9 +158,10 @@ fn main() {
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Command Encoder"),
-                });
+                let mut encoder =
+                    device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                        label: Some("Command Encoder"),
+                    });
 
                 {
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -181,7 +185,7 @@ fn main() {
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                let cmd_buffer = brush.draw(&device, &view, &queue, &config);
+                let cmd_buffer = brush.draw(&device, &view, &queue);
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
@@ -189,7 +193,8 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    window.set_title(&format!("wgpu-text: 'simple' example, FPS: {}", fps));
+                    window
+                        .set_title(&format!("wgpu-text: 'simple' example, FPS: {}", fps));
                     fps = 0;
                     then = now;
                 }
@@ -221,7 +226,8 @@ impl WgpuUtils {
         wgpu::Surface,
         wgpu::SurfaceConfiguration,
     ) {
-        let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
+        let backends =
+            wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
         let instance = wgpu::Instance::new(backends);
         let (size, surface) = unsafe {
             let size = window.inner_size();

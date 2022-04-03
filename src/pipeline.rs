@@ -7,7 +7,7 @@ use wgpu::{util::DeviceExt, CommandBuffer};
 use crate::cache::Cache;
 
 /// Responsible for drawing text.
-pub struct Pipeline {
+pub struct Pipeline<Depth> {
     inner: wgpu::RenderPipeline,
 
     vertex_buffer: wgpu::Buffer,
@@ -15,21 +15,23 @@ pub struct Pipeline {
     vertices: u32,
 
     cache: Cache,
+    pub depth_texture_view: Option<wgpu::TextureView>,
+
+    phantom: std::marker::PhantomData<Depth>,
 }
 
-impl Pipeline {
-    const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
-
+impl<Depth> Pipeline<Depth> {
     pub fn new(
         device: &wgpu::Device,
         render_format: wgpu::TextureFormat,
         depth_stencil: Option<wgpu::DepthStencilState>,
         tex_dimensions: (u32, u32),
         matrix: [[f32; 4]; 4],
-    ) -> Self {
-        let cache = Cache::new(device, tex_dimensions.0, tex_dimensions.1, matrix);
+    ) -> Pipeline<Depth> {
+        let cache = Cache::new(device, tex_dimensions, matrix);
 
-        let shader = device.create_shader_module(&wgpu::include_wgsl!("shader/text.wgsl"));
+        let shader =
+            device.create_shader_module(&wgpu::include_wgsl!("shader/text.wgsl"));
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("wgpu-text Vertex Buffer"),
@@ -38,11 +40,12 @@ impl Pipeline {
             mapped_at_creation: false,
         });
 
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("wgpu-text Render Pipeline Layout"),
-            bind_group_layouts: &[&cache.bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("wgpu-text Render Pipeline Layout"),
+                bind_group_layouts: &[&cache.bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("wgpu-text Render Pipeline"),
@@ -84,50 +87,30 @@ impl Pipeline {
 
         Self {
             inner: pipeline,
+
             vertex_buffer,
             vertex_buffer_len: 0,
             vertices: 0,
+
             cache,
+            depth_texture_view: None,
+
+            phantom: std::marker::PhantomData::<Depth>,
         }
     }
 
-    pub fn update_buffer(
-        &mut self,
-        vertices: Vec<Vertex>,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    ) {
-        self.vertices = vertices.len() as u32;
-        let data: &[u8] = bytemuck::cast_slice(&vertices);
-
-        if vertices.len() > self.vertex_buffer_len {
-            self.vertex_buffer_len = vertices.len();
-
-            self.vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("wgpu-text Vertex Buffer"),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                contents: data,
-            });
-
-            return;
-        }
-        queue.write_buffer(&self.vertex_buffer, 0, data);
-    }
-
+    /// Raw draw.
     pub fn draw(
         &self,
         device: &wgpu::Device,
         view: &wgpu::TextureView,
-        config: &wgpu::SurfaceConfiguration,
         depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>,
         region: Option<crate::ScissorRegion>,
     ) -> CommandBuffer {
-        let width = config.width;
-        let height = config.height;
-
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("wgpu-text Command Encoder"),
-        });
+        let mut encoder =
+            device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("wgpu-text Command Encoder"),
+            });
 
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -149,8 +132,8 @@ impl Pipeline {
 
             // Region scissoring
             if let Some(r) = region {
-                if r.is_contained_in(width, height) {
-                    let (w, h) = r.available_bounds(width, height);
+                if r.is_contained() {
+                    let (w, h) = r.available_bounds();
                     rpass.set_scissor_rect(r.x, r.y, w, h);
                 }
             }
@@ -161,29 +144,76 @@ impl Pipeline {
         encoder.finish()
     }
 
+    pub fn update_buffer(
+        &mut self,
+        vertices: Vec<Vertex>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        self.vertices = vertices.len() as u32;
+        let data: &[u8] = bytemuck::cast_slice(&vertices);
+
+        if vertices.len() > self.vertex_buffer_len {
+            self.vertex_buffer_len = vertices.len();
+
+            self.vertex_buffer =
+                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("wgpu-text Vertex Buffer"),
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                    contents: data,
+                });
+
+            return;
+        }
+        queue.write_buffer(&self.vertex_buffer, 0, data);
+    }
+
     #[inline]
     pub fn update_matrix(&mut self, matrix: [[f32; 4]; 4], queue: &wgpu::Queue) {
         self.cache.update_matrix(matrix, queue);
     }
 
     #[inline]
-    pub fn update_texture(&mut self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
+    pub fn update_texture(
+        &mut self,
+        size: Rectangle<u32>,
+        data: &[u8],
+        queue: &wgpu::Queue,
+    ) {
         self.cache.update_texture(size, data, queue);
     }
 
     #[inline]
-    pub fn resize_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        self.cache.recreate_texture(device, width, height);
+    pub fn resize_texture(&mut self, device: &wgpu::Device, tex_dimensions: (u32, u32)) {
+        self.cache.recreate_texture(device, tex_dimensions);
     }
+}
 
-    pub fn depth_texture_view(
-        device: &wgpu::Device,
-        config: &wgpu::SurfaceConfiguration,
-    ) -> wgpu::TextureView {
+impl Pipeline<()> {
+    pub fn with_depth(self) -> Pipeline<wgpu::DepthStencilState> {
+        Pipeline {
+            inner: self.inner,
+
+            vertex_buffer: self.vertex_buffer,
+            vertex_buffer_len: self.vertex_buffer_len,
+            vertices: self.vertices,
+
+            cache: self.cache,
+            depth_texture_view: self.depth_texture_view,
+
+            phantom: std::marker::PhantomData::<wgpu::DepthStencilState>,
+        }
+    }
+}
+
+impl Pipeline<wgpu::DepthStencilState> {
+    pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
+
+    pub fn update_depth(&mut self, device: &wgpu::Device, dimensions: (u32, u32)) {
         let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {
-                width: config.width,
-                height: config.height,
+                width: dimensions.0,
+                height: dimensions.1,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -194,17 +224,8 @@ impl Pipeline {
             label: Some("wgpu-text Depth Texture"),
         });
 
-        depth_texture.create_view(&wgpu::TextureViewDescriptor::default())
-    }
-
-    pub fn depth_state() -> wgpu::DepthStencilState {
-        wgpu::DepthStencilState {
-            format: Pipeline::DEPTH_FORMAT,
-            depth_write_enabled: true,
-            depth_compare: wgpu::CompareFunction::Less,
-            stencil: wgpu::StencilState::default(),
-            bias: wgpu::DepthBiasState::default(),
-        }
+        self.depth_texture_view =
+            Some(depth_texture.create_view(&wgpu::TextureViewDescriptor::default()));
     }
 }
 
@@ -238,22 +259,26 @@ impl Vertex {
         if rect.max.x > bounds.max.x {
             let old_width = rect.width();
             rect.max.x = bounds.max.x;
-            tex_coords.max.x = tex_coords.min.x + tex_coords.width() * rect.width() / old_width;
+            tex_coords.max.x =
+                tex_coords.min.x + tex_coords.width() * rect.width() / old_width;
         }
         if rect.min.x < bounds.min.x {
             let old_width = rect.width();
             rect.min.x = bounds.min.x;
-            tex_coords.min.x = tex_coords.max.x - tex_coords.width() * rect.width() / old_width;
+            tex_coords.min.x =
+                tex_coords.max.x - tex_coords.width() * rect.width() / old_width;
         }
         if rect.max.y > bounds.max.y {
             let old_height = rect.height();
             rect.max.y = bounds.max.y;
-            tex_coords.max.y = tex_coords.min.y + tex_coords.height() * rect.height() / old_height;
+            tex_coords.max.y =
+                tex_coords.min.y + tex_coords.height() * rect.height() / old_height;
         }
         if rect.min.y < bounds.min.y {
             let old_height = rect.height();
             rect.min.y = bounds.min.y;
-            tex_coords.min.y = tex_coords.max.y - tex_coords.height() * rect.height() / old_height;
+            tex_coords.min.y =
+                tex_coords.max.y - tex_coords.height() * rect.height() / old_height;
         }
 
         Vertex {

@@ -114,9 +114,10 @@ fn main() {
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Command Encoder"),
-                });
+                let mut encoder =
+                    device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                        label: Some("Command Encoder"),
+                    });
 
                 {
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -146,12 +147,13 @@ fn main() {
                     )
                     .with_bounds((config.width as f32, config.height as f32))
                     .with_layout(
-                        Layout::default().line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+                        Layout::default()
+                            .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
                     );
 
                 brush.queue(&section);
 
-                let cmd_buffer = brush.draw(&device, &view, &queue, &config);
+                let cmd_buffer = brush.draw(&device, &view, &queue);
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
                 frame.present();

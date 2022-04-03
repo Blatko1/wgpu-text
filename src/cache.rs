@@ -16,11 +16,10 @@ pub struct Cache {
 impl Cache {
     pub fn new(
         device: &wgpu::Device,
-        tex_width: u32,
-        tex_height: u32,
+        tex_dimensions: (u32, u32),
         matrix: [[f32; 4]; 4],
     ) -> Self {
-        let texture = Self::new_cache_texture(device, tex_width, tex_height);
+        let texture = Self::create_cache_texture(device, tex_dimensions);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("wgpu-text Cache Texture Sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -31,43 +30,49 @@ impl Cache {
             ..Default::default()
         });
 
-        let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("wgpu-text Matrix Buffer"),
-            contents: bytemuck::cast_slice(&matrix),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
+        let matrix_buffer =
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("wgpu-text Matrix Buffer"),
+                contents: bytemuck::cast_slice(&matrix),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            });
 
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("wgpu-text Matrix, Texture and Sampler Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+        let bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("wgpu-text Matrix, Texture and Sampler Bind Group Layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float {
+                                filterable: true,
+                            },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(
+                            wgpu::SamplerBindingType::Filtering,
+                        ),
+                        count: None,
+                    },
+                ],
+            });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("wgpu-text Bind Group"),
@@ -99,8 +104,12 @@ impl Cache {
         }
     }
 
-    pub fn recreate_texture(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        self.texture = Self::new_cache_texture(device, width, height);
+    pub fn recreate_texture(
+        &mut self,
+        device: &wgpu::Device,
+        tex_dimensions: (u32, u32),
+    ) {
+        self.texture = Self::create_cache_texture(device, tex_dimensions);
         self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("wgpu-text Bind Group"),
             layout: &self.bind_group_layout,
@@ -129,7 +138,12 @@ impl Cache {
         queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&matrix));
     }
 
-    pub fn update_texture(&mut self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
+    pub fn update_texture(
+        &mut self,
+        size: Rectangle<u32>,
+        data: &[u8],
+        queue: &wgpu::Queue,
+    ) {
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &self.texture,
@@ -155,10 +169,13 @@ impl Cache {
         )
     }
 
-    fn new_cache_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
+    fn create_cache_texture(
+        device: &wgpu::Device,
+        dimensions: (u32, u32),
+    ) -> wgpu::Texture {
         let size = wgpu::Extent3d {
-            width,
-            height,
+            width: dimensions.0,
+            height: dimensions.1,
             depth_or_array_layers: 1,
         };
         device.create_texture(&wgpu::TextureDescriptor {
