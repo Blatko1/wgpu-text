@@ -16,7 +16,7 @@
 mod cache;
 mod pipeline;
 
-/// Contains all needed structs and enums for inserting and styling text.
+/// Contains all needed objects for inserting and styling text.
 /// Directly taken from glyph_brush.
 ///
 /// Look into [glyph_brush_layout docs](https://docs.rs/glyph_brush_layout/latest/glyph_brush_layout/#enums)
@@ -30,7 +30,12 @@ pub mod section {
     };
 }
 
-/// TODO docs
+/// Contains all needed objects for font managing.
+/// Directly taken from glyph_brush.
+///
+/// Look into [glyph_brush_font docs](https://docs.rs/glyph_brush/latest/glyph_brush/ab_glyph/index.html)
+/// for the real, detailed, documentation.
+/// - If anything is missing open an issue on github and I'll add it.
 pub mod font {
     #[doc(hidden)]
     pub use glyph_brush::ab_glyph::{Font, FontArc, FontRef, InvalidFont};
@@ -67,7 +72,7 @@ pub struct ScissorRegion {
     pub out_height: u32,
 }
 
-/// TODO docs
+/// Represents a two dimensional array matrix with 4x4 dimensions.
 pub type Matrix = [[f32; 4]; 4];
 
 impl ScissorRegion {
@@ -254,11 +259,15 @@ where
         self.pipeline.update_matrix(matrix.into(), queue);
     }
 
-    /// Available if [`TextBrush`] was built with [`BrushBuilder::with_depth_testing()`].
     /// Resizes depth texture to provided dimensions.
-    /// TODO docs
+    /// 
+    /// Required if [`BrushBuilder::with_depth_testing()`] is set to `true`.
+    /// 
     /// Should be used every time the window (`wgpu::SurfaceConfiguration`) is resized.
-    /// If not used when needed, your program will crash with wgpu error.
+    /// If not used when needed, program will crash with _wgpu error_.
+    /// 
+    /// If used while [`BrushBuilder::with_depth_testing()`] is set to `false`
+    /// nothing will happen.
     #[inline]
     pub fn resize_depth(&mut self, device: &wgpu::Device, width: u32, height: u32) {
         if self.pipeline.depth_texture_view.is_some() {
@@ -325,9 +334,8 @@ where
         self
     }
 
-    /// If called depth testing will be enabled. By default depth testing
-    /// is disabled.
-    /// TODO docs
+    /// Defaults to `false`. If set to true all text will be depth tested.
+    /// 
     /// For each section, depth can be set by modifying
     /// the z coordinate ([`OwnedText::with_z()`]).
     ///
