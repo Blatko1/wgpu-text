@@ -2,7 +2,9 @@ mod simple;
 
 use simple::WgpuUtils;
 use std::time::{Duration, Instant, SystemTime};
-use wgpu_text::section::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign};
+use wgpu_text::section::{
+    BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
+};
 use wgpu_text::{BrushBuilder, ScissorRegion};
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
@@ -30,8 +32,7 @@ fn main() {
     let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
         &device,
         format,
-        config.width as f32,
-        config.height as f32,
+        (config.width, config.height),
     );
     let mut font_size = 25.;
     let mut section = Section::default()
@@ -145,9 +146,10 @@ fn main() {
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Command Encoder"),
-                });
+                let mut encoder =
+                    device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                        label: Some("Command Encoder"),
+                    });
 
                 {
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -171,18 +173,16 @@ fn main() {
 
                 brush.queue(&section);
 
-                let cmd_buffer = brush.draw_custom(
-                    &device,
-                    &view,
-                    &queue,
-                    &config,
-                    Some(ScissorRegion {
-                        x: 53,
-                        y: 20,
-                        width: 350,
-                        height: 350,
-                    }),
-                );
+                let region = ScissorRegion {
+                    x: 53,
+                    y: 20,
+                    width: 350,
+                    height: 350,
+                    out_width: config.width,
+                    out_height: config.height,
+                };
+
+                let cmd_buffer = brush.draw_custom(&device, &view, &queue, Some(region));
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
@@ -190,7 +190,10 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    window.set_title(&format!("wgpu-text: 'scissoring' example, FPS: {}", fps));
+                    window.set_title(&format!(
+                        "wgpu-text: 'scissoring' example, FPS: {}",
+                        fps
+                    ));
                     fps = 0;
                     then = now;
                 }

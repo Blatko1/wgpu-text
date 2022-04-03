@@ -2,7 +2,9 @@ mod simple;
 
 use simple::WgpuUtils;
 use std::time::{Duration, Instant, SystemTime};
-use wgpu_text::section::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign};
+use wgpu_text::section::{
+    BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
+};
 use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
@@ -29,8 +31,8 @@ fn main() {
     let font: &[u8] = include_bytes!("fonts/Inconsolata-Regular.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font)
         .unwrap()
-        .with_depth_testing(true)
-        .build(&device, format, config.width as f32, config.height as f32);
+        .with_depth_testing()
+        .build(&device, format, (config.width, config.height));
 
     let mut font_size = 45.;
     let mut section = Section::default()
@@ -91,6 +93,7 @@ fn main() {
                     section.bounds = (config.width as f32 * 0.5, config.height as _);
                     section.screen_position.1 = config.height as f32 * 0.5;
 
+                    brush.resize_depth(&device, config.width, config.height);
                     brush.resize_view(config.width as f32, config.height as f32, &queue);
                     // You can also do this!
                     // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
@@ -163,9 +166,10 @@ fn main() {
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Command Encoder"),
-                });
+                let mut encoder =
+                    device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                        label: Some("Command Encoder"),
+                    });
 
                 {
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -189,7 +193,7 @@ fn main() {
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                let cmd_buffer = brush.draw(&device, &view, &queue, &config);
+                let cmd_buffer = brush.draw(&device, &view, &queue);
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
@@ -197,7 +201,8 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    window.set_title(&format!("wgpu-text: 'depth' example, FPS: {}", fps));
+                    window
+                        .set_title(&format!("wgpu-text: 'depth' example, FPS: {}", fps));
                     fps = 0;
                     then = now;
                 }
