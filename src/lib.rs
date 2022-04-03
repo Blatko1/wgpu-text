@@ -2,7 +2,8 @@
 //! for simpler text rendering in [wgpu](https://github.com/gfx-rs/wgpu).
 //!
 //! This project was inspired by and is similar to [wgpu_glyph](https://github.com/hecrj/wgpu_glyph),
-//! but has additional features and is simpler. Also there is no need to include glyph-brush in your project.
+//! but has additional features and is simpler. Also there is no need to
+//! include glyph-brush in your project.
 //!
 //! Some features are directly implemented from glyph-brush so you should go trough
 //! [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html)
@@ -15,7 +16,8 @@
 mod cache;
 mod pipeline;
 
-/// Contains all needed structs and enums for inserting and styling text. Directly taken from glyph_brush.
+/// Contains all needed structs and enums for inserting and styling text.
+/// Directly taken from glyph_brush.
 ///
 /// Look into [glyph_brush_layout docs](https://docs.rs/glyph_brush_layout/latest/glyph_brush_layout/#enums)
 /// for the real, detailed, documentation.
@@ -23,8 +25,8 @@ mod pipeline;
 pub mod section {
     #[doc(hidden)]
     pub use glyph_brush::{
-        BuiltInLineBreaker, Color, FontId, HorizontalAlign, Layout, LineBreak, OwnedSection,
-        OwnedText, Section, SectionText, Text, VerticalAlign,
+        BuiltInLineBreaker, Color, FontId, HorizontalAlign, Layout, LineBreak,
+        OwnedSection, OwnedText, Section, SectionText, Text, VerticalAlign,
     };
 }
 
@@ -34,8 +36,11 @@ use glyph_brush::{
 };
 use pipeline::{Pipeline, Vertex};
 
-/// Marks scissor region and tests itself automatically if it can fit inside the surface `config` dimensions
-/// to avoid `wgpu` related rendering errors.
+/// Marks scissor region and tests itself automatically if it can fit inside
+/// the surface `config` dimensions to avoid `wgpu` related rendering errors.
+///
+/// `out_width` and `out_height` are dimensions of the bigger rectangle (*window*)
+/// in which the scissor region is located.
 pub struct ScissorRegion {
     /// x coordinate of top left region point.
     pub x: u32,
@@ -48,51 +53,60 @@ pub struct ScissorRegion {
 
     /// Height of scissor region.
     pub height: u32,
+
+    /// Width of outer rectangle.
+    pub out_width: u32,
+
+    /// Height of outer rectangle.
+    pub out_height: u32,
 }
 
 impl ScissorRegion {
     /// Checks if the region is contained in surface bounds at all.
-    pub(crate) fn is_contained_in(&self, width: u32, height: u32) -> bool {
-        if self.x < width && self.y < height {
+    pub(crate) fn is_contained(&self) -> bool {
+        if self.x < self.out_width && self.y < self.out_height {
             return true;
         }
         false
     }
 
-    /// Gives available bounds paying attention to `width` and `height`.
-    pub(crate) fn available_bounds(&self, width: u32, height: u32) -> (u32, u32) {
-        let width = if (self.x + self.width) > width {
-            width - self.x
+    /// Gives available bounds paying attention to `out_width` and `out_height`.
+    pub(crate) fn available_bounds(&self) -> (u32, u32) {
+        let width = if (self.x + self.width) > self.out_width {
+            self.out_width - self.x
         } else {
             self.width
         };
-        let height = if (self.y + self.height) > height {
-            height - self.y
+
+        let height = if (self.y + self.height) > self.out_height {
+            self.out_height - self.y
         } else {
             self.height
         };
+
         (width, height)
     }
 }
 
 /// Wrapper over [`glyph_brush::GlyphBrush`]. Draws text.
 ///
-/// Used for queuing and rendering text with [`TextBrush::draw`] and [`TextBrush::draw_custom`].
-pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
+/// Used for queuing and rendering text with
+/// [`TextBrush::draw`] and [`TextBrush::draw_custom`].
+pub struct TextBrush<Depth, F = FontArc, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
-    pipeline: Pipeline,
-    depth_test: bool,
+    pipeline: Pipeline<Depth>,
 }
 
-impl<F, H> TextBrush<F, H>
+impl<Depth, F, H> TextBrush<Depth, F, H>
 where
     F: Font + Sync,
     H: std::hash::BuildHasher,
 {
-    /// Queues section for drawing. This should be called every frame for every section that is going to be drawn.
+    /// Queues section for drawing. This should be called
+    /// every frame for every section that is going to be drawn.
     ///
-    /// This can be called multiple times for different sections that want to use the
-    /// same font and gpu cache.
+    /// This can be called multiple times for different sections
+    /// that want to use the same font and gpu cache.
     #[inline]
     pub fn queue<'a, S>(&mut self, section: S)
     where
@@ -106,7 +120,6 @@ where
         device: &wgpu::Device,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
-        config: &wgpu::SurfaceConfiguration,
         region: Option<ScissorRegion>,
     ) -> wgpu::CommandBuffer {
         let mut brush_action;
@@ -138,32 +151,32 @@ where
                     } else {
                         suggested
                     };
-                    self.pipeline.resize_texture(device, width, height);
+                    self.pipeline.resize_texture(device, (width, height));
                     self.inner.resize_texture(width, height);
                 }
             }
         }
 
         match brush_action.unwrap() {
-            BrushAction::Draw(vertices) => self.pipeline.update_buffer(vertices, device, queue),
+            BrushAction::Draw(vertices) => {
+                self.pipeline.update_buffer(vertices, device, queue)
+            }
             BrushAction::ReDraw => (),
         }
 
-        let depth_view = Pipeline::depth_texture_view(device, config);
-        let depth = if self.depth_test {
-            Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &depth_view,
+        let mut depth = None;
+        if let Some(d) = &self.pipeline.depth_texture_view {
+            depth = Some(wgpu::RenderPassDepthStencilAttachment {
+                view: d,
                 depth_ops: Some(wgpu::Operations {
                     load: wgpu::LoadOp::Clear(1.0),
                     store: true,
                 }),
                 stencil_ops: None,
-            })
-        } else {
-            None
-        };
+            });
+        }
 
-        self.pipeline.draw(device, view, config, depth, region)
+        self.pipeline.draw(device, view, depth, region)
     }
 
     /// Draws all queued sections with [`queue`](#method.queue) function.
@@ -175,9 +188,8 @@ where
         device: &wgpu::Device,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
-        config: &wgpu::SurfaceConfiguration,
     ) -> wgpu::CommandBuffer {
-        self.draw_queued(device, view, queue, config, None)
+        self.draw_queued(device, view, queue, None)
     }
 
     /// Draws all queued text with extra options.
@@ -190,13 +202,12 @@ where
         device: &wgpu::Device,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
-        config: &wgpu::SurfaceConfiguration,
         region: Option<R>,
     ) -> wgpu::CommandBuffer
     where
         R: Into<ScissorRegion>,
     {
-        self.draw_queued(device, view, queue, config, region.map(|r| r.into()))
+        self.draw_queued(device, view, queue, region.map(|r| r.into()))
     }
 
     /// Resizes "_camera_"(view). Updates default orthographic view matrix
@@ -235,56 +246,99 @@ where
     }
 }
 
-/// Builder for [`TextBrush`].
-pub struct BrushBuilder<F, H = DefaultSectionHasher> {
-    inner: glyph_brush::GlyphBrushBuilder<F, H>,
-    depth_test: bool,
+impl<F, H> TextBrush<wgpu::DepthStencilState, F, H>
+where
+    F: Font + Sync,
+    H: std::hash::BuildHasher,
+{
+    // TODO docs
+    pub fn resize_depth(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        if self.pipeline.depth_texture_view.is_some() {
+            self.pipeline.update_depth(device, (width, height));
+        } else {
+            if log::log_enabled!(log::Level::Warn) {
+                log::warn!(
+                    "Resizing depth texture view but depth isn't enabled! \
+                    Recreate TextBrush with BrushBuilder::with_depth_testing(true)."
+                );
+            }
+        }
+    }
 }
 
-impl BrushBuilder<()> {
+/// Builder for [`TextBrush`].
+pub struct BrushBuilder<Depth, F, H = DefaultSectionHasher> {
+    inner: glyph_brush::GlyphBrushBuilder<F, H>,
+    matrix: Option<[[f32; 4]; 4]>,
+    phantom: std::marker::PhantomData<Depth>
+}
+
+impl BrushBuilder<(), ()> {
     /// Creates a [`BrushBuilder`] with [`Font`].
     #[inline]
-    pub fn using_font<F: Font>(font: F) -> BrushBuilder<F> {
+    pub fn using_font<F: Font>(font: F) -> BrushBuilder<(), F> {
         BrushBuilder::using_fonts(vec![font])
     }
 
     /// Creates a [`BrushBuilder`] with font byte data.
     #[inline]
-    pub fn using_font_bytes(data: &[u8]) -> Result<BrushBuilder<FontRef>, InvalidFont> {
+    pub fn using_font_bytes(data: &[u8]) -> Result<BrushBuilder<(), FontRef>, InvalidFont> {
         let font = FontRef::try_from_slice(data)?;
         Ok(BrushBuilder::using_fonts(vec![font]))
     }
 
     /// Creates a [`BrushBuilder`] with multiple fonts byte data.
     #[inline]
-    pub fn using_font_bytes_vec(data: &[u8]) -> Result<BrushBuilder<FontRef>, InvalidFont> {
+    pub fn using_font_bytes_vec(
+        data: &[u8],
+    ) -> Result<BrushBuilder<(), FontRef>, InvalidFont> {
         let font = FontRef::try_from_slice(data)?;
         Ok(BrushBuilder::using_fonts(vec![font]))
     }
 
     /// Creates a [`BrushBuilder`] with multiple [`Font`].
-    pub fn using_fonts<F: Font>(fonts: Vec<F>) -> BrushBuilder<F> {
+    pub fn using_fonts<F: Font>(fonts: Vec<F>) -> BrushBuilder<(), F> {
         BrushBuilder {
             inner: glyph_brush::GlyphBrushBuilder::using_fonts(fonts),
-            depth_test: false,
+            matrix: None,
+            phantom: std::marker::PhantomData::<()>
         }
     }
 }
 
-impl<F, H> BrushBuilder<F, H>
+impl<Depth, F, H> BrushBuilder<Depth, F, H>
 where
     F: Font,
     H: std::hash::BuildHasher,
 {
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
 
+    //TODO docs
+    pub fn with_matrix<M>(mut self, matrix: M) -> Self
+    where
+        M: Into<[[f32; 4]; 4]>,
+    {
+        self.matrix = Some(matrix.into());
+        self
+    }
+}
+
+impl<F, H> BrushBuilder<(), F, H>
+where
+    F: Font,
+    H: std::hash::BuildHasher,
+{
     /// Defaults to `false`. If set to true all text will be depth tested.
     /// Depth can be for each section can be set by z coordinate.
+    /// TODO docs
     ///
     /// When enabled, section `z` coordinate should be in range 0.0 - 1.0 not including 1.0.
-    pub fn with_depth_testing(mut self, depth_test: bool) -> Self {
-        self.depth_test = depth_test;
-        self
+    pub fn with_depth_testing(self) -> BrushBuilder<wgpu::DepthStencilState, F, H> {
+        BrushBuilder {
+            inner: self.inner,
+            matrix: self.matrix,
+            phantom: std::marker::PhantomData::<wgpu::DepthStencilState>,
+        }
     }
 
     /// Builds a [`TextBrush`] consuming [`BrushBuilder`].
@@ -292,31 +346,67 @@ where
         self,
         device: &wgpu::Device,
         render_format: wgpu::TextureFormat,
-        width: f32,
-        height: f32,
-    ) -> TextBrush<F, H> {
-        let depth = if self.depth_test {
-            Some(Pipeline::depth_state())
-        } else {
-            None
-        };
-
+        dimensions: (u32, u32),
+    ) -> TextBrush<(), F, H> {
         let inner = self.inner.build();
-        let matrix = ortho(width, height);
+
+        let matrix = if let Some(matrix) = self.matrix {
+            matrix
+        } else {
+            ortho(dimensions.0 as f32, dimensions.1 as f32)
+        };
 
         let pipeline = Pipeline::new(
             device,
             render_format,
-            depth,
+            None,
             inner.texture_dimensions(),
             matrix,
         );
 
-        TextBrush {
-            inner,
-            pipeline,
-            depth_test: self.depth_test,
-        }
+        TextBrush { inner, pipeline }
+    }
+}
+
+impl<F, H> BrushBuilder<wgpu::DepthStencilState, F, H>
+where
+    F: Font,
+    H: std::hash::BuildHasher,
+{
+    /// Builds a [`TextBrush`] consuming [`BrushBuilder`].
+    /// TODO docs
+    pub fn build(
+        self,
+        device: &wgpu::Device,
+        render_format: wgpu::TextureFormat,
+        dimensions: (u32, u32),
+    ) -> TextBrush<wgpu::DepthStencilState, F, H> {
+        let inner = self.inner.build();
+
+        let matrix = if let Some(matrix) = self.matrix {
+            matrix
+        } else {
+            ortho(dimensions.0 as f32, dimensions.1 as f32)
+        };
+
+        let depth = wgpu::DepthStencilState {
+            format: Pipeline::DEPTH_FORMAT,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::Less,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        };
+
+        let mut pipeline = Pipeline::new(
+            device,
+            render_format,
+            Some(depth),
+            inner.texture_dimensions(),
+            matrix,
+        ).with_depth();
+        pipeline.update_depth(device, dimensions);
+
+        TextBrush { inner, pipeline }
     }
 }
 
