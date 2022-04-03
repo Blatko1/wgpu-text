@@ -7,27 +7,26 @@ use wgpu::{util::DeviceExt, CommandBuffer};
 use crate::{cache::Cache, Matrix};
 
 /// Responsible for drawing text.
-pub struct Pipeline<Depth> {
+pub struct Pipeline {
+    pub depth_texture_view: Option<wgpu::TextureView>,
     inner: wgpu::RenderPipeline,
+    cache: Cache,
 
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_len: usize,
     vertices: u32,
-
-    cache: Cache,
-    pub depth_texture_view: Option<wgpu::TextureView>,
-
-    phantom: std::marker::PhantomData<Depth>,
 }
 
-impl<Depth> Pipeline<Depth> {
+impl Pipeline {
+    pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
+
     pub fn new(
         device: &wgpu::Device,
         render_format: wgpu::TextureFormat,
         depth_stencil: Option<wgpu::DepthStencilState>,
         tex_dimensions: (u32, u32),
         matrix: Matrix,
-    ) -> Pipeline<Depth> {
+    ) -> Pipeline {
         let cache = Cache::new(device, tex_dimensions, matrix);
 
         let shader =
@@ -86,16 +85,13 @@ impl<Depth> Pipeline<Depth> {
         });
 
         Self {
+            depth_texture_view: None,
             inner: pipeline,
+            cache,
 
             vertex_buffer,
             vertex_buffer_len: 0,
             vertices: 0,
-
-            cache,
-            depth_texture_view: None,
-
-            phantom: std::marker::PhantomData::<Depth>,
         }
     }
 
@@ -187,29 +183,16 @@ impl<Depth> Pipeline<Depth> {
     pub fn resize_texture(&mut self, device: &wgpu::Device, tex_dimensions: (u32, u32)) {
         self.cache.recreate_texture(device, tex_dimensions);
     }
-}
 
-impl Pipeline<()> {
-    pub fn with_depth(self) -> Pipeline<wgpu::DepthStencilState> {
-        Pipeline {
-            inner: self.inner,
-
-            vertex_buffer: self.vertex_buffer,
-            vertex_buffer_len: self.vertex_buffer_len,
-            vertices: self.vertices,
-
-            cache: self.cache,
-            depth_texture_view: self.depth_texture_view,
-
-            phantom: std::marker::PhantomData::<wgpu::DepthStencilState>,
-        }
-    }
-}
-
-impl Pipeline<wgpu::DepthStencilState> {
-    pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
-
+    #[inline]
     pub fn update_depth(&mut self, device: &wgpu::Device, dimensions: (u32, u32)) {
+        self.depth_texture_view = Some(Self::create_depth_view(device, dimensions));
+    }
+
+    fn create_depth_view(
+        device: &wgpu::Device,
+        dimensions: (u32, u32),
+    ) -> wgpu::TextureView {
         let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {
                 width: dimensions.0,
@@ -224,8 +207,7 @@ impl Pipeline<wgpu::DepthStencilState> {
             label: Some("wgpu-text Depth Texture"),
         });
 
-        self.depth_texture_view =
-            Some(depth_texture.create_view(&wgpu::TextureViewDescriptor::default()));
+        depth_texture.create_view(&wgpu::TextureViewDescriptor::default())
     }
 }
 

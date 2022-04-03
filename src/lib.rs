@@ -30,8 +30,13 @@ pub mod section {
     };
 }
 
-use glyph_brush::GlyphBrush;
-pub use glyph_brush::{
+/// TODO docs
+pub mod font {
+    #[doc(hidden)]
+    pub use glyph_brush::ab_glyph::{Font, FontArc, FontRef, InvalidFont};
+}
+
+use glyph_brush::{
     ab_glyph::{Font, FontArc, FontRef, InvalidFont},
     BrushAction, DefaultSectionHasher, Extra, Section,
 };
@@ -62,6 +67,7 @@ pub struct ScissorRegion {
     pub out_height: u32,
 }
 
+/// TODO docs
 pub type Matrix = [[f32; 4]; 4];
 
 impl ScissorRegion {
@@ -95,12 +101,12 @@ impl ScissorRegion {
 ///
 /// Used for queuing and rendering text with
 /// [`TextBrush::draw`] and [`TextBrush::draw_custom`].
-pub struct TextBrush<Depth, F = FontArc, H = DefaultSectionHasher> {
-    inner: GlyphBrush<Vertex, Extra, F, H>,
-    pipeline: Pipeline<Depth>,
+pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
+    inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
+    pipeline: Pipeline,
 }
 
-impl<Depth, F, H> TextBrush<Depth, F, H>
+impl<F, H> TextBrush<F, H>
 where
     F: Font + Sync,
     H: std::hash::BuildHasher,
@@ -247,43 +253,37 @@ where
     {
         self.pipeline.update_matrix(matrix.into(), queue);
     }
-}
 
-impl<F, H> TextBrush<wgpu::DepthStencilState, F, H>
-where
-    F: Font + Sync,
-    H: std::hash::BuildHasher,
-{
-    /// Available if *TextBrush* was built with [`BrushBuilder::with_depth_testing()`].
+    /// Available if [`TextBrush`] was built with [`BrushBuilder::with_depth_testing()`].
     /// Resizes depth texture to provided dimensions.
-    ///
+    /// TODO docs
     /// Should be used every time the window (`wgpu::SurfaceConfiguration`) is resized.
     /// If not used when needed, your program will crash with wgpu error.
     #[inline]
     pub fn resize_depth(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        self.pipeline.update_depth(device, (width, height));
+        if self.pipeline.depth_texture_view.is_some() {
+            self.pipeline.update_depth(device, (width, height));
+        }
     }
 }
 
 /// Builder for [`TextBrush`].
-pub struct BrushBuilder<Depth, F, H = DefaultSectionHasher> {
+pub struct BrushBuilder<F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
+    depth_testing: Option<wgpu::DepthStencilState>,
     matrix: Option<Matrix>,
-    phantom: std::marker::PhantomData<Depth>,
 }
 
-impl BrushBuilder<(), ()> {
+impl BrushBuilder<()> {
     /// Creates a [`BrushBuilder`] with [`Font`].
     #[inline]
-    pub fn using_font<F: Font>(font: F) -> BrushBuilder<(), F> {
+    pub fn using_font<F: Font>(font: F) -> BrushBuilder<F> {
         BrushBuilder::using_fonts(vec![font])
     }
 
     /// Creates a [`BrushBuilder`] with font byte data.
     #[inline]
-    pub fn using_font_bytes(
-        data: &[u8],
-    ) -> Result<BrushBuilder<(), FontRef>, InvalidFont> {
+    pub fn using_font_bytes(data: &[u8]) -> Result<BrushBuilder<FontRef>, InvalidFont> {
         let font = FontRef::try_from_slice(data)?;
         Ok(BrushBuilder::using_fonts(vec![font]))
     }
@@ -292,22 +292,22 @@ impl BrushBuilder<(), ()> {
     #[inline]
     pub fn using_font_bytes_vec(
         data: &[u8],
-    ) -> Result<BrushBuilder<(), FontRef>, InvalidFont> {
+    ) -> Result<BrushBuilder<FontRef>, InvalidFont> {
         let font = FontRef::try_from_slice(data)?;
         Ok(BrushBuilder::using_fonts(vec![font]))
     }
 
     /// Creates a [`BrushBuilder`] with multiple [`Font`].
-    pub fn using_fonts<F: Font>(fonts: Vec<F>) -> BrushBuilder<(), F> {
+    pub fn using_fonts<F: Font>(fonts: Vec<F>) -> BrushBuilder<F> {
         BrushBuilder {
             inner: glyph_brush::GlyphBrushBuilder::using_fonts(fonts),
+            depth_testing: None,
             matrix: None,
-            phantom: std::marker::PhantomData::<()>,
         }
     }
 }
 
-impl<Depth, F, H> BrushBuilder<Depth, F, H>
+impl<F, H> BrushBuilder<F, H>
 where
     F: Font,
     H: std::hash::BuildHasher,
@@ -324,56 +324,30 @@ where
         self.matrix = Some(matrix.into());
         self
     }
-}
 
-impl<F, H> BrushBuilder<(), F, H>
-where
-    F: Font,
-    H: std::hash::BuildHasher,
-{
     /// If called depth testing will be enabled. By default depth testing
     /// is disabled.
-    ///
+    /// TODO docs
     /// For each section, depth can be set by modifying
     /// the z coordinate ([`OwnedText::with_z()`]).
     ///
     /// `z` coordinate should be in range
     ///  0.0 - 1.0 not including 1.0.
-    pub fn with_depth_testing(self) -> BrushBuilder<wgpu::DepthStencilState, F, H> {
-        BrushBuilder {
-            inner: self.inner,
-            matrix: self.matrix,
-            phantom: std::marker::PhantomData::<wgpu::DepthStencilState>,
+    pub fn with_depth_testing(mut self, test: bool) -> BrushBuilder<F, H> {
+        if test {
+            self.depth_testing = Some(wgpu::DepthStencilState {
+                format: Pipeline::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            });
+        } else {
+            self.depth_testing = None;
         }
+        self
     }
 
-    /// Builds a [`TextBrush`] consuming [`BrushBuilder`].
-    pub fn build(
-        self,
-        device: &wgpu::Device,
-        config: &wgpu::SurfaceConfiguration,
-    ) -> TextBrush<(), F, H> {
-        let inner: GlyphBrush<Vertex, Extra, F, H> = self.inner.build();
-
-        let matrix = create_matrix(self.matrix, &config);
-
-        let pipeline = Pipeline::new(
-            device,
-            config.format.clone(),
-            None,
-            inner.texture_dimensions(),
-            matrix,
-        );
-
-        TextBrush { inner, pipeline }
-    }
-}
-
-impl<F, H> BrushBuilder<wgpu::DepthStencilState, F, H>
-where
-    F: Font,
-    H: std::hash::BuildHasher,
-{
     /// Builds a [`TextBrush`] with depth testing consuming [`BrushBuilder`].
     ///
     /// To use this build method call [`Self::with_depth_testing()`].
@@ -381,38 +355,28 @@ where
         self,
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
-    ) -> TextBrush<wgpu::DepthStencilState, F, H> {
+    ) -> TextBrush<F, H> {
         let inner = self.inner.build();
 
-        let matrix = create_matrix(self.matrix, &config);
-
-        let depth = wgpu::DepthStencilState {
-            format: Pipeline::DEPTH_FORMAT,
-            depth_write_enabled: true,
-            depth_compare: wgpu::CompareFunction::Less,
-            stencil: wgpu::StencilState::default(),
-            bias: wgpu::DepthBiasState::default(),
+        let matrix = if let Some(m) = self.matrix {
+            m
+        } else {
+            ortho(config.width as f32, config.height as f32)
         };
 
+        let depth = self.depth_testing.is_some();
         let mut pipeline = Pipeline::new(
             device,
-            config.format.clone(),
-            Some(depth),
+            config.format,
+            self.depth_testing,
             inner.texture_dimensions(),
             matrix,
-        )
-        .with_depth();
-        pipeline.update_depth(device, (config.width, config.height));
+        );
+        if depth {
+            pipeline.update_depth(device, (config.width, config.height));
+        }
 
         TextBrush { inner, pipeline }
-    }
-}
-
-fn create_matrix(matrix: Option<Matrix>, config: &wgpu::SurfaceConfiguration) -> Matrix {
-    if let Some(matrix) = matrix {
-        matrix
-    } else {
-        ortho(config.width as f32, config.height as f32)
     }
 }
 

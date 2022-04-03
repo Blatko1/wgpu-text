@@ -31,7 +31,7 @@ fn main() {
     let font: &[u8] = include_bytes!("fonts/Inconsolata-Regular.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font)
         .unwrap()
-        .with_depth_testing()
+        .with_depth_testing(true)
         .build(&device, &config);
 
     let mut font_size = 45.;
