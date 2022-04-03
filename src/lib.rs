@@ -260,12 +260,12 @@ where
     }
 
     /// Resizes depth texture to provided dimensions.
-    /// 
+    ///
     /// Required if [`BrushBuilder::with_depth_testing()`] is set to `true`.
-    /// 
+    ///
     /// Should be used every time the window (`wgpu::SurfaceConfiguration`) is resized.
     /// If not used when needed, program will crash with _wgpu error_.
-    /// 
+    ///
     /// If used while [`BrushBuilder::with_depth_testing()`] is set to `false`
     /// nothing will happen.
     #[inline]
@@ -335,7 +335,7 @@ where
     }
 
     /// Defaults to `false`. If set to true all text will be depth tested.
-    /// 
+    ///
     /// For each section, depth can be set by modifying
     /// the z coordinate ([`OwnedText::with_z()`]).
     ///

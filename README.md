@@ -42,7 +42,7 @@ Add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-wgpu_text = "0.5.0"
+wgpu_text = "0.6.0"
 ```
 ## **Features**
 Besides basic text rendering and **glyph-brush** features, there are some features that add customization:
