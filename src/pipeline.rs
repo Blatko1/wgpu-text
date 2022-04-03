@@ -17,7 +17,7 @@ pub struct Pipeline<Depth> {
     cache: Cache,
     pub depth_texture_view: Option<wgpu::TextureView>,
 
-    phantom: std::marker::PhantomData<Depth>
+    phantom: std::marker::PhantomData<Depth>,
 }
 
 impl<Depth> Pipeline<Depth> {
@@ -95,7 +95,7 @@ impl<Depth> Pipeline<Depth> {
             cache,
             depth_texture_view: None,
 
-            phantom: std::marker::PhantomData::<Depth>
+            phantom: std::marker::PhantomData::<Depth>,
         }
     }
 

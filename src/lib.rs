@@ -270,7 +270,7 @@ where
 pub struct BrushBuilder<Depth, F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
     matrix: Option<[[f32; 4]; 4]>,
-    phantom: std::marker::PhantomData<Depth>
+    phantom: std::marker::PhantomData<Depth>,
 }
 
 impl BrushBuilder<(), ()> {
@@ -282,7 +282,9 @@ impl BrushBuilder<(), ()> {
 
     /// Creates a [`BrushBuilder`] with font byte data.
     #[inline]
-    pub fn using_font_bytes(data: &[u8]) -> Result<BrushBuilder<(), FontRef>, InvalidFont> {
+    pub fn using_font_bytes(
+        data: &[u8],
+    ) -> Result<BrushBuilder<(), FontRef>, InvalidFont> {
         let font = FontRef::try_from_slice(data)?;
         Ok(BrushBuilder::using_fonts(vec![font]))
     }
@@ -301,7 +303,7 @@ impl BrushBuilder<(), ()> {
         BrushBuilder {
             inner: glyph_brush::GlyphBrushBuilder::using_fonts(fonts),
             matrix: None,
-            phantom: std::marker::PhantomData::<()>
+            phantom: std::marker::PhantomData::<()>,
         }
     }
 }
@@ -403,7 +405,8 @@ where
             Some(depth),
             inner.texture_dimensions(),
             matrix,
-        ).with_depth();
+        )
+        .with_depth();
         pipeline.update_depth(device, dimensions);
 
         TextBrush { inner, pipeline }
