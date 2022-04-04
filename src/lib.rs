@@ -78,10 +78,7 @@ pub type Matrix = [[f32; 4]; 4];
 impl ScissorRegion {
     /// Checks if the region is contained in surface bounds at all.
     pub(crate) fn is_contained(&self) -> bool {
-        if self.x < self.out_width && self.y < self.out_height {
-            return true;
-        }
-        false
+        self.x < self.out_width && self.y < self.out_height
     }
 
     /// Gives available bounds paying attention to `out_width` and `out_height`.
@@ -243,20 +240,8 @@ where
     /// ```
     #[inline]
     pub fn resize_view(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        self.update_matrix(ortho(width, height), queue);
-    }
-
-    /// Resizes "_camera_"(view). Updates text rendering matrix with the provided one.
-    ///
-    /// Use [`Self::resize_view()`] to update render matrix with default orthographic matrix.
-    ///
-    /// Feel free to use [`ortho()`] for creating more complex matrices by yourself
-    /// (`cross product`-ing).
-    pub fn update_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
-    where
-        M: Into<Matrix>,
-    {
-        self.pipeline.update_matrix(matrix.into(), queue);
+        self.pipeline
+            .update_matrix(ortho(width, height).into(), queue);
     }
 
     /// Resizes depth texture to provided dimensions.
@@ -269,7 +254,7 @@ where
     /// If used while [`BrushBuilder::with_depth_testing()`] is set to `false`
     /// nothing will happen.
     #[inline]
-    pub fn resize_depth(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+    pub fn resize_depth(&mut self, width: u32, height: u32, device: &wgpu::Device) {
         if self.pipeline.depth_texture_view.is_some() {
             self.pipeline.update_depth(device, (width, height));
         }
@@ -366,11 +351,9 @@ where
     ) -> TextBrush<F, H> {
         let inner = self.inner.build();
 
-        let matrix = if let Some(m) = self.matrix {
-            m
-        } else {
-            ortho(config.width as f32, config.height as f32)
-        };
+        let matrix = self
+            .matrix
+            .unwrap_or(ortho(config.width as f32, config.height as f32));
 
         let depth = self.depth_testing.is_some();
         let mut pipeline = Pipeline::new(
