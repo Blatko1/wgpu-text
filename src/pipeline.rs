@@ -191,12 +191,12 @@ impl Pipeline {
 
     fn create_depth_view(
         device: &wgpu::Device,
-        dimensions: (u32, u32),
+        (width, height): (u32, u32),
     ) -> wgpu::TextureView {
         let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {
-                width: dimensions.0,
-                height: dimensions.1,
+                width,
+                height,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,

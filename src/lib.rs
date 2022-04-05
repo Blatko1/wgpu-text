@@ -78,10 +78,7 @@ pub type Matrix = [[f32; 4]; 4];
 impl ScissorRegion {
     /// Checks if the region is contained in surface bounds at all.
     pub(crate) fn is_contained(&self) -> bool {
-        if self.x < self.out_width && self.y < self.out_height {
-            return true;
-        }
-        false
+        self.x < self.out_width && self.y < self.out_height
     }
 
     /// Gives available bounds paying attention to `out_width` and `out_height`.
@@ -269,7 +266,7 @@ where
     /// If used while [`BrushBuilder::with_depth_testing()`] is set to `false`
     /// nothing will happen.
     #[inline]
-    pub fn resize_depth(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+    pub fn resize_depth(&mut self, width: u32, height: u32, device: &wgpu::Device) {
         if self.pipeline.depth_texture_view.is_some() {
             self.pipeline.update_depth(device, (width, height));
         }
@@ -366,11 +363,9 @@ where
     ) -> TextBrush<F, H> {
         let inner = self.inner.build();
 
-        let matrix = if let Some(m) = self.matrix {
-            m
-        } else {
-            ortho(config.width as f32, config.height as f32)
-        };
+        let matrix = self
+            .matrix
+            .unwrap_or(ortho(config.width as f32, config.height as f32));
 
         let depth = self.depth_testing.is_some();
         let mut pipeline = Pipeline::new(

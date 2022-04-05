@@ -73,10 +73,13 @@ fn main() {
                     config.height = new_size.height.max(1);
                     surface.configure(&device, &config);
 
-                    section.bounds = (config.width as f32 * 0.5, config.height as _);
-                    section.screen_position.1 = config.height as f32 * 0.5;
+                    let width = config.width as f32;
+                    let height = config.height as f32;
 
-                    brush.resize_view(config.width as f32, config.height as f32, &queue);
+                    section.bounds = (width * 0.5, height);
+                    section.screen_position.1 = height * 0.5;
+
+                    brush.resize_view(width, height, &queue);
                     // You can also do this!
                     // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
                 }
