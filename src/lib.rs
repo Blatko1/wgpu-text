@@ -240,8 +240,20 @@ where
     /// ```
     #[inline]
     pub fn resize_view(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
-        self.pipeline
-            .update_matrix(ortho(width, height).into(), queue);
+        self.update_matrix(ortho(width, height), queue);
+    }
+
+    /// Resizes "_camera_"(view). Updates text rendering matrix with the provided one.
+    ///
+    /// Use [`Self::resize_view()`] to update render matrix with default orthographic matrix.
+    ///
+    /// Feel free to use [`ortho()`] for creating more complex matrices by yourself
+    /// (`cross product`-ing).
+    pub fn update_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
+    where
+        M: Into<Matrix>,
+    {
+        self.pipeline.update_matrix(matrix.into(), queue);
     }
 
     /// Resizes depth texture to provided dimensions.
