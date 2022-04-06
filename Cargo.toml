@@ -18,7 +18,7 @@ glyph_brush = "0.7.3"
 log = "0.4.16"
 
 [dependencies.bytemuck]
-version = "1.8"
+version = "1.9.1"
 features = ["derive"]
 
 [dev-dependencies]
