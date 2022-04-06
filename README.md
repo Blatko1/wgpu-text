@@ -4,13 +4,22 @@
 [![crates.io](https://img.shields.io/crates/v/wgpu_text?logo=rust&logoColor=%23bf7d36)](https://crates.io/crates/wgpu_text)
 [![Documentation](https://img.shields.io/docsrs/wgpu_text)](https://docs.rs/wgpu_text)
 
-**wgpu-text** is a wrapper over **_[glyph-brush](https://github.com/alexheretic/glyph-brush)_** for easier text rendering in **_[wgpu](https://github.com/gfx-rs/wgpu)_**.
+**wgpu-text** is a wrapper over **_[glyph-brush](https://github.com/alexheretic/glyph-brush)_** for easy text rendering in **_[wgpu](https://github.com/gfx-rs/wgpu)_**.
 
 This project was inspired by and is similar to **_[wgpu_glyph](https://github.com/hecrj/wgpu_glyph)_**, but has additional features and is simpler. Also there is no need to include **glyph-brush** in your project.
 
 Some features are directly implemented from **glyph-brush** so you should go trough [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html) and [Section examples](https://github.com/alexheretic/glyph-brush/tree/master/gfx-glyph/examples) for better understanding of managing and adding text.
 
-Example:
+## **Installation**
+Add the following to your `Cargo.toml` file:
+
+```toml
+[dependencies]
+wgpu_text = "0.6.0"
+```
+
+## **Usage**
+
 ```rust
 use wgpu_text::BrushBuilder;
 use wgpu_text::section::{Section, Text, Layout, HorizontalAlign};
@@ -37,13 +46,12 @@ let section = Section::default()
     }
 ```
 
-# **Installation**
-Add the following to your `Cargo.toml` file:
+## **Examples**
+For more detailed examples look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples).
+* `cargo run --example <example-name>`
 
-```toml
-[dependencies]
-wgpu_text = "0.6.0"
-```
+Run examples with `--release` for true performance.
+
 ## **Features**
 Besides basic text rendering and **glyph-brush** features, there are some features that add customization:
 
@@ -52,12 +60,6 @@ Besides basic text rendering and **glyph-brush** features, there are some featur
 > **custom matrix** - ability of providing a custom matrix for purposes of custom view, rotation...
 
 > **depth testing** - by adding z coordinate text can be set on top or below other text (if enabled)
-
-## **Examples**
-Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples) for more.
-* `cargo run --example <example-name>`
-
-Run examples with `--release` for true performance.
 
 ## **Goals**
 - improve docs
