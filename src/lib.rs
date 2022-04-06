@@ -365,7 +365,7 @@ where
 
         let matrix = self
             .matrix
-            .unwrap_or(ortho(config.width as f32, config.height as f32));
+            .unwrap_or_else(|| ortho(config.width as f32, config.height as f32));
 
         let depth = self.depth_testing.is_some();
         let mut pipeline = Pipeline::new(
