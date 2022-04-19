@@ -12,7 +12,7 @@ struct Matrix {
 };
 
 [[group(0), binding(0)]]
-var<uniform> ortho: Matrix;
+var<uniform> matrix: Matrix;
 
 struct VertexOutput {
     [[builtin(position)]] clip_position: vec4<f32>;
@@ -32,7 +32,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 
     switch (in.vertex_index) {
         case 0: {
-            pos = vec2<f32>(left, top);
+            pos = vec2<f32>(0.1, 0.1);
             out.tex_pos = in.tex_top_left;
             break;
         }
@@ -54,7 +54,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
         default: {}
     }
 
-    out.clip_position = ortho.matrix * vec4<f32>(pos, in.top_left.z, 1.0);
+    out.clip_position = normalize(vec4<f32>(pos, in.top_left.z, 1.0));
     out.color = in.color;
     return out;
 }

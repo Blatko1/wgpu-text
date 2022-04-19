@@ -170,6 +170,7 @@ where
 
         match brush_action.unwrap() {
             BrushAction::Draw(vertices) => {
+                dbg!(vertices.len());
                 self.pipeline.update_buffer(vertices, device, queue)
             }
             BrushAction::ReDraw => (),

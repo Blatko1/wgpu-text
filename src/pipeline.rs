@@ -146,6 +146,7 @@ impl Pipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
+        println!("{:?}", vertices);
         self.vertices = vertices.len() as u32;
         let data: &[u8] = bytemuck::cast_slice(&vertices);
 
