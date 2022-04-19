@@ -67,7 +67,6 @@ Besides basic text rendering and **glyph-brush** features, there are some featur
 > **depth testing** - by adding z coordinate, text can be set on top or below other text (if enabled)
 
 ## **Goals**
-- **ability to provide custom matrix for each text section - *WIP***
 - try to improve docs
 - maybe some new features
 - (wgpu stuff: maybe change to StagingBelt instead of Queue)
