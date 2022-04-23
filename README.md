@@ -21,10 +21,9 @@ wgpu_text = "0.6.1"
 ## **Usage**
 
 ```rust
-use wgpu_text::BrushBuilder;
 use wgpu_text::section::{Section, Text, Layout, HorizontalAlign};
 
-let brush = BrushBuilder::using_font_bytes(font).unwrap()
+let brush = wgpu_text::BrushBuilder::using_font_bytes(font).unwrap()
  /* .initial_cache_size((1024, 1024))) */ // use this to avoid resizing cache texture
  /* .with_depth_testing(true) */ // enable/disable depth testing
     .build(&device, &config);
