@@ -30,7 +30,7 @@ impl Pipeline {
         let cache = Cache::new(device, tex_dimensions, matrix);
 
         let shader =
-            device.create_shader_module(&wgpu::include_wgsl!("shader/text.wgsl"));
+            device.create_shader_module(wgpu::include_wgsl!("shader/text.wgsl"));
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("wgpu-text Vertex Buffer"),
@@ -64,7 +64,7 @@ impl Pipeline {
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
-                targets: &[wgpu::ColorTargetState {
+                targets: &[Some(wgpu::ColorTargetState {
                     format: render_format,
                     blend: Some(wgpu::BlendState {
                         color: wgpu::BlendComponent {
@@ -79,7 +79,7 @@ impl Pipeline {
                         },
                     }),
                     write_mask: wgpu::ColorWrites::ALL,
-                }],
+                })],
             }),
             multiview: None,
         });
@@ -111,14 +111,14 @@ impl Pipeline {
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("wgpu-text Render Pass"),
-                color_attachments: &[wgpu::RenderPassColorAttachment {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
                         store: true,
                     },
-                }],
+                })],
                 depth_stencil_attachment,
             });
 

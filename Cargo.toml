@@ -13,7 +13,7 @@ resolver = "2"
 include = ["src/**/*", "LICENSE", "README.md", "Cargo.toml", ".gitignore"]
 
 [dependencies]
-wgpu = "0.12.0"
+wgpu = "0.13.1"
 glyph_brush = "0.7.3"
 log = "0.4.16"
 
