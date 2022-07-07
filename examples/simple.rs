@@ -257,7 +257,7 @@ impl WgpuUtils {
             format,
             width: size.width,
             height: size.height,
-            present_mode: wgpu::PresentMode::Mailbox,
+            present_mode: wgpu::PresentMode::Fifo,
         };
         surface.configure(&device, &config);
         (device, queue, surface, config)
