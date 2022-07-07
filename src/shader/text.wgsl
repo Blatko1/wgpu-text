@@ -1,26 +1,26 @@
 struct VertexInput {
-    [[builtin(vertex_index)]] vertex_index: u32;
-    [[location(0)]] top_left: vec3<f32>;
-    [[location(1)]] bottom_right: vec2<f32>;
-    [[location(2)]] tex_top_left: vec2<f32>;
-    [[location(3)]] tex_bottom_right: vec2<f32>;
-    [[location(4)]] color: vec4<f32>;
-};
+    @builtin(vertex_index) vertex_index: u32,
+    @location(0) top_left: vec3<f32>,
+    @location(1) bottom_right: vec2<f32>,
+    @location(2) tex_top_left: vec2<f32>,
+    @location(3) tex_bottom_right: vec2<f32>,
+    @location(4) color: vec4<f32>,
+}
 
 struct Matrix {
-    matrix: mat4x4<f32>;
-};
+    v: mat4x4<f32>,
+}
 
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> ortho: Matrix;
 
 struct VertexOutput {
-    [[builtin(position)]] clip_position: vec4<f32>;
-    [[location(0)]] tex_pos: vec2<f32>;
-    [[location(1)]] color: vec4<f32>;
-};
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) tex_pos: vec2<f32>,
+    @location(1) color: vec4<f32>,
+}
 
-[[stage(vertex)]]
+@vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
@@ -31,22 +31,22 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     var bottom: f32 = in.bottom_right.y;
 
     switch (in.vertex_index) {
-        case 0: {
+        case 0u: {
             pos = vec2<f32>(left, top);
             out.tex_pos = in.tex_top_left;
             break;
         }
-        case 1: {
+        case 1u: {
             pos = vec2<f32>(right, top);
             out.tex_pos = vec2<f32>(in.tex_bottom_right.x, in.tex_top_left.y);
             break;
         }
-        case 2: {
+        case 2u: {
             pos = vec2<f32>(left, bottom);
             out.tex_pos = vec2<f32>(in.tex_top_left.x, in.tex_bottom_right.y);
             break;
         }
-        case 3: {
+        case 3u: {
             pos = vec2<f32>(right, bottom);
             out.tex_pos = in.tex_bottom_right;
             break;
@@ -54,18 +54,18 @@ fn vs_main(in: VertexInput) -> VertexOutput {
         default: {}
     }
 
-    out.clip_position = ortho.matrix * vec4<f32>(pos, in.top_left.z, 1.0);
+    out.clip_position = ortho.v * vec4<f32>(pos, in.top_left.z, 1.0);
     out.color = in.color;
     return out;
 }
 
-[[group(0), binding(1)]]
+@group(0) @binding(1)
 var texture: texture_2d<f32>;
-[[group(0), binding(2)]]
+@group(0) @binding(2)
 var tex_sampler: sampler;
 
-[[stage(fragment)]]
-fn fs_main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var alpha: f32 = textureSample(texture, tex_sampler, in.tex_pos).r;
 
     if (alpha <= 0.) {
