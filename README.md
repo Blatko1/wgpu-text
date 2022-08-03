@@ -68,7 +68,7 @@ Besides basic text rendering and **glyph-brush** features, there are some featur
 - **custom matrix** - ability of providing a custom matrix for purposes of custom view, rotation... (the downside is that it applies to all rendered text)
 - **depth testing** - by adding z coordinate, text can be set on top or below other text (if enabled)
 
-## **Possibilities**
+## **Future**
 
 * wgpu stuff: maybe change to StagingBelt instead of Queue
 
