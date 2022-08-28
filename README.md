@@ -5,9 +5,9 @@
 [![crates.io](https://img.shields.io/crates/v/wgpu_text?logo=rust&logoColor=%23bf7d36)](https://crates.io/crates/wgpu_text)
 [![Documentation](https://img.shields.io/docsrs/wgpu_text)](https://docs.rs/wgpu_text)
 
-**wgpu-text** is a wrapper over **_[glyph-brush](https://github.com/alexheretic/glyph-brush)_** for **fast** and **easy** text rendering in **_[wgpu](https://github.com/gfx-rs/wgpu)_**.
+**`wgpu-text`** is a wrapper over **[`glyph-brush`](https://github.com/alexheretic/glyph-brush)** for **fast** and **easy** text rendering in **_[`wgpu`](https://github.com/gfx-rs/wgpu)_**.
 
-This project was inspired by and is similar to **_[wgpu_glyph](https://github.com/hecrj/wgpu_glyph)_**, but has additional features and is simpler. Also there is no need to include **glyph-brush** in your project.
+This project was inspired by and is similar to **[`wgpu_glyph`](https://github.com/hecrj/wgpu_glyph)**, but has additional features and is simpler. Also there is no need to include **glyph-brush** in your project.
 
 Some features are directly implemented from **glyph-brush** so you should go trough [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html) and [Section examples](https://github.com/alexheretic/glyph-brush/tree/master/gfx-glyph/examples) for better understanding of managing and adding text.
 
