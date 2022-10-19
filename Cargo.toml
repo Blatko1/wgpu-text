@@ -10,7 +10,7 @@ repository = "https://github.com/Blatko1/wgpu-text"
 keywords = ["wgpu", "text", "ttf", "truetype", "font"]
 categories = ["graphics", "rendering"]
 resolver = "2"
-include = ["src/**/*", "LICENSE", "README.md", "Cargo.toml", ".gitignore"]
+include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 
 [dependencies]
 wgpu = "0.14.0"
