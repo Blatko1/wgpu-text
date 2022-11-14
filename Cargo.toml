@@ -16,10 +16,10 @@ include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 wgpu = "0.14.0"
 glyph_brush = "0.7.5"
 log = "0.4.17"
-bytemuck = { version = "1.12.1", features = ["derive"]}
+bytemuck = { version = "1.12.3", features = ["derive"]}
 
 [dev-dependencies]
-winit = "0.27.4"
+winit = "0.27.5"
 pollster = "0.2.5"
-env_logger = "0.9.1"
+env_logger = "0.9.3"
 rand = "0.8.5"
