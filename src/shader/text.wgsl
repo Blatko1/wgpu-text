@@ -68,9 +68,5 @@ var tex_sampler: sampler;
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var alpha: f32 = textureSample(texture, tex_sampler, in.tex_pos).r;
 
-    if (alpha <= 0.) {
-        discard;
-    }
-
     return in.color * vec4<f32>(1.0, 1.0, 1.0, alpha);
 }

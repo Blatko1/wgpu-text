@@ -3,7 +3,7 @@ name = "wgpu_text"
 authors = ["Leon (Blatko1)"]
 version = "0.6.4"
 edition = "2021"
-description = "Simple library for rendering text with wgpu"
+description = "A simple 2D text renderer for wgpu"
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/Blatko1/wgpu-text"
@@ -13,7 +13,7 @@ resolver = "2"
 include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 
 [dependencies]
-wgpu = "0.14.0"
+wgpu = "0.14.2"
 glyph_brush = "0.7.5"
 log = "0.4.17"
 bytemuck = { version = "1.12.3", features = ["derive"]}
@@ -21,5 +21,5 @@ bytemuck = { version = "1.12.3", features = ["derive"]}
 [dev-dependencies]
 winit = "0.27.5"
 pollster = "0.2.5"
-env_logger = "0.9.3"
+env_logger = "0.10.0"
 rand = "0.8.5"
