@@ -28,7 +28,7 @@ fn main() {
     let (device, queue, surface, mut config) = WgpuUtils::init(&window);
 
     // All wgpu-text related below:
-    let font: &[u8] = include_bytes!("fonts/Inconsolata-Regular.ttf");
+    let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font)
         .unwrap()
         .with_depth_testing(true)
