@@ -1,6 +1,6 @@
 # wgpu-text
 
-[![Build Status](https://img.shields.io/github/workflow/status/Blatko1/wgpu-text/Rust?logo=github)](https://github.com/Blatko1/wgpu-text/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/blatko1/wgpu-text/rust.yml?logo=github)](https://github.com/Blatko1/wgpu-text/actions)
 [![Licence](https://img.shields.io/github/license/Blatko1/wgpu-text?color=%23537aed)](https://github.com/Blatko1/wgpu-text/blob/master/LICENSE)
 [![crates.io](https://img.shields.io/crates/v/wgpu_text?logo=rust&logoColor=%23bf7d36)](https://crates.io/crates/wgpu_text)
 [![Documentation](https://img.shields.io/docsrs/wgpu_text)](https://docs.rs/wgpu_text)
