@@ -25,8 +25,8 @@ mod pipeline;
 pub mod section {
     #[doc(hidden)]
     pub use glyph_brush::{
-        BuiltInLineBreaker, Color, FontId, HorizontalAlign, Layout, LineBreak,
-        OwnedSection, OwnedText, Section, SectionText, Text, VerticalAlign,
+        BuiltInLineBreaker, Color, FontId, GlyphCruncher, HorizontalAlign, Layout,
+        LineBreak, OwnedSection, OwnedText, Section, SectionText, Text, VerticalAlign,
     };
 }
 
@@ -42,8 +42,8 @@ pub mod font {
 }
 
 use glyph_brush::{
-    ab_glyph::{Font, FontArc, FontRef, InvalidFont},
-    BrushAction, DefaultSectionHasher, Extra, Section,
+    ab_glyph::{Font, FontArc, FontRef, InvalidFont, Rect},
+    BrushAction, DefaultSectionHasher, Extra, GlyphCruncher, Section,
 };
 use pipeline::{Pipeline, Vertex};
 
@@ -123,7 +123,18 @@ where
     where
         S: Into<std::borrow::Cow<'a, Section<'a>>>,
     {
-        self.inner.queue(section);
+        self.inner.queue(section)
+    }
+
+    /// Returns a bounding box for the section glyphs calculated 
+    /// using each glyph's vertical & horizontal metrics.
+    /// For more info read about: [`GlyphCruncher::glyph_bounds`].
+    #[inline]
+    pub fn glyph_bounds<'a, S>(&mut self, section: S) -> Option<Rect>
+    where
+        S: Into<std::borrow::Cow<'a, Section<'a>>>,
+    {
+        self.inner.glyph_bounds(section)
     }
 
     fn draw_queued(
