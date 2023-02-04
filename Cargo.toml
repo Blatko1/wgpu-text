@@ -13,13 +13,13 @@ resolver = "2"
 include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 
 [dependencies]
-wgpu = "0.14.2"
+wgpu = "0.15.0"
 glyph_brush = "0.7.5"
 log = "0.4.17"
-bytemuck = { version = "1.12.3", features = ["derive"]}
+bytemuck = { version = "1.13.0", features = ["derive"]}
 
 [dev-dependencies]
-winit = "0.27.5"
+winit = "0.28.1"
 pollster = "0.2.5"
 env_logger = "0.10.0"
 rand = "0.8.5"

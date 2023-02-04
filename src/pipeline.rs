@@ -205,6 +205,7 @@ impl Pipeline {
             format: Self::DEPTH_FORMAT,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             label: Some("wgpu-text Depth Texture"),
+            view_formats: &[],
         });
 
         depth_texture.create_view(&wgpu::TextureViewDescriptor::default())

@@ -228,10 +228,13 @@ impl WgpuUtils {
     ) {
         let backends =
             wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
-        let instance = wgpu::Instance::new(backends);
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends,
+            dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
+        });
         let (size, surface) = unsafe {
             let size = window.inner_size();
-            let surface = instance.create_surface(&window);
+            let surface = instance.create_surface(&window).unwrap();
             (size, surface)
         };
         let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -251,7 +254,8 @@ impl WgpuUtils {
         ))
         .unwrap();
 
-        let format = surface.get_supported_formats(&adapter)[0];
+        let caps = surface.get_capabilities(&adapter);
+        let format = caps.formats[0];
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format,
@@ -259,6 +263,7 @@ impl WgpuUtils {
             height: size.height,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            view_formats: vec![format],
         };
         surface.configure(&device, &config);
         (device, queue, surface, config)
