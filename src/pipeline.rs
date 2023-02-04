@@ -29,8 +29,7 @@ impl Pipeline {
     ) -> Pipeline {
         let cache = Cache::new(device, tex_dimensions, matrix);
 
-        let shader =
-            device.create_shader_module(wgpu::include_wgsl!("shader/text.wgsl"));
+        let shader = device.create_shader_module(wgpu::include_wgsl!("shader/text.wgsl"));
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("wgpu-text Vertex Buffer"),
