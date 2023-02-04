@@ -17,7 +17,7 @@ Add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-wgpu_text = "0.6.5"
+wgpu_text = "0.6.6"
 ```
 
 ## **Usage**
