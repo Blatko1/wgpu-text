@@ -2,14 +2,14 @@
 //! for simpler text rendering in [wgpu](https://github.com/gfx-rs/wgpu).
 //!
 //! This project was inspired by and is similar to [wgpu_glyph](https://github.com/hecrj/wgpu_glyph),
-//! but has additional features and is simpler. Also there is no need to
+//! but has additional features and is simpler. Also, there is no need to
 //! include glyph-brush in your project.
 //!
-//! Some features are directly implemented from glyph-brush so you should go trough
+//! Some features are directly implemented from glyph-brush, so you should go trough
 //! [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html)
-//! for better understanding of adding and managing text.
+//! for a better understanding of adding and managing text.
 //!
-//! If you want to learn about GPU texture caching see [caching behaviour](#caching-behaviour).
+//! If you want to learn about GPU texture caching, see [caching behaviour](#caching-behaviour).
 //!
 //! * Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
@@ -20,8 +20,8 @@ mod pipeline;
 /// Directly taken from glyph_brush.
 ///
 /// Look into [glyph_brush_layout docs](https://docs.rs/glyph_brush_layout/latest/glyph_brush_layout/#enums)
-/// for the real, detailed, documentation.
-/// - If anything is missing open an issue on github and I'll add it.
+/// for the accurate, detailed documentation.
+/// - If anything is missing, open an issue on GitHub, and I'll review it.
 pub mod section {
     #[doc(hidden)]
     pub use glyph_brush::{
@@ -30,12 +30,12 @@ pub mod section {
     };
 }
 
-/// Contains all needed objects for font managing.
+/// Contains all needed objects for font management.
 /// Directly taken from glyph_brush.
 ///
 /// Look into [glyph_brush_font docs](https://docs.rs/glyph_brush/latest/glyph_brush/ab_glyph/index.html)
-/// for the real, detailed, documentation.
-/// - If anything is missing open an issue on github and I'll add it.
+/// for the accurate, detailed documentation.
+/// - If anything is missing, open an issue on GitHub, and I'll review it.
 pub mod font {
     #[doc(hidden)]
     pub use glyph_brush::ab_glyph::{Font, FontArc, FontRef, InvalidFont};
@@ -72,7 +72,7 @@ pub struct ScissorRegion {
     pub out_height: u32,
 }
 
-/// Represents a two dimensional array matrix with 4x4 dimensions.
+/// Represents a two-dimensional array matrix with 4x4 dimensions.
 pub type Matrix = [[f32; 4]; 4];
 
 impl ScissorRegion {
@@ -128,7 +128,7 @@ where
 
     /// Returns a bounding box for the section glyphs calculated 
     /// using each glyph's vertical & horizontal metrics.
-    /// For more info read about: [`GlyphCruncher::glyph_bounds`].
+    /// For more info, read about: [`GlyphCruncher::glyph_bounds`].
     #[inline]
     pub fn glyph_bounds<'a, S>(&mut self, section: S) -> Option<Rect>
     where
@@ -272,7 +272,7 @@ where
     /// Required if [`BrushBuilder::with_depth_testing()`] is set to `true`.
     ///
     /// Should be used every time the window (`wgpu::SurfaceConfiguration`) is resized.
-    /// If not used when needed, program will crash with _wgpu error_.
+    /// If not used when needed, the program will crash with _wgpu error_.
     ///
     /// If used while [`BrushBuilder::with_depth_testing()`] is set to `false`
     /// nothing will happen.
