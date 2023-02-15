@@ -14,7 +14,7 @@ include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 
 [dependencies]
 wgpu = "0.15.1"
-glyph_brush = "0.7.5"
+glyph_brush = "0.7.6"
 log = "0.4.17"
 bytemuck = { version = "1.13.0", features = ["derive"]}
 
