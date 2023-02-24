@@ -126,7 +126,7 @@ where
         self.inner.queue(section)
     }
 
-    /// Returns a bounding box for the section glyphs calculated 
+    /// Returns a bounding box for the section glyphs calculated
     /// using each glyph's vertical & horizontal metrics.
     /// For more info, read about: [`GlyphCruncher::glyph_bounds`].
     #[inline]
@@ -372,22 +372,36 @@ where
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
     ) -> TextBrush<F, H> {
+        self.build_for_output(device, config.width, config.height, config.format)
+    }
+
+    /// Builds a [`TextBrush`] with depth testing consuming [`BrushBuilder`], for an output
+    /// texture of the specified width, height and [`wgpu::TextureFormat`].
+    ///
+    /// To use this build method call [`Self::with_depth_testing()`].
+    pub fn build_for_output(
+        self,
+        device: &wgpu::Device,
+        output_width: u32,
+        output_height: u32,
+        output_format: wgpu::TextureFormat,
+    ) -> TextBrush<F, H> {
         let inner = self.inner.build();
 
         let matrix = self
             .matrix
-            .unwrap_or_else(|| ortho(config.width as f32, config.height as f32));
+            .unwrap_or_else(|| ortho(output_width as f32, output_height as f32));
 
         let depth = self.depth_testing.is_some();
         let mut pipeline = Pipeline::new(
             device,
-            config.format,
+            output_format,
             self.depth_testing,
             inner.texture_dimensions(),
             matrix,
         );
         if depth {
-            pipeline.update_depth(device, (config.width, config.height));
+            pipeline.update_depth(device, (output_width, output_height));
         }
 
         TextBrush { inner, pipeline }
