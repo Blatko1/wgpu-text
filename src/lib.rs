@@ -1,17 +1,18 @@
-//! wgpu-text is a wrapper over [glyph-brush](https://github.com/alexheretic/glyph-brush)
-//! for simpler text rendering in [wgpu](https://github.com/gfx-rs/wgpu).
+//! **wgpu-text** is a wrapper over **[glyph-brush](https://github.com/alexheretic/glyph-brush)**
+//! for simpler text rendering in **[wgpu](https://github.com/gfx-rs/wgpu)**.
 //!
 //! This project was inspired by and is similar to [wgpu_glyph](https://github.com/hecrj/wgpu_glyph),
-//! but has additional features and is simpler. Also, there is no need to
-//! include glyph-brush in your project.
+//! but has additional features and is more straightforward. Also, there is no need to
+//! include **glyph-brush** in your project.
 //!
-//! Some features are directly implemented from glyph-brush, so you should go trough
-//! [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html)
+//! Some features are directly implemented from glyph-brush, so it's recommended to go through
+//! [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html) and
+//! [Section examples](https://github.com/alexheretic/glyph-brush/tree/master/gfx-glyph/examples)
 //! for a better understanding of adding and managing text.
 //!
-//! If you want to learn about GPU texture caching, see [caching behaviour](#caching-behaviour).
+//! To learn about GPU texture caching, see [`caching behaviour`](#caching-behaviour).
 //!
-//! * Look trough [examples](https://github.com/Blatko1/wgpu_text/tree/master/examples).
+//! > Look trough [`examples`](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
 mod cache;
 mod pipeline;
@@ -19,9 +20,10 @@ mod pipeline;
 /// Contains all needed objects for inserting and styling text.
 /// Directly taken from glyph_brush.
 ///
-/// Look into [glyph_brush_layout docs](https://docs.rs/glyph_brush_layout/latest/glyph_brush_layout/#enums)
+/// Look into [`glyph_brush_layout docs`](https://docs.rs/glyph_brush_layout/latest/glyph_brush_layout/#enums)
 /// for the accurate, detailed documentation.
-/// - If anything is missing, open an issue on GitHub, and I'll review it.
+///
+/// If anything is missing, open an issue on GitHub, and I'll review it.
 pub mod section {
     #[doc(hidden)]
     pub use glyph_brush::{
@@ -33,9 +35,10 @@ pub mod section {
 /// Contains all needed objects for font management.
 /// Directly taken from glyph_brush.
 ///
-/// Look into [glyph_brush_font docs](https://docs.rs/glyph_brush/latest/glyph_brush/ab_glyph/index.html)
+/// Look into [`glyph_brush_font docs`](https://docs.rs/glyph_brush/latest/glyph_brush/ab_glyph/index.html)
 /// for the accurate, detailed documentation.
-/// - If anything is missing, open an issue on GitHub, and I'll review it.
+///
+/// If anything is missing, open an issue on GitHub, and I'll review it.
 pub mod font {
     #[doc(hidden)]
     pub use glyph_brush::ab_glyph::{Font, FontArc, FontRef, InvalidFont};
@@ -50,7 +53,8 @@ use pipeline::{Pipeline, Vertex};
 /// Marks scissor region and tests itself automatically if it can fit inside
 /// the surface `config` dimensions to avoid `wgpu` related rendering errors.
 ///
-/// `out_width` and `out_height` are dimensions of the bigger rectangle (*window*)
+/// `out_width` and `out_height` are dimensions of the bigger rectangle
+/// (*window*, usually *surface config* dimensions)
 /// in which the scissor region is located.
 pub struct ScissorRegion {
     /// x coordinate of top left region point.
@@ -99,7 +103,7 @@ impl ScissorRegion {
     }
 }
 
-/// Wrapper over [`glyph_brush::GlyphBrush`]. Draws text.
+/// Wrapper over [`glyph_brush::GlyphBrush`]. In charge of drawing text.
 ///
 /// Used for queuing and rendering text with
 /// [`TextBrush::draw`] and [`TextBrush::draw_custom`].
@@ -113,11 +117,13 @@ where
     F: Font + Sync,
     H: std::hash::BuildHasher,
 {
-    /// Queues section for drawing. This should be called
-    /// every frame for every section that is going to be drawn.
+    /// Queues section for drawing. This method should be called
+    /// every frame for each section that is going to be drawn.
     ///
     /// This can be called multiple times for different sections
     /// that want to use the same font and gpu cache.
+    ///
+    /// To learn about GPU texture caching, see [`caching behaviour`](#caching-behaviour).
     #[inline]
     pub fn queue<'a, S>(&mut self, section: S)
     where
@@ -201,7 +207,12 @@ where
         self.pipeline.draw(device, view, depth, region)
     }
 
-    /// Draws all queued sections with [`queue`](#method.queue) function.
+    /// Draws all sections queued with [`queue`](#method.queue) function.
+    ///
+    /// You can specify where to draw the text when providing the' view'.
+    /// For example, instead of giving the current `frame texture view`
+    /// and drawing to it, you can provide the texture view of an off-screen
+    /// texture and draw the text on there.
     ///
     /// Use [`TextBrush::draw_custom`] for more rendering options.
     #[inline]
@@ -216,7 +227,12 @@ where
 
     /// Draws all queued text with extra options.
     ///
-    /// # Scissoring
+    /// You can specify where to draw the text when providing the' view'.
+    /// For example, instead of giving the current `frame texture view`
+    /// and drawing to it, you can provide the texture view of an off-screen
+    /// texture and draw the text on there.
+    ///
+    /// ## Scissoring
     /// With scissoring, you can filter out each glyph fragment that crosses the given `region`.
     #[inline]
     pub fn draw_custom<R>(
@@ -232,11 +248,11 @@ where
         self.draw_queued(device, view, queue, region.map(|r| r.into()))
     }
 
-    /// Resizes "_camera_"(view). Updates default orthographic view matrix
-    /// with given arguments and uses it for rendering.
+    /// Resizes the view. Updates the default orthographic view matrix
+    /// with provided dimensions and uses it for rendering.
     ///
     /// Run this function whenever the surface config is resized.
-    /// _width_ and _height_ should be **surface** dimensions.
+    /// *width* and *height* are most commonly **surface** dimensions.
     ///
     /// **Matrix**:
     /// ```rust
@@ -254,12 +270,12 @@ where
         self.update_matrix(ortho(width, height), queue);
     }
 
-    /// Resizes "_camera_"(view). Updates text rendering matrix with the provided one.
+    /// Resizes the view. Updates text rendering matrix with the provided one.
     ///
-    /// Use [`Self::resize_view()`] to update render matrix with default orthographic matrix.
+    /// Use [`Self::resize_view()`] to update and replace the current render matrix
+    /// with a default orthographic matrix.
     ///
-    /// Feel free to use [`ortho()`] for creating more complex matrices by yourself
-    /// (`cross product`-ing).
+    /// Feel free to use [`ortho()`] to create more complex matrices by yourself.
     pub fn update_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
     where
         M: Into<Matrix>,
@@ -271,8 +287,9 @@ where
     ///
     /// Required if [`BrushBuilder::with_depth_testing()`] is set to `true`.
     ///
-    /// Should be used every time the window (`wgpu::SurfaceConfiguration`) is resized.
-    /// If not used when needed, the program will crash with _wgpu error_.
+    /// Should be called every time the window (`wgpu::SurfaceConfiguration`)
+    /// is being resized. If not used when required, the program will
+    /// crash with *wgpu error*.
     ///
     /// If used while [`BrushBuilder::with_depth_testing()`] is set to `false`
     /// nothing will happen.
@@ -329,6 +346,7 @@ where
     F: Font,
     H: std::hash::BuildHasher,
 {
+    // Default `BrushBuilder` functions:
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
 
     /// Uses the provided `matrix` when rendering.
@@ -348,7 +366,7 @@ where
     /// the z coordinate ([`OwnedText::with_z()`]).
     ///
     /// `z` coordinate should be in range
-    ///  0.0 - 1.0 not including 1.0.
+    ///  [0.0, 1.0] not including 1.0.
     pub fn with_depth_testing(mut self, test: bool) -> BrushBuilder<F, H> {
         if test {
             self.depth_testing = Some(wgpu::DepthStencilState {
@@ -364,9 +382,12 @@ where
         self
     }
 
-    /// Builds a [`TextBrush`] with depth testing consuming [`BrushBuilder`].
+    /// Builds a [`TextBrush`] while consuming [`BrushBuilder`].
     ///
-    /// To use this build method call [`Self::with_depth_testing()`].
+    /// Afterwards, text can only be drawn within the [`wgpu::SurfaceConfiguration`] dimensions.
+    /// Use [`Self::build_for_output()`]
+    ///
+    /// Call [`Self::with_depth_testing()`] before building to utilize `depth testing`.
     pub fn build(
         self,
         device: &wgpu::Device,
@@ -375,10 +396,11 @@ where
         self.build_for_output(device, config.width, config.height, config.format)
     }
 
-    /// Builds a [`TextBrush`] with depth testing consuming [`BrushBuilder`], for an output
-    /// texture of the specified width, height and [`wgpu::TextureFormat`].
+    /// Builds a [`TextBrush`] while consuming [`BrushBuilder`], for later drawing text
+    /// onto a texture of the specified width, height and [`wgpu::TextureFormat`].
+    /// You can provide [`wgpu::TextureView`] while calling the `draw` function.
     ///
-    /// To use this build method call [`Self::with_depth_testing()`].
+    /// Call [`Self::with_depth_testing()`] before building to utilize `depth testing`.
     pub fn build_for_output(
         self,
         device: &wgpu::Device,
@@ -392,7 +414,7 @@ where
             .matrix
             .unwrap_or_else(|| ortho(output_width as f32, output_height as f32));
 
-        let depth = self.depth_testing.is_some();
+        let had_depth = self.depth_testing.is_some();
         let mut pipeline = Pipeline::new(
             device,
             output_format,
@@ -400,7 +422,7 @@ where
             inner.texture_dimensions(),
             matrix,
         );
-        if depth {
+        if had_depth {
             pipeline.update_depth(device, (output_width, output_height));
         }
 
