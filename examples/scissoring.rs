@@ -208,7 +208,7 @@ fn main() {
                     delta_time = Instant::now();
                 } else {
                     *control_flow = ControlFlow::WaitUntil(
-                        Instant::now() + target_framerate - delta_time.elapsed(),
+                        Instant::now() + target_framerate.checked_sub(delta_time.elapsed()).unwrap(),
                     );
                 }
             }

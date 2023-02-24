@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 
 use crate::Matrix;
 
-/// Responsible for texture caching and matrix.
+/// Responsible for texture caching and the global matrix.
 pub struct Cache {
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub bind_group: wgpu::BindGroup,
