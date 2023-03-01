@@ -10,8 +10,6 @@
 //! [Section examples](https://github.com/alexheretic/glyph-brush/tree/master/gfx-glyph/examples)
 //! for a better understanding of adding and managing text.
 //!
-//! To learn about GPU texture caching, see [`caching behaviour`](#caching-behaviour).
-//!
 //! > Look trough [`examples`](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
 mod cache;
@@ -123,7 +121,6 @@ where
     /// This can be called multiple times for different sections
     /// that want to use the same font and gpu cache.
     ///
-    /// To learn about GPU texture caching, see [`caching behaviour`](#caching-behaviour).
     #[inline]
     pub fn queue<'a, S>(&mut self, section: S)
     where
