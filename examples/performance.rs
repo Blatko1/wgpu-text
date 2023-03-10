@@ -13,6 +13,17 @@ use winit::{
 
 const RANDOM_CHARACTERS: usize = 30_000;
 
+fn generate_random_chars() -> String {
+    let mut result = String::new();
+    let mut rng = rand::thread_rng();
+    for _ in 0..RANDOM_CHARACTERS {
+        let rand = rng.gen_range(0x0041..0x0070);
+        let char = char::from_u32(rand).unwrap();
+        result.push(char);
+    }
+    result.trim().to_owned()
+}
+
 fn main() {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "error");
@@ -184,15 +195,4 @@ fn main() {
             _ => (),
         }
     });
-}
-
-fn generate_random_chars() -> String {
-    let mut result = String::new();
-    let mut rng = rand::thread_rng();
-    for _ in 0..RANDOM_CHARACTERS {
-        let rand = rng.gen_range(0x0041..0x0070);
-        let char = char::from_u32(rand).unwrap();
-        result.push(char);
-    }
-    result.trim().to_owned()
 }
