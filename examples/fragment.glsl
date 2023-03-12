@@ -1,7 +1,15 @@
 #version 450
 
+layout(location = 0) in vec2 texp;
+
 layout(location = 0) out vec4 color;
 
+layout(set = 0, binding = 1)
+uniform texture2D t;
+
+layout(set = 0, binding = 2)
+uniform sampler s;
+
 void main() {
-    color = vec4(0.4, 0.5, 0.6, 1.0);
+    color = texture(sampler2D(t, s), texp);
 }

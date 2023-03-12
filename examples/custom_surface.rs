@@ -16,21 +16,27 @@ use winit::{
 const VERTICES: &[Vertex] = &[
     Vertex {
         position: [-0.5, -0.5, 0.0],
+        tex_pos: [0.0, 1.0],
     },
     Vertex {
         position: [0.5, -0.5, 0.0],
+        tex_pos: [1.0, 1.0],
     },
     Vertex {
         position: [0.5, 0.5, 0.0],
+        tex_pos: [1.0, 0.0],
     },
     Vertex {
         position: [0.5, 0.5, 0.0],
+        tex_pos: [1.0, 0.0],
     },
     Vertex {
         position: [-0.5, 0.5, 0.0],
+        tex_pos: [0.0, 0.0],
     },
     Vertex {
         position: [-0.5, -0.5, 0.0],
+        tex_pos: [0.0, 1.0],
     },
 ];
 
@@ -68,14 +74,11 @@ fn main() {
         )
         .unwrap();
 
-    std::fs::write("vertex.spirv", vs_spirv.as_binary_u8()).unwrap();
-    std::fs::write("fragment.spirv", fs_spirv.as_binary_u8()).unwrap();
-
     let mut camera = Camera::new(&config);
 
     let size = wgpu::Extent3d {
-        width: 100,
-        height: 100,
+        width: 256*4,
+        height: 256*4,
         depth_or_array_layers: 1,
     };
 
@@ -85,10 +88,22 @@ fn main() {
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8UnormSrgb,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING,
+        format: wgpu::TextureFormat::Bgra8UnormSrgb,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::COPY_SRC
+            | wgpu::TextureUsages::TEXTURE_BINDING,
         view_formats: &[],
     });
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        address_mode_w: wgpu::AddressMode::ClampToEdge,
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Linear,
+        mipmap_filter: wgpu::FilterMode::Linear,
+        ..Default::default()
+    });
+    let texture_view = texture.create_view(&Default::default());
 
     let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Custom Surface Vertex Buffer"),
@@ -105,25 +120,53 @@ fn main() {
     let bind_group_layout =
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Custom Surface Bind Group Layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
-                count: None,
-            }],
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
         });
 
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Custom Surface Bind Group"),
         layout: &bind_group_layout,
-        entries: &[wgpu::BindGroupEntry {
-            binding: 0,
-            resource: matrix_buffer.as_entire_binding(),
-        }],
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: matrix_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(&texture_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::Sampler(&sampler),
+            },
+        ],
     });
 
     let vertex_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -167,7 +210,7 @@ fn main() {
             entry_point: "main",
             targets: &[Some(wgpu::ColorTargetState {
                 format: config.format,
-                blend: Some(wgpu::BlendState::REPLACE),
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
         }),
@@ -300,13 +343,13 @@ fn main() {
 
                 let mut encoder =
                     device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                        label: Some("Command Encoder"),
+                        label: Some("Custom Surface Command Encoder"),
                     });
 
                 {
                     let mut rpass =
                         encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            label: Some("Render Pass"),
+                            label: Some("Custom Surface Render Pass"),
                             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                                 view: &view,
                                 resolve_target: None,
@@ -329,11 +372,11 @@ fn main() {
                     rpass.draw(0..6, 0..1);
                 }
 
-                //brush.queue(&section);
+                brush.queue(&section);
 
-                //let cmd_buffer = brush.draw(&device, &view, &queue);
-                // Has to be submitted last so it won't be overlapped.
-                queue.submit([encoder.finish() /*, cmd_buffer*/]);
+                let cmd_buffer = brush.draw(&device, &texture_view, &queue);
+
+                queue.submit([cmd_buffer, encoder.finish()]);
                 frame.present();
 
                 fps += 1;
@@ -460,6 +503,7 @@ pub struct CameraController {
     pub yaw: f32,
     pub pitch: f32,
     fov_delta: f32,
+    time: std::time::Instant,
 }
 
 impl CameraController {
@@ -476,18 +520,13 @@ impl CameraController {
             yaw: 0.,
             pitch: 0.0,
             fov_delta: 0.,
+            time: std::time::Instant::now(),
         }
     }
 
     pub fn update(&mut self) {
-        let time = (std::time::SystemTime::now()
-        .duration_since(std::time::SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_millis() % 100000) as f64 / 100.0;
-        self.yaw = 270.0 + 40.0
-            * (time as f64)
-                .to_radians().sin() as f32;
-        println!("{:?}", time as f32);
+        let time = self.time.elapsed().as_millis() as f64 * 0.01;
+        self.yaw = 270.0 + 20.0 * time.to_radians().sin() as f32;
     }
 
     pub fn process_input(&mut self, event: &winit::event::DeviceEvent) {
@@ -552,6 +591,7 @@ impl CameraController {
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
     position: [f32; 3],
+    tex_pos: [f32; 2],
 }
 
 impl Vertex {
@@ -559,11 +599,18 @@ impl Vertex {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[wgpu::VertexAttribute {
-                format: wgpu::VertexFormat::Float32x3,
-                offset: 0,
-                shader_location: 0,
-            }],
+            attributes: &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    shader_location: 1,
+                },
+            ],
         }
     }
 }
