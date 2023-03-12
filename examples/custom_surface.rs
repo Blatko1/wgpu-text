@@ -77,8 +77,8 @@ fn main() {
     let mut camera = Camera::new(&config);
 
     let size = wgpu::Extent3d {
-        width: 256*4,
-        height: 256*4,
+        width: 256 * 4,
+        height: 256 * 4,
         depth_or_array_layers: 1,
     };
 
