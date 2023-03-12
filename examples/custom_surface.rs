@@ -68,6 +68,9 @@ fn main() {
         )
         .unwrap();
 
+    std::fs::write("vertex.spirv", vs_spirv.as_binary_u8()).unwrap();
+    std::fs::write("fragment.spirv", fs_spirv.as_binary_u8()).unwrap();
+
     let mut camera = Camera::new(&config);
 
     let size = wgpu::Extent3d {
