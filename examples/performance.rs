@@ -56,7 +56,8 @@ fn main() {
     let mut then = SystemTime::now();
     let mut now = SystemTime::now();
     let mut fps = 0;
-    let target_framerate = Duration::from_secs_f64(1.0 / 60.0); //<-- change '60.0' if you want other FPS cap
+    // change '60.0' if you want different FPS cap
+    let target_framerate = Duration::from_secs_f64(1.0 / 60.0);
     let mut delta_time = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;

@@ -19,7 +19,10 @@ log = "0.4.17"
 bytemuck = { version = "1.13.1", features = ["derive"]}
 
 [dev-dependencies]
+wgpu = { version = "0.15.1", features = ["spirv"]}
 winit = "0.28.2"
 pollster = "0.3.0"
 env_logger = "0.10.0"
 rand = "0.8.5"
+nalgebra = "0.32.2"
+shaderc = "0.8.2"
