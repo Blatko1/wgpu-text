@@ -1,8 +1,10 @@
 mod simple;
 
 use glyph_brush::{OwnedText, VerticalAlign};
+use nalgebra::{Matrix4, Point3, Vector3};
 use simple::*;
 use std::time::{Duration, Instant, SystemTime};
+use wgpu::util::DeviceExt;
 use wgpu_text::section::{BuiltInLineBreaker, Layout, Section, Text};
 use wgpu_text::BrushBuilder;
 use winit::{
@@ -10,6 +12,27 @@ use winit::{
     event_loop::{self, ControlFlow},
     window::WindowBuilder,
 };
+
+const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [-0.5, -0.5, 0.0],
+    },
+    Vertex {
+        position: [0.5, -0.5, 0.0],
+    },
+    Vertex {
+        position: [0.5, 0.5, 0.0],
+    },
+    Vertex {
+        position: [0.5, 0.5, 0.0],
+    },
+    Vertex {
+        position: [-0.5, 0.5, 0.0],
+    },
+    Vertex {
+        position: [-0.5, -0.5, 0.0],
+    },
+];
 
 fn main() {
     if std::env::var("RUST_LOG").is_err() {
@@ -25,21 +48,27 @@ fn main() {
 
     let (device, queue, surface, mut config) = WgpuUtils::init(&window);
     let compiler = shaderc::Compiler::new().unwrap();
-    let vs_spirv = compiler.compile_into_spirv(
-        include_str!("vertex.glsl"),
-        shaderc::ShaderKind::Vertex,
-        "vertex.glsl",
-        "main",
-        None,
-    ).unwrap();
+    let vs_spirv = compiler
+        .compile_into_spirv(
+            include_str!("vertex.glsl"),
+            shaderc::ShaderKind::Vertex,
+            "vertex.glsl",
+            "main",
+            None,
+        )
+        .unwrap();
 
-    let fs_spirv = compiler.compile_into_spirv(
-        include_str!("fragment.glsl"),
-        shaderc::ShaderKind::Vertex,
-        "fragment.glsl",
-        "main",
-        None,
-    ).unwrap();
+    let fs_spirv = compiler
+        .compile_into_spirv(
+            include_str!("fragment.glsl"),
+            shaderc::ShaderKind::Fragment,
+            "fragment.glsl",
+            "main",
+            None,
+        )
+        .unwrap();
+
+    let mut camera = Camera::new(&config);
 
     let size = wgpu::Extent3d {
         width: 100,
@@ -53,9 +82,45 @@ fn main() {
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
         usage: wgpu::TextureUsages::TEXTURE_BINDING,
         view_formats: &[],
+    });
+
+    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Custom Surface Vertex Buffer"),
+        contents: bytemuck::cast_slice(VERTICES),
+        usage: wgpu::BufferUsages::VERTEX,
+    });
+
+    let matrix_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Custom Surface Global Matrix Buffer"),
+        contents: bytemuck::cast_slice(camera.global_matrix.as_slice()),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+
+    let bind_group_layout =
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Custom Surface Bind Group Layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Custom Surface Bind Group"),
+        layout: &bind_group_layout,
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: matrix_buffer.as_entire_binding(),
+        }],
     });
 
     let vertex_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -69,7 +134,7 @@ fn main() {
 
     let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Custom Surface Render Pipeline Layout"),
-        bind_group_layouts: &[],
+        bind_group_layouts: &[&bind_group_layout],
         push_constant_ranges: &[],
     });
 
@@ -79,14 +144,14 @@ fn main() {
         vertex: wgpu::VertexState {
             module: &vertex_module,
             entry_point: "main",
-            buffers: &[],
+            buffers: &[Vertex::buffer_layout()],
         },
         primitive: wgpu::PrimitiveState {
             topology: wgpu::PrimitiveTopology::TriangleList,
             front_face: wgpu::FrontFace::Ccw,
             cull_mode: Some(wgpu::Face::Back),
             polygon_mode: wgpu::PolygonMode::Fill,
-            ....Default::default()
+            ..Default::default()
         },
         depth_stencil: None,
         multisample: wgpu::MultisampleState {
@@ -98,25 +163,13 @@ fn main() {
             module: &fragment_module,
             entry_point: "main",
             targets: &[Some(wgpu::ColorTargetState {
-                format: texture.format(),
+                format: config.format,
                 blend: Some(wgpu::BlendState::REPLACE),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
         }),
         multiview: None,
     });
-
-    queue.write_texture(
-        wgpu::ImageCopyTexture {
-            texture: &texture,
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-            aspect: wgpu::TextureAspect::All,
-        },
-        data,
-        data_layout,
-        size,
-    );
 
     let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build_custom(
@@ -164,6 +217,7 @@ fn main() {
                     config.width = new_size.width.max(1);
                     config.height = new_size.height.max(1);
                     surface.configure(&device, &config);
+                    camera.resize(&config);
 
                     brush.resize_view(config.width as f32, config.height as f32, &queue);
                     // You can also do this!
@@ -222,6 +276,12 @@ fn main() {
                 _ => (),
             },
             winit::event::Event::RedrawRequested(_) => {
+                camera.update();
+                queue.write_buffer(
+                    &matrix_buffer,
+                    0,
+                    bytemuck::cast_slice(camera.global_matrix.as_slice()),
+                );
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
@@ -241,30 +301,36 @@ fn main() {
                     });
 
                 {
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("Render Pass"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color {
-                                    r: 0.2,
-                                    g: 0.2,
-                                    b: 0.3,
-                                    a: 1.,
-                                }),
-                                store: true,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                    });
+                    let mut rpass =
+                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Render Pass"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                                        r: 0.2,
+                                        g: 0.2,
+                                        b: 0.3,
+                                        a: 1.,
+                                    }),
+                                    store: true,
+                                },
+                            })],
+                            depth_stencil_attachment: None,
+                        });
+
+                    rpass.set_pipeline(&pipeline);
+                    rpass.set_bind_group(0, &bind_group, &[]);
+                    rpass.set_vertex_buffer(0, vertex_buffer.slice(..));
+                    rpass.draw(0..6, 0..1);
                 }
 
-                brush.queue(&section);
+                //brush.queue(&section);
 
-                let cmd_buffer = brush.draw(&device, &view, &queue);
+                //let cmd_buffer = brush.draw(&device, &view, &queue);
                 // Has to be submitted last so it won't be overlapped.
-                queue.submit([encoder.finish(), cmd_buffer]);
+                queue.submit([encoder.finish() /*, cmd_buffer*/]);
                 frame.present();
 
                 fps += 1;
@@ -315,14 +381,13 @@ const OPENGL_TO_WGPU_MATRIX: Matrix4<f32> = Matrix4::new(
 );
 
 impl Camera {
-    pub fn new(graphics: &Graphics) -> Self {
+    pub fn new(config: &wgpu::SurfaceConfiguration) -> Self {
         let controller = CameraController::new();
         Self {
             eye: Point3::new(0., 0., 1.),
             target: Point3::new(0., 0., -1.),
             up: Vector3::y(),
-            aspect: graphics.surface_config.width as f32
-                / graphics.surface_config.height as f32,
+            aspect: config.width as f32 / config.height as f32,
             fov: 60.,
             near: 0.01,
             far: 100.0,
@@ -331,7 +396,7 @@ impl Camera {
         }
     }
 
-    pub fn update_global_matrix(&mut self) {
+    fn update_global_matrix(&mut self) {
         let target = Point3::new(
             self.eye.x + self.target.x,
             self.eye.y + self.target.y,
@@ -347,12 +412,12 @@ impl Camera {
         self.global_matrix = OPENGL_TO_WGPU_MATRIX * projection * view;
     }
 
-    pub fn resize(&mut self, graphics: &Graphics) {
-        self.aspect =
-            graphics.surface_config.width as f32 / graphics.surface_config.height as f32;
+    pub fn resize(&mut self, config: &wgpu::SurfaceConfiguration) {
+        self.aspect = config.width as f32 / config.height as f32;
     }
 
     pub fn update(&mut self) {
+        self.controller.update();
         self.fov += self.controller.fov_delta;
         self.controller.fov_delta = 0.;
         self.target = Point3::new(
@@ -405,14 +470,25 @@ impl CameraController {
             right: 0.,
             up: 0.,
             down: 0.,
-            yaw: 270.0,
+            yaw: 0.,
             pitch: 0.0,
             fov_delta: 0.,
         }
     }
 
+    pub fn update(&mut self) {
+        let time = (std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() % 100000) as f64 / 100.0;
+        self.yaw = 270.0 + 40.0
+            * (time as f64)
+                .to_radians().sin() as f32;
+        println!("{:?}", time as f32);
+    }
+
     pub fn process_input(&mut self, event: &winit::event::DeviceEvent) {
-        match event {
+        /*match event {
             DeviceEvent::MouseMotion { delta } => {
                 self.yaw += (delta.0 * self.sensitivity) as f32;
                 self.pitch -= (delta.1 * self.sensitivity) as f32;
@@ -427,15 +503,6 @@ impl CameraController {
                     self.yaw = 0.0;
                 } else if self.yaw < 0.0 {
                     self.yaw = 360.0;
-                }
-            }
-            DeviceEvent::MouseWheel { delta } => {
-                self.fov_delta = match delta {
-                    MouseScrollDelta::LineDelta(_, scroll) => *scroll,
-                    MouseScrollDelta::PixelDelta(winit::dpi::PhysicalPosition {
-                        y,
-                        ..
-                    }) => *y as f32,
                 }
             }
             DeviceEvent::Motion { .. } => {}
@@ -474,6 +541,26 @@ impl CameraController {
                 }
             }
             _ => (),
+        }*/
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: [f32; 3],
+}
+
+impl Vertex {
+    pub fn buffer_layout<'a>() -> wgpu::VertexBufferLayout<'a> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[wgpu::VertexAttribute {
+                format: wgpu::VertexFormat::Float32x3,
+                offset: 0,
+                shader_location: 0,
+            }],
         }
     }
 }
