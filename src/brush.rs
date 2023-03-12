@@ -138,7 +138,7 @@ where
     ///
     /// ## Scissoring
     /// With scissoring, you can filter out each glyph fragment that crosses the given `region`.
-    // TODO rename to draw_region
+    // TODO rename to draw_extra
     #[inline]
     pub fn draw_custom<R>(
         &mut self,
