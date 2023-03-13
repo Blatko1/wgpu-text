@@ -7,7 +7,7 @@
 
 **`wgpu-text`** is a wrapper over **[`glyph-brush`](https://github.com/alexheretic/glyph-brush)** for **fast** and **easy** text rendering in **_[`wgpu`](https://github.com/gfx-rs/wgpu)_**. It accepts **.otf** and **.ttf** fonts.
 
-<img src="showcase.png" align="right" style="padding: 5px 5px 5px 5px; margin-top: -10px" alt="Library Lorem Ipsum Showcase" width="290">
+<img src="showcase.png" align="right" style="padding: 5px 5px 5px 5px; margin-top: -10px" alt="Library Lorem Ipsum Showcase" width="305px">
 
 This project was inspired by and is similar to **[`wgpu_glyph`](https://github.com/hecrj/wgpu_glyph)** but has additional features and is more straightforward. Also, there is no need to include **glyph-brush** in your project.
 
