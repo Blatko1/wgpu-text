@@ -54,6 +54,7 @@ pub mod font {
 /// `out_width` and `out_height` are dimensions of the bigger rectangle
 /// (*window*, usually *surface config* dimensions)
 /// in which the scissor region is located.
+#[derive(Debug, Clone, Copy)]
 pub struct ScissorRegion {
     /// x coordinate of top left region point.
     pub x: u32,

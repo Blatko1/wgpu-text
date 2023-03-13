@@ -5,7 +5,7 @@ use std::time::{Duration, Instant, SystemTime};
 use wgpu_text::section::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
-use wgpu_text::{BrushBuilder, BrushAction};
+use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
@@ -197,11 +197,7 @@ fn main() {
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                match brush.process_queued(&device, &queue) {
-                    BrushAction::Draw(data) => brush.update_buffer(data, &device, &queue),
-                    BrushAction::ReDraw => (),
-                }
-                let cmd_buffer = brush.draw_with_depth(&device, &view, None);
+                let cmd_buffer = brush.draw_with_depth(&device, &queue, &view);
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);

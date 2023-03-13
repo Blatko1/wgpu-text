@@ -7,19 +7,20 @@ use wgpu::{util::DeviceExt, CommandBuffer};
 use crate::{cache::Cache, Matrix, ScissorRegion};
 
 /// Responsible for drawing text.
-pub struct Pipeline<V> {
+#[derive(Debug)]
+pub struct Pipeline<C = wgpu::Color> {
     pub depth_texture_view: Option<wgpu::TextureView>,
     inner: wgpu::RenderPipeline,
     cache: Cache,
     region: Option<ScissorRegion>,
-    load_op: Option<wgpu::LoadOp<V>>,
+    load_op: wgpu::LoadOp<C>, // <-- TODO maybe use generics instead
 
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_len: usize,
     vertices: u32,
 }
 
-impl<V> Pipeline<V> {
+impl Pipeline {
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
     pub fn new(
@@ -28,7 +29,7 @@ impl<V> Pipeline<V> {
         depth_stencil: Option<wgpu::DepthStencilState>,
         tex_dimensions: (u32, u32),
         matrix: Matrix,
-    ) -> Pipeline<V> {
+    ) -> Pipeline {
         let cache = Cache::new(device, tex_dimensions, matrix);
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader/text.wgsl"));
@@ -90,7 +91,7 @@ impl<V> Pipeline<V> {
             inner: pipeline,
             cache,
             region: None,
-            load_op: None,
+            load_op: wgpu::LoadOp::Load,
 
             vertex_buffer,
             vertex_buffer_len: 0,
@@ -117,7 +118,7 @@ impl<V> Pipeline<V> {
                     view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
+                        load: self.load_op,
                         store: true,
                     },
                 })],
@@ -216,6 +217,11 @@ impl<V> Pipeline<V> {
     #[inline]
     pub fn set_region(&mut self, region: ScissorRegion) {
         self.region = Some(region);
+    }
+
+    #[inline]
+    pub fn set_load_op(&mut self, load_op: wgpu::LoadOp<wgpu::Color>) {
+        self.load_op = load_op;
     }
 }
 

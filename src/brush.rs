@@ -11,12 +11,12 @@ use glyph_brush::{
 ///
 /// Used for queuing and rendering text with
 /// [`TextBrush::draw`] and [`TextBrush::draw_custom`].
-pub struct TextBrush<V, F = FontArc, H = DefaultSectionHasher> {
+pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
-    pipeline: Pipeline<V>,
+    pipeline: Pipeline,
 }
 
-impl<V, F, H> TextBrush<V, F, H>
+impl<F, H> TextBrush<F, H>
 where
     F: Font + Sync,
     H: std::hash::BuildHasher,
@@ -66,18 +66,17 @@ where
         view: &wgpu::TextureView
     ) -> wgpu::CommandBuffer {
         self.process_queued(device, queue);
-        let mut depth = None;
-        if let Some(d) = &self.pipeline.depth_texture_view {
-            depth = Some(wgpu::RenderPassDepthStencilAttachment {
-                view: d,
+
+            let depth = wgpu::RenderPassDepthStencilAttachment {
+                view: self.pipeline.depth_texture_view.as_ref().unwrap(),
                 depth_ops: Some(wgpu::Operations {
                     load: wgpu::LoadOp::Clear(1.0),
                     store: true,
                 }),
                 stencil_ops: None,
-            });
-        }
-        self.pipeline.draw(device, view, depth)
+            };
+        
+        self.pipeline.draw(device, view, Some(depth))
     }
 
     fn process_queued(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -121,6 +120,11 @@ where
     // TODO doc
     pub fn set_region(&mut self, region: ScissorRegion) {
         self.pipeline.set_region(region);
+    }
+
+    // TODO doc
+    pub fn set_load_op(&mut self, load_op: wgpu::LoadOp<wgpu::Color>) {
+        self.pipeline.set_load_op(load_op);
     }
 
     /// Draws all sections queued with [`queue`](#method.queue) function.
@@ -219,6 +223,7 @@ where
 }
 
 /// Builder for [`TextBrush`].
+#[non_exhaustive]
 pub struct BrushBuilder<F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
     depth: Option<wgpu::DepthStencilState>,

@@ -374,7 +374,7 @@ fn main() {
 
                 brush.queue(&section);
 
-                let cmd_buffer = brush.draw(&device, &texture_view, &queue);
+                let cmd_buffer = brush.draw(&device, &queue, &texture_view);
 
                 queue.submit([cmd_buffer, encoder.finish()]);
                 frame.present();

@@ -3,7 +3,7 @@ use std::time::{Duration, Instant, SystemTime};
 use wgpu_text::section::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
-use wgpu_text::{BrushBuilder, BrushAction};
+use wgpu_text::{BrushBuilder};
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
@@ -186,7 +186,7 @@ fn main() {
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                let cmd_buffer = brush.draw(&device, &view, None);
+                let cmd_buffer = brush.draw(&device, &queue, &view);
 
                 // Has to be submitted/drawn last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
