@@ -12,7 +12,7 @@ use winit::{
     event_loop::{self, ControlFlow},
     window::WindowBuilder,
 };
-
+// TODO test with custom .png texture
 const VERTICES: &[Vertex] = &[
     Vertex {
         position: [-0.5, -0.5, 0.0],

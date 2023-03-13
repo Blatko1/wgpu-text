@@ -4,20 +4,22 @@ use glyph_brush::{
 };
 use wgpu::{util::DeviceExt, CommandBuffer};
 
-use crate::{cache::Cache, Matrix};
+use crate::{cache::Cache, Matrix, ScissorRegion};
 
 /// Responsible for drawing text.
-pub struct Pipeline {
+pub struct Pipeline<V> {
     pub depth_texture_view: Option<wgpu::TextureView>,
     inner: wgpu::RenderPipeline,
     cache: Cache,
+    region: Option<ScissorRegion>,
+    load_op: Option<wgpu::LoadOp<V>>,
 
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_len: usize,
     vertices: u32,
 }
 
-impl Pipeline {
+impl<V> Pipeline<V> {
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
     pub fn new(
@@ -26,7 +28,7 @@ impl Pipeline {
         depth_stencil: Option<wgpu::DepthStencilState>,
         tex_dimensions: (u32, u32),
         matrix: Matrix,
-    ) -> Pipeline {
+    ) -> Pipeline<V> {
         let cache = Cache::new(device, tex_dimensions, matrix);
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader/text.wgsl"));
@@ -87,6 +89,8 @@ impl Pipeline {
             depth_texture_view: None,
             inner: pipeline,
             cache,
+            region: None,
+            load_op: None,
 
             vertex_buffer,
             vertex_buffer_len: 0,
@@ -99,8 +103,7 @@ impl Pipeline {
         &self,
         device: &wgpu::Device,
         view: &wgpu::TextureView,
-        depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>,
-        region: Option<crate::ScissorRegion>,
+        depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>
     ) -> CommandBuffer {
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -126,7 +129,7 @@ impl Pipeline {
             rpass.set_bind_group(0, &self.cache.bind_group, &[]);
 
             // Region scissoring
-            if let Some(r) = region {
+            if let Some(r) = self.region {
                 if r.is_contained() {
                     let (w, h) = r.available_bounds();
                     rpass.set_scissor_rect(r.x, r.y, w, h);
@@ -139,7 +142,7 @@ impl Pipeline {
         encoder.finish()
     }
 
-    pub fn update_buffer(
+    pub fn update_vertex_buffer(
         &mut self,
         vertices: Vec<Vertex>,
         device: &wgpu::Device,
@@ -184,7 +187,7 @@ impl Pipeline {
     }
 
     #[inline]
-    pub fn update_depth(&mut self, device: &wgpu::Device, dimensions: (u32, u32)) {
+    pub fn update_depth_view(&mut self, device: &wgpu::Device, dimensions: (u32, u32)) {
         self.depth_texture_view = Some(Self::create_depth_view(device, dimensions));
     }
 
@@ -209,8 +212,14 @@ impl Pipeline {
 
         depth_texture.create_view(&wgpu::TextureViewDescriptor::default())
     }
+
+    #[inline]
+    pub fn set_region(&mut self, region: ScissorRegion) {
+        self.region = Some(region);
+    }
 }
 
+// TODO make public to user
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {

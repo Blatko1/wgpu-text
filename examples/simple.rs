@@ -3,13 +3,13 @@ use std::time::{Duration, Instant, SystemTime};
 use wgpu_text::section::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
-use wgpu_text::BrushBuilder;
+use wgpu_text::{BrushBuilder, BrushAction};
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
     window::WindowBuilder,
 };
-
+// TODO text layout of characters like 'š, ć, ž, đ' doesn't work correctly.
 #[allow(unused)]
 fn main() {
     if std::env::var("RUST_LOG").is_err() {
@@ -186,7 +186,7 @@ fn main() {
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                let cmd_buffer = brush.draw(&device, &view, &queue);
+                let cmd_buffer = brush.draw(&device, &view, None);
 
                 // Has to be submitted/drawn last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);

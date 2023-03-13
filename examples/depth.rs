@@ -5,7 +5,7 @@ use std::time::{Duration, Instant, SystemTime};
 use wgpu_text::section::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
-use wgpu_text::BrushBuilder;
+use wgpu_text::{BrushBuilder, BrushAction};
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
@@ -31,7 +31,7 @@ fn main() {
     let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font)
         .unwrap()
-        .with_depth_testing(true)
+        .with_depth()
         .build(&device, &config);
 
     let mut font_size = 45.;
@@ -97,7 +97,7 @@ fn main() {
                     section.bounds = (width * 0.5, height);
                     section.screen_position.1 = height * 0.5;
 
-                    brush.resize_depth(config.width, config.height, &device);
+                    brush.resize_depth_view(config.width, config.height, &device);
                     brush.resize_view(width, height, &queue);
                     // You can also do this!
                     // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
@@ -197,7 +197,11 @@ fn main() {
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                let cmd_buffer = brush.draw(&device, &view, &queue);
+                match brush.process_queued(&device, &queue) {
+                    BrushAction::Draw(data) => brush.update_buffer(data, &device, &queue),
+                    BrushAction::ReDraw => (),
+                }
+                let cmd_buffer = brush.draw_with_depth(&device, &view, None);
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);

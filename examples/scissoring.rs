@@ -186,6 +186,10 @@ fn main() {
                     out_height: config.height,
                 };
 
+                match brush.process_queued(&device, &queue) {
+                    
+                }
+
                 let cmd_buffer = brush.draw_custom(&device, &view, &queue, Some(region));
 
                 // Has to be submitted last so it won't be overlapped.
