@@ -8,12 +8,12 @@ use crate::{cache::Cache, Matrix, ScissorRegion};
 
 /// Responsible for drawing text.
 #[derive(Debug)]
-pub struct Pipeline<C = wgpu::Color> {
+pub struct Pipeline {
     pub depth_texture_view: Option<wgpu::TextureView>,
     inner: wgpu::RenderPipeline,
     cache: Cache,
     region: Option<ScissorRegion>,
-    load_op: wgpu::LoadOp<C>, // <-- TODO maybe use generics instead
+    load_op: wgpu::LoadOp<wgpu::Color>,
 
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_len: usize,

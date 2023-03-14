@@ -76,9 +76,6 @@ pub struct ScissorRegion {
     pub out_height: u32,
 }
 
-/// Represents a two-dimensional array matrix with 4x4 dimensions.
-pub type Matrix = [[f32; 4]; 4];
-
 impl ScissorRegion {
     /// Checks if the region is contained in surface bounds at all.
     pub(crate) fn is_contained(&self) -> bool {
@@ -102,6 +99,9 @@ impl ScissorRegion {
         (width, height)
     }
 }
+
+/// Represents a two-dimensional array matrix with 4x4 dimensions.
+pub type Matrix = [[f32; 4]; 4];
 
 /// Creates an orthographic matrix with given dimensions `width` and `height`.
 #[rustfmt::skip]

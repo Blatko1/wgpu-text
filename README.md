@@ -28,8 +28,8 @@ wgpu_text = "0.6.7"
 use wgpu_text::section::{Section, Text, Layout, HorizontalAlign};
 
 let brush = wgpu_text::BrushBuilder::using_font_bytes(font).unwrap()
- /* .initial_cache_size((1024, 1024))) */ // use this to avoid resizing cache texture
- /* .with_depth_testing(true) */ // enable/disable depth testing
+ /* .initial_cache_size((16_384, 16_384))) */ // use this to avoid resizing cache texture
+ /* .with_depth() */ // enables depth testing
     .build(&device, &config);
 
 // Directly implemented from glyph_brush.
@@ -66,6 +66,7 @@ Run examples with `--release` for accurate performance.
 
 Besides basic text rendering and **glyph-brush** features, some features add customization:
 
+- **custom render-to view** - you can specify a custom texture view for it to render the text to instead of rendering it onto the frame view
 - **builtin matrix** - default matrix for orthographic projection (feel free to use it for creating custom matrices)
 - **custom matrix** - grants the ability to provide a custom matrix for purposes of custom view, rotation, etc. (the downside is that it applies to all rendered text)
 - **depth testing** - by adding a *z* coordinate, text can be set on top or below other text (if enabled)
@@ -73,6 +74,7 @@ Besides basic text rendering and **glyph-brush** features, some features add cus
 ## **Future**
 
 * wgpu stuff: maybe change to StagingBelt instead of Queue
+* mip-maping example if possible
 
 ## **Contributing**
 

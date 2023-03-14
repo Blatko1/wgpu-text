@@ -206,13 +206,13 @@ where
 
     /// Resizes depth texture view to provided dimensions.
     ///
-    /// Required if [`BrushBuilder::with_depth_testing()`] is set to `true`.
+    /// Required if [`BrushBuilder::with_depth()`] is set to `true`.
     ///
     /// Should be called every time the window (`wgpu::SurfaceConfiguration`)
     /// is being resized. If not used when required, the program will
     /// crash with *wgpu error*.
     ///
-    /// If used while [`BrushBuilder::with_depth_testing()`] is set to `false`
+    /// If used while [`BrushBuilder::with_depth()`] is set to `false`
     /// nothing will happen.
     #[inline]
     pub fn resize_depth_view(&mut self, width: u32, height: u32, device: &wgpu::Device) {
@@ -321,7 +321,7 @@ where
     /// onto a texture of the specified width, height and [`wgpu::TextureFormat`].
     /// You can provide [`wgpu::TextureView`] while calling the `draw` function.
     ///
-    /// Call [`Self::with_depth_testing()`] before building to utilize `depth testing`.
+    /// To utilize `depth testing` call [`Self::with_depth()`] before building.
     pub fn build_custom(
         self,
         device: &wgpu::Device,
