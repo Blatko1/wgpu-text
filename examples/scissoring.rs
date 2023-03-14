@@ -1,7 +1,8 @@
-mod simple;
+#[path = "utils.rs"]
+mod utils;
 
-use simple::WgpuUtils;
 use std::time::{Duration, Instant, SystemTime};
+use utils::WgpuUtils;
 use wgpu_text::section::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };

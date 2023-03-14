@@ -1,7 +1,8 @@
-mod simple;
+#[path = "utils.rs"]
+mod utils;
 
-use simple::WgpuUtils;
 use std::time::{Duration, Instant, SystemTime};
+use utils::WgpuUtils;
 use wgpu_text::section::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
@@ -197,7 +198,7 @@ fn main() {
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                let cmd_buffer = brush.draw_with_depth(&device, &queue, &view);
+                let cmd_buffer = brush.draw_with_depth(&device, &queue, &view).unwrap();
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);

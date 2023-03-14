@@ -1,8 +1,9 @@
-mod simple;
+#[path = "utils.rs"]
+mod utils;
 
 use rand::Rng;
-use simple::*;
 use std::time::{Duration, Instant, SystemTime};
+use utils::WgpuUtils;
 use wgpu_text::section::{BuiltInLineBreaker, Layout, Section, Text};
 use wgpu_text::BrushBuilder;
 use winit::{
@@ -165,7 +166,7 @@ fn main() {
 
                 brush.queue(&section);
 
-                let cmd_buffer = brush.draw(&device, &queue, &view);
+                let cmd_buffer = brush.draw(&device, &queue, &view).unwrap();
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
                 frame.present();
