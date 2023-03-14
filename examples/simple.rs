@@ -3,7 +3,7 @@ use std::time::{Duration, Instant, SystemTime};
 use wgpu_text::section::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
-use wgpu_text::{BrushBuilder};
+use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
@@ -141,7 +141,7 @@ fn main() {
                     } else {
                         size *= 4.0 / 5.0
                     };
-                    font_size = (size.max(3.0).min(2000.0) * 2.0).round() / 2.0;
+                    font_size = (size.max(3.0).min(25000.0) * 2.0).round() / 2.0;
                 }
                 _ => (),
             },
@@ -186,10 +186,16 @@ fn main() {
                 brush.queue(&section);
                 brush.queue(&section2);
 
-                let cmd_buffer = brush.draw(&device, &queue, &view);
+                let cmd_buffer1 = match brush.draw(&device, &queue, &view) {
+                    Ok(b) => b,
+                    Err(err) => {
+                        eprintln!("{err}");
+                        panic!("");
+                    }
+                };
 
                 // Has to be submitted/drawn last so it won't be overlapped.
-                queue.submit([encoder.finish(), cmd_buffer]);
+                queue.submit([encoder.finish(), cmd_buffer1]);
                 frame.present();
 
                 fps += 1;

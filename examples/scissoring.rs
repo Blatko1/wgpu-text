@@ -81,7 +81,7 @@ fn main() {
                     section.screen_position.1 = height * 0.5;
 
                     brush.resize_view(width, height, &queue);
-                    
+
                     let region = ScissorRegion {
                         x: 53,
                         y: 20,
@@ -90,7 +90,7 @@ fn main() {
                         out_width: config.width,
                         out_height: config.height,
                     };
-                    brush.set_region(region)
+                    brush.set_region(Some(region))
                     // You can also do this!
                     // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
                 }
@@ -187,7 +187,7 @@ fn main() {
 
                 brush.queue(&section);
 
-                let cmd_buffer = brush.draw(&device, &queue, &view);
+                let cmd_buffer = brush.draw(&device, &queue, &view).unwrap();
 
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);

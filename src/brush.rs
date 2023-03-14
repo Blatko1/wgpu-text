@@ -1,4 +1,5 @@
 use crate::{
+    error::BrushError,
     pipeline::{Pipeline, Vertex},
     Matrix, ScissorRegion,
 };
@@ -21,11 +22,11 @@ where
     F: Font + Sync,
     H: std::hash::BuildHasher,
 {
-    /// Queues section for drawing. This method should be called
-    /// every frame for each section that is going to be drawn.
+    /// Queues section for drawing. This method should be called every frame for
+    /// each section that is going to be drawn.
     ///
-    /// This can be called multiple times for different sections
-    /// that want to use the same font and gpu cache.
+    /// This can be called multiple times for different sections that want to use
+    /// the same font and gpu cache.
     ///
     /// To learn about GPU texture caching, see
     /// [`caching behaviour`](https://docs.rs/glyph_brush/latest/glyph_brush/struct.GlyphBrush.html#caching-behaviour)
@@ -37,9 +38,9 @@ where
         self.inner.queue(section)
     }
 
-    /// Returns a bounding box for the section glyphs calculated
-    /// using each glyph's vertical & horizontal metrics.
-    /// For more info, read about: [`GlyphCruncher::glyph_bounds`].
+    /// Returns a bounding box for the section glyphs calculated using each
+    /// glyph's vertical & horizontal metrics. For more info, read about
+    /// [`GlyphCruncher::glyph_bounds`].
     #[inline]
     pub fn glyph_bounds<'a, S>(&mut self, section: S) -> Option<Rect>
     where
@@ -52,34 +53,45 @@ where
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        view: &wgpu::TextureView
-    ) -> wgpu::CommandBuffer {
-        self.process_queued(device, queue);
-        
-        self.pipeline.draw(device, view, None)
+        view: &wgpu::TextureView,
+    ) -> Result<wgpu::CommandBuffer, BrushError> {
+        self.process_queued(device, queue)?;
+
+        Ok(self.pipeline.draw(device, view, None))
     }
 
     // TODO add result for depth texture if exists
-    pub fn draw_with_depth(&mut self,
+    pub fn draw_with_depth(
+        &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        view: &wgpu::TextureView
-    ) -> wgpu::CommandBuffer {
-        self.process_queued(device, queue);
+        view: &wgpu::TextureView,
+    ) -> Result<wgpu::CommandBuffer, BrushError> {
+        self.process_queued(device, queue)?;
 
-            let depth = wgpu::RenderPassDepthStencilAttachment {
-                view: self.pipeline.depth_texture_view.as_ref().unwrap(),
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: true,
-                }),
-                stencil_ops: None,
-            };
-        
-        self.pipeline.draw(device, view, Some(depth))
+        let depth_view = match &self.pipeline.depth_texture_view {
+            Some(v) => v,
+            None => return Err(BrushError::DepthDisabled),
+        };
+        let depth = wgpu::RenderPassDepthStencilAttachment {
+            view: depth_view,
+            depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Clear(1.0),
+                store: true,
+            }),
+            stencil_ops: None,
+        };
+
+        Ok(self.pipeline.draw(device, view, Some(depth)))
     }
 
-    fn process_queued(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+    /// Processes all queued text and updates the vertex buffer, unless the text vertices
+    /// remain unmodified when compared to the last frame.
+    fn process_queued(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> Result<(), BrushError> {
         loop {
             let brush_action = self.inner.process_queued(
                 |rect, data| self.pipeline.update_texture(rect, data, queue),
@@ -87,26 +99,36 @@ where
             );
 
             match brush_action {
-                Ok(action) => break match action {
-                    BrushAction::Draw(vertices) => self.pipeline.update_vertex_buffer(vertices, device, queue),
-                    BrushAction::ReDraw => (),
-                },
+                Ok(action) => {
+                    break match action {
+                        BrushAction::Draw(vertices) => {
+                            self.pipeline.update_vertex_buffer(vertices, device, queue)
+                        }
+                        BrushAction::ReDraw => (),
+                    }
+                }
 
                 Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
                     if log::log_enabled!(log::Level::Warn) {
                         log::warn!(
                             "Resizing cache texture! This should be avoided \
                             by building TextBrush with BrushBuilder::initial_cache_size() \
-                            and providing cache texture dimensions."
+                            and providing bigger cache texture dimensions."
                         );
                     }
                     let max_image_dimension = device.limits().max_texture_dimension_2d;
-                    let (width, height) = if (suggested.0 > max_image_dimension
-                        || suggested.1 > max_image_dimension)
-                        && (self.inner.texture_dimensions().0 < max_image_dimension
-                            || self.inner.texture_dimensions().1 < max_image_dimension)
+                    let (width, height) = if suggested.0 > max_image_dimension
+                        || suggested.1 > max_image_dimension
                     {
-                        (max_image_dimension, max_image_dimension)
+                        if self.inner.texture_dimensions().0 < max_image_dimension
+                            || self.inner.texture_dimensions().1 < max_image_dimension
+                        {
+                            (max_image_dimension, max_image_dimension)
+                        } else {
+                            return Err(BrushError::TooBigCacheTexture(
+                                max_image_dimension,
+                            ));
+                        }
                     } else {
                         suggested
                     };
@@ -115,10 +137,11 @@ where
                 }
             }
         }
+        Ok(())
     }
 
     // TODO doc
-    pub fn set_region(&mut self, region: ScissorRegion) {
+    pub fn set_region(&mut self, region: Option<ScissorRegion>) {
         self.pipeline.set_region(region);
     }
 
@@ -135,15 +158,6 @@ where
     /// texture and draw the text on there.
     ///
     /// Use [`TextBrush::draw_custom`] for more rendering options.
-    /*#[inline]
-    pub fn draw(
-        &mut self,
-        device: &wgpu::Device,
-        view: &wgpu::TextureView,
-        queue: &wgpu::Queue,
-    ) -> wgpu::CommandBuffer {
-        self.draw_queued(device, view, queue, None)
-    }*/
 
     /// Draws all queued text with extra options.
     ///
@@ -154,26 +168,12 @@ where
     ///
     /// ## Scissoring
     /// With scissoring, you can filter out each glyph fragment that crosses the given `region`.
-    /*#[inline]
-    pub fn draw_extra<R, V>(
-        &mut self,
-        device: &wgpu::Device,
-        view: &wgpu::TextureView,
-        queue: &wgpu::Queue,
-        region: Option<R>,
-        load_op: Option<wgpu::LoadOp<V>>
-    ) -> wgpu::CommandBuffer
-    where
-        R: Into<ScissorRegion>,
-    {
-        self.draw_queued(device, view, queue, region.map(|r| r.into()))
-    }*/
 
-    /// Resizes the view. Updates the default orthographic view matrix
-    /// with provided dimensions and uses it for rendering.
+    /// Resizes the view. Updates the default orthographic view matrix with
+    /// provided dimensions and uses it for rendering.
     ///
     /// Run this function whenever the surface config is resized.
-    /// *width* and *height* are most commonly **surface** dimensions.
+    /// **Surface** dimensions are most commonly *width* and *height*.
     ///
     /// **Matrix**:
     /// ```rust
@@ -285,20 +285,19 @@ where
     // TODO fix doc
     /// Defaults to `false`. If set to true all text will be depth tested.
     ///
-    /// For each section, depth can be set by modifying
-    /// the z coordinate ([`OwnedText::with_z()`]).
+    /// For each section, depth can be set by modifying the z coordinate
+    /// ([`glyph_brush::OwnedText::with_z()`]).
     ///
     /// `z` coordinate should be in range
     ///  [0.0, 1.0] not including 1.0.
     pub fn with_depth(mut self) -> BrushBuilder<F, H> {
-
-            self.depth = Some(wgpu::DepthStencilState {
-                format: Pipeline::DEPTH_FORMAT,
-                depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState::default(),
-            });
+        self.depth = Some(wgpu::DepthStencilState {
+            format: Pipeline::DEPTH_FORMAT,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::Less,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        });
 
         self
     }

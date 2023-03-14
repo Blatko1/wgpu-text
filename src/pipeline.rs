@@ -104,7 +104,7 @@ impl Pipeline {
         &self,
         device: &wgpu::Device,
         view: &wgpu::TextureView,
-        depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>
+        depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>,
     ) -> CommandBuffer {
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -215,8 +215,8 @@ impl Pipeline {
     }
 
     #[inline]
-    pub fn set_region(&mut self, region: ScissorRegion) {
-        self.region = Some(region);
+    pub fn set_region(&mut self, region: Option<ScissorRegion>) {
+        self.region = region;
     }
 
     #[inline]

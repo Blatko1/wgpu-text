@@ -10,13 +10,14 @@
 //! [Section examples](https://github.com/alexheretic/glyph-brush/tree/master/gfx-glyph/examples)
 //! for a better understanding of adding and managing text.
 //!
-//! To learn about GPU texture caching, see 
+//! To learn about GPU texture caching, see
 //! [`caching behaviour`](https://docs.rs/glyph_brush/latest/glyph_brush/struct.GlyphBrush.html#caching-behaviour)
-//! 
+//!
 //! > Look trough [`examples`](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
 mod brush;
 mod cache;
+mod error;
 mod pipeline;
 
 pub use brush::{BrushBuilder, TextBrush};
