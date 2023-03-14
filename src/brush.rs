@@ -49,6 +49,14 @@ where
         self.inner.glyph_bounds(section)
     }
 
+    /// Draws all sections queued with [`queue`](#method.queue) function.
+    ///
+    /// You can specify where to draw the text when providing the `view`.
+    /// For example, instead of giving the current `frame texture view`
+    /// and drawing to it, you can provide different texture view and
+    /// draw the text there.
+    ///
+    /// Use [`TextBrush::draw_with_depth`] to render with depth if enabled.
     pub fn draw(
         &mut self,
         device: &wgpu::Device,
@@ -60,7 +68,6 @@ where
         Ok(self.pipeline.draw(device, view, None))
     }
 
-    // TODO add result for depth texture if exists
     pub fn draw_with_depth(
         &mut self,
         device: &wgpu::Device,
@@ -69,12 +76,11 @@ where
     ) -> Result<wgpu::CommandBuffer, BrushError> {
         self.process_queued(device, queue)?;
 
-        let depth_view = match &self.pipeline.depth_texture_view {
-            Some(v) => v,
-            None => return Err(BrushError::DepthDisabled),
-        };
         let depth = wgpu::RenderPassDepthStencilAttachment {
-            view: depth_view,
+            view: self.pipeline.depth_texture_view.as_ref().expect(
+                "wgpu-text: Calling 'draw_with_depth()' \
+                function while depth is disabled!",
+            ),
             depth_ops: Some(wgpu::Operations {
                 load: wgpu::LoadOp::Clear(1.0),
                 store: true,
@@ -85,6 +91,8 @@ where
         Ok(self.pipeline.draw(device, view, Some(depth)))
     }
 
+    //TODO maybe require for user to call method instead.
+    // TODO make all depth functions panic! when depth is disabled.
     /// Processes all queued text and updates the vertex buffer, unless the text vertices
     /// remain unmodified when compared to the last frame.
     fn process_queued(
@@ -140,7 +148,8 @@ where
         Ok(())
     }
 
-    // TODO doc
+    /// Sets a scissor region which filters out each glyph fragment that crosses
+    /// the given `bounds`. Set to [`None`]
     pub fn set_region(&mut self, region: Option<ScissorRegion>) {
         self.pipeline.set_region(region);
     }
@@ -149,25 +158,6 @@ where
     pub fn set_load_op(&mut self, load_op: wgpu::LoadOp<wgpu::Color>) {
         self.pipeline.set_load_op(load_op);
     }
-
-    /// Draws all sections queued with [`queue`](#method.queue) function.
-    ///
-    /// You can specify where to draw the text when providing the' view'.
-    /// For example, instead of giving the current `frame texture view`
-    /// and drawing to it, you can provide the texture view of an off-screen
-    /// texture and draw the text on there.
-    ///
-    /// Use [`TextBrush::draw_custom`] for more rendering options.
-
-    /// Draws all queued text with extra options.
-    ///
-    /// You can specify where to draw the text when providing the' view'.
-    /// For example, instead of giving the current `frame texture view`
-    /// and drawing to it, you can provide the texture view of an off-screen
-    /// texture and draw the text on there.
-    ///
-    /// ## Scissoring
-    /// With scissoring, you can filter out each glyph fragment that crosses the given `region`.
 
     /// Resizes the view. Updates the default orthographic view matrix with
     /// provided dimensions and uses it for rendering.
@@ -206,18 +196,18 @@ where
 
     /// Resizes depth texture view to provided dimensions.
     ///
-    /// Required if [`BrushBuilder::with_depth()`] is set to `true`.
+    /// Required if the `TextBrush` was built with [`BrushBuilder::with_depth()`].
     ///
     /// Should be called every time the window (`wgpu::SurfaceConfiguration`)
     /// is being resized. If not used when required, the program will
-    /// crash with *wgpu error*.
-    ///
-    /// If used while [`BrushBuilder::with_depth()`] is set to `false`
-    /// nothing will happen.
+    /// crash with *`wgpu error`*.
+    // TODO return an error if depth is not enabled.
     #[inline]
     pub fn resize_depth_view(&mut self, width: u32, height: u32, device: &wgpu::Device) {
-        if self.pipeline.depth_texture_view.is_some() {
+        if self.pipeline.is_depth_enabled() {
             self.pipeline.update_depth_view(device, (width, height));
+        } else {
+            panic!("wgpu-text: Resizing 'depth texture view' while depth is disabled!")
         }
     }
 }
@@ -282,8 +272,7 @@ where
         self
     }
 
-    // TODO fix doc
-    /// Defaults to `false`. If set to true all text will be depth tested.
+    /// If called while creating a BrushBuilder all drawn text will be depth tested.
     ///
     /// For each section, depth can be set by modifying the z coordinate
     /// ([`glyph_brush::OwnedText::with_z()`]).

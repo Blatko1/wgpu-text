@@ -74,7 +74,7 @@ Besides basic text rendering and **glyph-brush** features, some features add cus
 ## **Future**
 
 * wgpu stuff: maybe change to StagingBelt instead of Queue
-* mip-maping example if possible
+* mip-mapping example if possible
 
 ## **Contributing**
 

@@ -1,5 +1,6 @@
 use std::{error::Error, fmt::Display};
 
+// TODO docs for each type
 #[derive(Debug)]
 pub enum BrushError {
     DepthDisabled,

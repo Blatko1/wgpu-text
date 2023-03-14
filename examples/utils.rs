@@ -1,5 +1,7 @@
 use pollster::block_on;
 
+// TODO add cache texture preview example
+// TODO add mip-mapping example
 pub struct WgpuUtils;
 
 impl WgpuUtils {

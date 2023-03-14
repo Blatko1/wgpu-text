@@ -188,6 +188,11 @@ impl Pipeline {
     }
 
     #[inline]
+    pub fn is_depth_enabled(&self) -> bool {
+        self.depth_texture_view.is_some()
+    }
+
+    #[inline]
     pub fn update_depth_view(&mut self, device: &wgpu::Device, dimensions: (u32, u32)) {
         self.depth_texture_view = Some(Self::create_depth_view(device, dimensions));
     }
@@ -225,7 +230,6 @@ impl Pipeline {
     }
 }
 
-// TODO make public to user
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
