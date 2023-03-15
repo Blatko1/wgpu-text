@@ -91,7 +91,8 @@ where
         Ok(self.pipeline.draw(device, view, Some(depth)))
     }
 
-    //TODO maybe require for user to call method instead.
+    // TODO CHANGELOG has to be updated in future if this function becomes public
+    // TODO maybe require for user to call method instead.
     // TODO make all depth functions panic! when depth is disabled.
     /// Processes all queued text and updates the vertex buffer, unless the text vertices
     /// remain unmodified when compared to the last frame.
@@ -149,12 +150,20 @@ where
     }
 
     /// Sets a scissor region which filters out each glyph fragment that crosses
-    /// the given `bounds`. Set to [`None`]
+    /// the given `bounds`. Defaults to [`None`].
     pub fn set_region(&mut self, region: Option<ScissorRegion>) {
         self.pipeline.set_region(region);
     }
 
-    // TODO doc
+    /// Sets a [`wgpu::LoadOp`] which determines the operation to perform to the output 
+    /// attachment (*texture view*) at the start of a render pass.
+    /// 
+    /// #### Possible types are: 
+    /// * [`wgpu::LoadOp::Clear`] - clears the output with the provided [`wgpu::Color`].
+    /// * [`wgpu::LoadOp::Load`] - new data overrides some old data meaning you should
+    /// take care of clearing the output.
+    /// 
+    /// Defaults to [`wgpu::LoadOp::Load`].
     pub fn set_load_op(&mut self, load_op: wgpu::LoadOp<wgpu::Color>) {
         self.pipeline.set_load_op(load_op);
     }
