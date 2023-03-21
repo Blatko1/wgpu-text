@@ -4,9 +4,9 @@
 
 ### Breaking changes
 
-#### Behavoiur
+#### Behaviour
 
-Calling any of the **depth functions** while **depth** is disabled will `panic!` and crash the program. This will make sure you are not using any depth function by mistake.
+Calling any of the **depth functions** while **depth** is disabled will `panic!` and crash the program. This will make sure you are using the *depth* function correctly.
 
 #### Removed and renamed
 
@@ -20,7 +20,7 @@ Calling any of the **depth functions** while **depth** is disabled will `panic!`
 
 - Added `draw()` - draws all queued text.
 
-- Added `draw_with_depth()` - draws all queued text with depth testing. If depth isn't enabled this function will `panic!` and crash the program.
+- Added `draw_with_depth()` - draws all queued text with *depth* testing. This function will `panic!` and crash the program if *depth* isn't enabled.
 
 - Added `with_depth()` - enables **depth testing** if called while creating the `BrushBuilder`
 
@@ -30,11 +30,16 @@ Calling any of the **depth functions** while **depth** is disabled will `panic!`
 
 #### Error type
 
-Added a single error type `BrushError::TooBigCacheTexture(u32)` which is used when glyphs are too big to fit the `cache_texture` but the texture can't increase in size because of `wgpu::Limits`.
+Added a single error type `BrushError::TooBigCacheTexture(u32)`, which is used when glyphs are too big to fit the `cache_texture` but the texture can't increase in size because of `wgpu::Limits`.
+
+#### New **glyphs_iter()** and **fonts()** functions
+
+Added a `glyphs_iter()` function, which returns an iterator over glyphs in the provided section.
+Added `fonts()` function, which returns an array of all available fonts. You can then perform various glyph functions such as finding glyphs bounding box.
 
 #### New **set_load_op()** function
 
-Added `set_load_op()` function to `TextBrush` through which you can determine what operation to perform to the output attachment (*texture view*) at the start of a *render pass*.
+Added `set_load_op()` function to `TextBrush` to determine what operation to perform to the output attachment (*texture view*) at the start of a *render pass*.
 
 #### New **build_custom()** function
 
@@ -42,13 +47,13 @@ Added a new `build_custom()` function providing better support when drawing text
 
 #### Examples
 
-- Created a new file `utils.rs` (non-example) in *examples* folder for easier access to the *wgpu tools*.
+- Created a new file, `utils.rs` (non-example), in the *examples* folder for easier access to the *wgpu tools*.
 
-- Added a new `custom_surface` example which shows how to render text onto *textures* which are then drawn onto a quad detached from the UI.
+- Added a new `custom_surface` example which shows how to render text onto *textures*, which are then drawn onto a quad detached from the UI.
 
 ### Minor changes
 
-- Reduced the amount of arguments for some functions.
+- Reduced the number of arguments for some functions.
 - Improved and added more docs.
 - Updated crates.
 - Fixed *clippy* warnings.
