@@ -18,13 +18,15 @@ Calling any of the **depth functions** while **depth** is disabled will `panic!`
 
 #### Replacement additions
 
-- Added `draw()` - draws all queued text.
+- Added `draw()` function to `TextBrush` - draws all queued text.
 
-- Added `draw_with_depth()` - draws all queued text with *depth* testing. This function will `panic!` and crash the program if *depth* isn't enabled.
+- Added `draw_with_depth()` function to `TextBrush` - draws all queued text with *depth* testing. This function will `panic!` and crash the program if *depth* isn't enabled.
 
-- Added `with_depth()` - enables **depth testing** if called while creating the `BrushBuilder`
+- Added `with_depth()` function to `BrushBuilder` - enables **depth testing** if called while creating the `BrushBuilder`
 
 - Added `set_region()` function to `TextBrush` - sets a scissor region which filters out each glyph fragment that crosses the given *bounds*.
+
+- Added `process_queued()` function to `TextBrush` - processes all queued sections and updates the inner vertex buffer. Returns an Error if cache texture is too big. **Recommended** to be called every frame after queueing. 
 
 ### New Features
 

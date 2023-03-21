@@ -165,8 +165,15 @@ fn main() {
                     );
 
                 brush.queue(&section);
+                match brush.process_queued(&device, &queue) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        eprintln!("{err}");
+                        panic!("");
+                    }
+                };
 
-                let cmd_buffer = brush.draw(&device, &queue, &view).unwrap();
+                let cmd_buffer = brush.draw(&device, &view);
                 // Has to be submitted last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer]);
                 frame.present();

@@ -67,6 +67,9 @@ where
     }
 
     /// Draws all sections queued with [`queue`](#method.queue) function.
+    /// 
+    /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
+    /// to update the inner vertex buffer and catch possible errors.** 
     ///
     /// You can specify where to draw the text when providing the `view`.
     /// For example, instead of giving the current `frame texture view`
@@ -77,22 +80,24 @@ where
     pub fn draw(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         view: &wgpu::TextureView,
-    ) -> Result<wgpu::CommandBuffer, BrushError> {
-        self.process_queued(device, queue)?;
-
-        Ok(self.pipeline.draw(device, view, None))
+    ) -> wgpu::CommandBuffer {
+        self.pipeline.draw(device, view, None)
     }
 
+    /// Draws all sections queued with [`queue`](#method.queue) function while utilizing
+    /// depth testing. 
+    /// 
+    /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
+    /// to update the inner vertex buffer and catch possible errors.** 
+    /// 
+    /// # Panics!
+    /// Will `panic!()` if depth is disabled. Enable depth when creating the `TextBrush`.
     pub fn draw_with_depth(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         view: &wgpu::TextureView,
-    ) -> Result<wgpu::CommandBuffer, BrushError> {
-        self.process_queued(device, queue)?;
-
+    ) -> wgpu::CommandBuffer {
         let depth = wgpu::RenderPassDepthStencilAttachment {
             view: self.pipeline.depth_texture_view.as_ref().expect(
                 "wgpu-text: Calling 'draw_with_depth()' \
@@ -105,15 +110,17 @@ where
             stencil_ops: None,
         };
 
-        Ok(self.pipeline.draw(device, view, Some(depth)))
+        self.pipeline.draw(device, view, Some(depth))
     }
 
     // TODO CHANGELOG has to be updated in future if this function becomes public
-    // TODO maybe require for user to call method instead.
-    // TODO make all depth functions panic! when depth is disabled.
+    // TODO maybe return BrushAction Result
     /// Processes all queued text and updates the vertex buffer, unless the text vertices
-    /// remain unmodified when compared to the last frame.
-    fn process_queued(
+    /// remain unmodified when compared to the last frame. 
+    /// 
+    /// If not called when required, the draw functions will continue drawing data from the 
+    /// inner vertex buffer meaning they will redraw old vertices.
+    pub fn process_queued(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -226,8 +233,10 @@ where
     ///
     /// Should be called every time the window (`wgpu::SurfaceConfiguration`)
     /// is being resized. If not used when required, the program will
-    /// crash with *`wgpu error`*.
-    // TODO return an error if depth is not enabled.
+    /// crash with ***`wgpu error`***.
+    /// 
+    /// # Panics!
+    /// Will `panic!()` if used while depth is disabled.
     #[inline]
     pub fn resize_depth_view(&mut self, width: u32, height: u32, device: &wgpu::Device) {
         if self.pipeline.is_depth_enabled() {

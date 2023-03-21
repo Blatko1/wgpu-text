@@ -159,6 +159,7 @@ fn main() {
         size.height,
         texture.format(),
     );
+    brush.set_load_op(wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT));
 
     let mut font_size = 25.;
     let mut section = Section::default()
@@ -308,8 +309,15 @@ fn main() {
                 }
 
                 brush.queue(&section);
+                match brush.process_queued(&device, &queue) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        eprintln!("{err}");
+                        panic!("");
+                    }
+                };
 
-                let cmd_buffer = brush.draw(&device, &queue, &texture_view).unwrap();
+                let cmd_buffer = brush.draw(&device, &texture_view);
 
                 queue.submit([cmd_buffer, encoder.finish()]);
                 frame.present();

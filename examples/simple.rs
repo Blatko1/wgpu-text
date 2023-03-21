@@ -188,14 +188,15 @@ fn main() {
                 }
                 brush.queue(&section);
                 brush.queue(&section2);
-
-                let cmd_buffer1 = match brush.draw(&device, &queue, &view) {
-                    Ok(b) => b,
+                match brush.process_queued(&device, &queue) {
+                    Ok(_) => (),
                     Err(err) => {
                         eprintln!("{err}");
                         panic!("");
                     }
                 };
+
+                let cmd_buffer1 = brush.draw(&device, &view);
 
                 // Has to be submitted/drawn last so it won't be overlapped.
                 queue.submit([encoder.finish(), cmd_buffer1]);
