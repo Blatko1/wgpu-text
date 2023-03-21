@@ -9,7 +9,6 @@ pub enum BrushError {
 
 impl Error for BrushError {}
 
-// TODO maybe add tabs before each row when printing.
 impl Display for BrushError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "wgpu-text: ")?;

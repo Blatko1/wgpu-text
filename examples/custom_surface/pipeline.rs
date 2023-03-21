@@ -53,6 +53,9 @@ pub fn create_pipeline(
             None,
         )
         .unwrap();
+    std::fs::write("vertex.glsl.spv", vs_spirv.as_binary_u8());
+    std::fs::write("fragment.glsl.spv", fs_spirv.as_binary_u8());
+    panic!("a");
 
     let vertex_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("Custom Surface Vertex Shader"),
