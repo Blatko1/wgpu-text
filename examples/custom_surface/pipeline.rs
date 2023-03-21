@@ -1,5 +1,3 @@
-use wgpu::util::DeviceExt;
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
@@ -33,37 +31,13 @@ pub fn create_pipeline(
     bind_group_layouts: &[&wgpu::BindGroupLayout],
     config: &wgpu::SurfaceConfiguration,
 ) -> wgpu::RenderPipeline {
-    let compiler = shaderc::Compiler::new().unwrap();
-    let vs_spirv = compiler
-        .compile_into_spirv(
-            include_str!("shaders/vertex.glsl"),
-            shaderc::ShaderKind::Vertex,
-            "vertex.glsl",
-            "main",
-            None,
-        )
-        .unwrap();
-
-    let fs_spirv = compiler
-        .compile_into_spirv(
-            include_str!("shaders/fragment.glsl"),
-            shaderc::ShaderKind::Fragment,
-            "fragment.glsl",
-            "main",
-            None,
-        )
-        .unwrap();
-    std::fs::write("vertex.glsl.spv", vs_spirv.as_binary_u8());
-    std::fs::write("fragment.glsl.spv", fs_spirv.as_binary_u8());
-    panic!("a");
-
     let vertex_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("Custom Surface Vertex Shader"),
-        source: wgpu::util::make_spirv(vs_spirv.as_binary_u8()),
+        source: wgpu::util::make_spirv(include_bytes!("shaders/vertex.glsl.spv")),
     });
     let fragment_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("Custom Surface Fragment Shader"),
-        source: wgpu::util::make_spirv(fs_spirv.as_binary_u8()),
+        source: wgpu::util::make_spirv(include_bytes!("shaders/fragment.glsl.spv")),
     });
 
     let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

@@ -25,7 +25,6 @@ pollster = "0.3.0"
 env_logger = "0.10.0"
 rand = "0.8.5"
 nalgebra = "0.32.2"
-shaderc = "0.8.2"
 
 [[example]]
 path = "examples/custom_surface/custom_surface.rs"
