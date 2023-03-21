@@ -53,8 +53,9 @@ Added a new `build_custom()` function providing better support when drawing text
 
 ### Minor changes
 
-- Reduced the number of arguments for some functions.
-- Improved and added more docs.
-- Updated crates.
-- Fixed *clippy* warnings.
-- Reduced code density in `lib.rs` by distributing some to `brush.rs`
+- reduced the number of arguments for some functions.
+- improved and added more docs.
+- updated crates.
+- fixed *clippy* warnings.
+- reduced code density in `lib.rs` by distributing some to `brush.rs`
+- added additional `FontArc` implementation from **ab_glyph**
