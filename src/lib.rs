@@ -22,7 +22,7 @@ mod pipeline;
 
 pub use brush::{BrushBuilder, TextBrush};
 
-/// Contains all needed objects for inserting and styling text.
+/// Contains all needed objects for inserting, styling and iterating text and glyphs.
 /// Directly taken from glyph_brush.
 ///
 /// Look into [`glyph_brush_layout docs`](https://docs.rs/glyph_brush_layout/latest/glyph_brush_layout/#enums)
@@ -33,11 +33,12 @@ pub mod section {
     #[doc(hidden)]
     pub use glyph_brush::{
         BuiltInLineBreaker, Color, FontId, GlyphCruncher, HorizontalAlign, Layout,
-        LineBreak, OwnedSection, OwnedText, Section, SectionText, Text, VerticalAlign,
+        LineBreak, OwnedSection, OwnedText, Section, SectionGlyphIter, SectionText, Text,
+        VerticalAlign,
     };
 }
 
-/// Contains all needed objects for font management.
+/// Contains all needed objects for font and glyph management.
 /// Directly taken from glyph_brush.
 ///
 /// Look into [`glyph_brush_font docs`](https://docs.rs/glyph_brush/latest/glyph_brush/ab_glyph/index.html)
@@ -46,7 +47,7 @@ pub mod section {
 /// If anything is missing, open an issue on GitHub, and I'll review it.
 pub mod font {
     #[doc(hidden)]
-    pub use glyph_brush::ab_glyph::{Font, FontArc, FontRef, InvalidFont};
+    pub use glyph_brush::ab_glyph::{Font, FontArc, FontRef, InvalidFont, ScaleFont};
 }
 
 /// Marks scissor region and tests itself automatically if it can fit inside

@@ -5,7 +5,7 @@ use crate::{
 };
 use glyph_brush::{
     ab_glyph::{Font, FontArc, FontRef, InvalidFont, Rect},
-    BrushAction, DefaultSectionHasher, Extra, GlyphCruncher, Section,
+    BrushAction, DefaultSectionHasher, Extra, GlyphCruncher, Section, SectionGlyphIter,
 };
 
 /// Wrapper over [`glyph_brush::GlyphBrush`]. In charge of drawing text.
@@ -47,6 +47,23 @@ where
         S: Into<std::borrow::Cow<'a, Section<'a>>>,
     {
         self.inner.glyph_bounds(section)
+    }
+
+    /// Returns an iterator over the `PositionedGlyph`s of the given section.
+    #[inline]
+    pub fn glyphs_iter<'a, 'b, S>(&'b mut self, section: S) -> SectionGlyphIter<'b>
+    where
+        S: Into<std::borrow::Cow<'a, Section<'a>>>,
+    {
+        self.inner.glyphs(section)
+    }
+
+    /// Returns the available fonts.
+    ///
+    /// The `FontId` corresponds to the index of the font data.
+    #[inline]
+    pub fn fonts(&self) -> &[F] {
+        self.inner.fonts()
     }
 
     /// Draws all sections queued with [`queue`](#method.queue) function.

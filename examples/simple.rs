@@ -53,7 +53,6 @@ fn main() {
         )
         .with_screen_position((50.0, config.height as f32 * 0.5))
         .to_owned();
-
     let section2 = Section::default()
         .add_text(
             Text::new("Other section")
