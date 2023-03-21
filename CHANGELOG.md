@@ -26,7 +26,7 @@ Calling any of the **depth functions** while **depth** is disabled will `panic!`
 
 - Added `set_region()` function to `TextBrush` - sets a scissor region which filters out each glyph fragment that crosses the given *bounds*.
 
-- Added `process_queued()` function to `TextBrush` - processes all queued sections and updates the inner vertex buffer. Returns an Error if cache texture is too big. **Recommended** to be called every frame after queueing. 
+- Added `process_queued()` function to `TextBrush` - processes all queued sections and updates the inner vertex buffer. Returns an Error if cache texture is too big. **Required** if you want to draw anything. 
 
 ### New Features
 
