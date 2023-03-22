@@ -196,10 +196,10 @@ fn main() {
                     }
                 };
 
-                let cmd_buffer1 = brush.draw(&device, &view);
+                let cmd_buffer = brush.draw(&device, &view);
 
                 // Has to be submitted/drawn last so it won't be overlapped.
-                queue.submit([encoder.finish(), cmd_buffer1]);
+                queue.submit([encoder.finish(), cmd_buffer]);
                 frame.present();
 
                 fps += 1;

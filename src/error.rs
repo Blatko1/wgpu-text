@@ -1,6 +1,6 @@
 use std::{error::Error, fmt::Display};
 
-/// Result of all certain `TextBrush` errors and problems.
+/// Result of `TextBrush` errors and problems.
 #[derive(Debug)]
 pub enum BrushError {
     /// Cache texture exceeded the limitations stated in `wgpu::Device`.

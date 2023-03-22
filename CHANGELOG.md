@@ -1,6 +1,6 @@
 # Changelog
 
-## Notable changes from **0.6.6v** to **0.7.0v**
+## Notable changes from **v0.6.6** to **v0.7.0**
 
 ### Breaking changes
 

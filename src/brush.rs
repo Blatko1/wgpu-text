@@ -61,15 +61,14 @@ where
     /// Returns the available fonts.
     ///
     /// The `FontId` corresponds to the index of the font data.
-    #[inline]
     pub fn fonts(&self) -> &[F] {
         self.inner.fonts()
     }
 
     /// Draws all sections queued with [`queue`](#method.queue) function.
-    /// 
+    ///
     /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
-    /// to update the inner vertex buffer and catch possible errors.** 
+    /// to update the inner vertex buffer and catch possible errors.**
     ///
     /// You can specify where to draw the text when providing the `view`.
     /// For example, instead of giving the current `frame texture view`
@@ -77,6 +76,7 @@ where
     /// draw the text there.
     ///
     /// Use [`TextBrush::draw_with_depth`] to render with depth if enabled.
+    #[inline]
     pub fn draw(
         &mut self,
         device: &wgpu::Device,
@@ -86,13 +86,14 @@ where
     }
 
     /// Draws all sections queued with [`queue`](#method.queue) function while utilizing
-    /// depth testing. 
-    /// 
+    /// depth testing.
+    ///
     /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
-    /// to update the inner vertex buffer and catch possible errors.** 
-    /// 
+    /// to update the inner vertex buffer and catch possible errors.**
+    ///
     /// # Panics!
     /// Will `panic!()` if depth is disabled. Enable depth when creating the `TextBrush`.
+    #[inline]
     pub fn draw_with_depth(
         &mut self,
         device: &wgpu::Device,
@@ -113,13 +114,13 @@ where
         self.pipeline.draw(device, view, Some(depth))
     }
 
-    // TODO CHANGELOG has to be updated in future if this function becomes public
     // TODO maybe return BrushAction Result
     /// Processes all queued text and updates the vertex buffer, unless the text vertices
-    /// remain unmodified when compared to the last frame. 
-    /// 
-    /// If not called when required, the draw functions will continue drawing data from the 
+    /// remain unmodified when compared to the last frame.
+    ///
+    /// If not called when required, the draw functions will continue drawing data from the
     /// inner vertex buffer meaning they will redraw old vertices.
+    #[inline]
     pub fn process_queued(
         &mut self,
         device: &wgpu::Device,
@@ -175,6 +176,7 @@ where
 
     /// Sets a scissor region which filters out each glyph fragment that crosses
     /// the given `bounds`. Defaults to [`None`].
+    #[inline]
     pub fn set_region(&mut self, region: Option<ScissorRegion>) {
         self.pipeline.set_region(region);
     }
@@ -188,6 +190,7 @@ where
     /// take care of clearing the output.
     ///
     /// Defaults to [`wgpu::LoadOp::Load`].
+    #[inline]
     pub fn set_load_op(&mut self, load_op: wgpu::LoadOp<wgpu::Color>) {
         self.pipeline.set_load_op(load_op);
     }
@@ -220,6 +223,7 @@ where
     /// with a default orthographic matrix.
     ///
     /// Feel free to use [`ortho()`] to create more complex matrices by yourself.
+    #[inline]
     pub fn update_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
     where
         M: Into<Matrix>,
@@ -234,7 +238,7 @@ where
     /// Should be called every time the window (`wgpu::SurfaceConfiguration`)
     /// is being resized. If not used when required, the program will
     /// crash with ***`wgpu error`***.
-    /// 
+    ///
     /// # Panics!
     /// Will `panic!()` if used while depth is disabled.
     #[inline]
@@ -257,20 +261,17 @@ pub struct BrushBuilder<F, H = DefaultSectionHasher> {
 
 impl BrushBuilder<()> {
     /// Creates a [`BrushBuilder`] with [`Font`].
-    #[inline]
     pub fn using_font<F: Font>(font: F) -> BrushBuilder<F> {
         BrushBuilder::using_fonts(vec![font])
     }
 
     /// Creates a [`BrushBuilder`] with font byte data.
-    #[inline]
     pub fn using_font_bytes(data: &[u8]) -> Result<BrushBuilder<FontRef>, InvalidFont> {
         let font = FontRef::try_from_slice(data)?;
         Ok(BrushBuilder::using_fonts(vec![font]))
     }
 
     /// Creates a [`BrushBuilder`] with multiple fonts byte data.
-    #[inline]
     pub fn using_font_bytes_vec(
         data: &[u8],
     ) -> Result<BrushBuilder<FontRef>, InvalidFont> {

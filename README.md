@@ -25,17 +25,15 @@ wgpu_text = "0.6.7"
 ## **Usage**
 
 ```rust
-use wgpu_text::section::{Section, Text, Layout, HorizontalAlign};
+use wgpu_text::section::{Section, Text, Layout, HorizontalAlign, BrushBuilder};
 
-let brush = wgpu_text::BrushBuilder::using_font_bytes(font).unwrap()
+let brush = BrushBuilder::using_font_bytes(font).unwrap()
  /* .initial_cache_size((16_384, 16_384))) */ // use this to avoid resizing cache texture
  /* .with_depth() */ // enables depth testing
     .build(&device, &config);
 
 // Directly implemented from glyph_brush.
-let section = Section::default()
-    .add_text(Text::new("Hello World"))
-    .with_layout(Layout::default().h_align(HorizontalAlign::Center));
+let section = Section::default().add_text(Text::new("Hello World"));
 
 // on window resize:
         brush.resize_view(config.width as f32, config.height as f32, &queue);
@@ -44,11 +42,13 @@ let section = Section::default()
     winit::event::Event::RedrawRequested(_) => {
         // Has to be queued every frame.
         brush.queue(&section);
+        // Crashes if inner cache exceeds limits.
+        brush.process_queued(&device, &queue).unwrap();
 
-        let text_buffer = brush.draw(&device, &view, &queue);
+        let text_buffer = brush.draw(&device, &view);
 
-        // Has to be submitted last so text won't be overlapped.
-        queue.submit([some_other_encoder.finish(), text_buffer]);
+        // Submit last to avoid overlaps.
+        queue.submit([some_other_cmd_buffer, text_buffer]);
 
         frame.present();
     }
