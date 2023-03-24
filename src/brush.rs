@@ -65,6 +65,7 @@ where
         self.inner.fonts()
     }
 
+    // TODO instead of creating manually a render pass let the user pass it as an arg
     /// Draws all sections queued with [`queue`](#method.queue) function.
     ///
     /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
@@ -327,6 +328,7 @@ where
         self
     }
 
+    // TODO maybe remove this function
     /// Builds a [`TextBrush`] while consuming [`BrushBuilder`].
     ///
     /// Afterwards, text can only be drawn within the [`wgpu::SurfaceConfiguration`] dimensions

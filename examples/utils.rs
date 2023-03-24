@@ -2,6 +2,7 @@ use pollster::block_on;
 
 // TODO add cache texture preview example
 // TODO add mip-mapping example
+// TODO add wasm example
 pub struct WgpuUtils;
 
 impl WgpuUtils {
@@ -41,18 +42,11 @@ impl WgpuUtils {
         ))
         .unwrap();
 
-        let caps = surface.get_capabilities(&adapter);
-        let format = caps.formats[0];
-        let config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format,
-            width: size.width,
-            height: size.height,
-            present_mode: wgpu::PresentMode::Fifo,
-            alpha_mode: wgpu::CompositeAlphaMode::Auto,
-            view_formats: vec![format],
-        };
+        let config = surface
+            .get_default_config(&adapter, size.width, size.height)
+            .expect("Surface isn't supported by the adapter.");
         surface.configure(&device, &config);
+
         (device, queue, surface, config)
     }
 }
