@@ -1,5 +1,3 @@
-use std::num::NonZeroU32;
-
 use glyph_brush::Rectangle;
 use wgpu::util::DeviceExt;
 
@@ -161,8 +159,8 @@ impl Cache {
             data,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: NonZeroU32::new(size.width()),
-                rows_per_image: NonZeroU32::new(size.height()),
+                bytes_per_row: Some(size.width()),
+                rows_per_image: Some(size.height()),
             },
             wgpu::Extent3d {
                 width: size.width(),

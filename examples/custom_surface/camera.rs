@@ -68,10 +68,10 @@ impl Camera {
                 * self.controller.pitch.to_radians().cos(),
         );
         let target = Vector3::new(self.target.x, 0.0, self.target.z).normalize();
-        self.eye += &target
+        self.eye += target
             * self.controller.speed
             * (self.controller.forward - self.controller.backward);
-        self.eye += &target.cross(&self.up)
+        self.eye += target.cross(&self.up)
             * self.controller.speed
             * (self.controller.right - self.controller.left);
         self.eye += Vector3::new(0.0, 1.0, 0.0)
