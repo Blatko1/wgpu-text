@@ -153,7 +153,7 @@ fn main() {
     let pipeline = create_pipeline(&device, &[&bind_group_layout], &config);
 
     let font: &[u8] = include_bytes!("../fonts/DejaVuSans.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build_custom(
+    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
         &device,
         size.width,
         size.height,
