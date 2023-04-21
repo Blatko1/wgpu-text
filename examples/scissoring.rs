@@ -31,9 +31,12 @@ fn main() {
     // All wgpu-text related below:
     let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
 
-    let mut brush = BrushBuilder::using_font_bytes(font)
-        .unwrap()
-        .build(&device, &config);
+    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
+        &device,
+        config.width,
+        config.height,
+        config.format,
+    );
 
     let mut font_size = 25.;
     let mut section = Section::default()

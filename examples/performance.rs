@@ -47,9 +47,12 @@ fn main() {
     let (device, queue, surface, mut config) = WgpuUtils::init(&window);
 
     let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font)
-        .unwrap()
-        .build(&device, &config);
+    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
+        &device,
+        config.width,
+        config.height,
+        config.format,
+    );
 
     let mut random_text = generate_random_chars();
     let mut font_size: f32 = 9.;

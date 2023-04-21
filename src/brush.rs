@@ -328,28 +328,15 @@ where
         self
     }
 
-    // TODO maybe remove this function
-    /// Builds a [`TextBrush`] while consuming [`BrushBuilder`].
-    ///
-    /// Afterwards, text can only be drawn within the [`wgpu::SurfaceConfiguration`] dimensions
-    /// on the surface texture.
-    /// Use [`Self::build_custom()`]
-    ///
-    /// Call [`Self::with_depth()`] before building to utilize `depth testing`.
-    pub fn build(
-        self,
-        device: &wgpu::Device,
-        config: &wgpu::SurfaceConfiguration,
-    ) -> TextBrush<F, H> {
-        self.build_custom(device, config.width, config.height, config.format)
-    }
-
     /// Builds a [`TextBrush`] while consuming [`BrushBuilder`], for later drawing text
     /// onto a texture of the specified width, height and [`wgpu::TextureFormat`].
-    /// You can provide [`wgpu::TextureView`] while calling the `draw` function.
+    /// You can provide a [`wgpu::TextureView`] while calling the `draw()` function.
+    ///
+    /// If you are drawing a basic UI, you'd most likely want to be using
+    /// [`wgpu::SurfaceConfiguration`]'s dimensions and texture format.
     ///
     /// To utilize `depth testing` call [`Self::with_depth()`] before building.
-    pub fn build_custom(
+    pub fn build(
         self,
         device: &wgpu::Device,
         output_width: u32,

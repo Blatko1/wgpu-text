@@ -33,7 +33,7 @@ fn main() {
     let mut brush = BrushBuilder::using_font_bytes(font)
         .unwrap()
         .with_depth()
-        .build(&device, &config);
+        .build(&device, config.width, config.height, config.format);
 
     let mut font_size = 45.;
     let mut section = Section::default()
