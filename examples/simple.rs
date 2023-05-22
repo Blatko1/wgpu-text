@@ -48,7 +48,7 @@ fn main() {
             .with_scale(font_size)
             .with_color([0.9, 0.5, 0.5, 1.0]),
         )
-        .with_bounds((config.width as f32 / 2.0, config.height as f32))
+        .with_bounds((config.width as f32 * 0.4, config.height as f32))
         .with_layout(
             Layout::default()
                 .v_align(VerticalAlign::Center)
@@ -62,7 +62,7 @@ fn main() {
                 .with_scale(40.0)
                 .with_color([0.2, 0.5, 0.8, 1.0]),
         )
-        .with_bounds((config.width as f32 / 2.0, config.height as f32))
+        .with_bounds((config.width as f32 * 0.5, config.height as f32))
         .with_layout(
             Layout::default()
                 .v_align(VerticalAlign::Top)
@@ -91,8 +91,8 @@ fn main() {
                     config.width = new_size.width.max(1);
                     config.height = new_size.height.max(1);
                     surface.configure(&device, &config);
-
-                    section.bounds = (config.width as f32 * 0.5, config.height as _);
+                    
+                    section.bounds = (config.width as f32 * 0.4, config.height as _);
                     section.screen_position.1 = config.height as f32 * 0.5;
 
                     brush.resize_view(config.width as f32, config.height as f32, &queue);
@@ -152,6 +152,15 @@ fn main() {
                 _ => (),
             },
             winit::event::Event::RedrawRequested(_) => {
+                brush.queue(&section);
+                brush.queue(&section2);
+                match brush.process_queued(&device, &queue) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        panic!("{err}");
+                    }
+                };
+
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
@@ -171,7 +180,7 @@ fn main() {
                     });
 
                 {
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                             view: &view,
@@ -188,20 +197,11 @@ fn main() {
                         })],
                         depth_stencil_attachment: None,
                     });
+
+                    brush.draw(&mut rpass);
                 }
-                brush.queue(&section);
-                brush.queue(&section2);
-                match brush.process_queued(&device, &queue) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        panic!("{err}");
-                    }
-                };
 
-                let cmd_buffer = brush.draw(&device, &view);
-
-                // Has to be submitted/drawn last so it won't be overlapped.
-                queue.submit([encoder.finish(), cmd_buffer]);
+                queue.submit([encoder.finish()]);
                 frame.present();
 
                 fps += 1;
