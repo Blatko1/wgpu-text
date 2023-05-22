@@ -4,7 +4,7 @@ use glyph_brush::{
 };
 use wgpu::{util::DeviceExt, CommandBuffer};
 
-use crate::{cache::Cache, Matrix, ScissorRegion};
+use crate::{cache::Cache, Matrix};
 
 /// Responsible for drawing text.
 #[derive(Debug)]
@@ -12,7 +12,6 @@ pub struct Pipeline {
     pub depth_texture_view: Option<wgpu::TextureView>,
     inner: wgpu::RenderPipeline,
     cache: Cache,
-    region: Option<ScissorRegion>,
     load_op: wgpu::LoadOp<wgpu::Color>,
 
     vertex_buffer: wgpu::Buffer,
@@ -90,7 +89,6 @@ impl Pipeline {
             depth_texture_view: None,
             inner: pipeline,
             cache,
-            region: None,
             load_op: wgpu::LoadOp::Load,
 
             vertex_buffer,
@@ -99,48 +97,55 @@ impl Pipeline {
         }
     }
 
+    ///// Raw draw.
+    //pub fn draw_old<'pass>(
+    //    &self,
+    //    device: &wgpu::Device,
+    //    view: &wgpu::TextureView,
+    //    depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>,
+    //) -> CommandBuffer {
+    //    let mut encoder =
+    //        device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+    //            label: Some("wgpu-text Command Encoder"),
+    //        });
+    //    {
+    //        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+    //            label: Some("wgpu-text Render Pass"),
+    //            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+    //                view,
+    //                resolve_target: None,
+    //                ops: wgpu::Operations {
+    //                    load: self.load_op,
+    //                    store: true,
+    //                },
+    //            })],
+    //            depth_stencil_attachment,
+    //        });
+    //        rpass.set_pipeline(&self.inner);
+    //        rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+    //        rpass.set_bind_group(0, &self.cache.bind_group, &[]);
+    //        // Region scissoring
+    //        if let Some(r) = self.region {
+    //            if r.is_contained() {
+    //                let (w, h) = r.available_bounds();
+    //                rpass.set_scissor_rect(r.x, r.y, w, h);
+    //            }
+    //        }
+    //        rpass.draw(0..4, 0..self.vertices);
+    //    }
+    //    encoder.finish()
+    //}
+
     /// Raw draw.
-    pub fn draw(
-        &self,
-        device: &wgpu::Device,
-        view: &wgpu::TextureView,
-        depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>,
-    ) -> CommandBuffer {
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("wgpu-text Command Encoder"),
-            });
-
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("wgpu-text Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: self.load_op,
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment,
-            });
-
+    pub fn draw<'pass>(
+        &'pass self,
+        rpass: &mut wgpu::RenderPass<'pass>
+    ) {
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_bind_group(0, &self.cache.bind_group, &[]);
 
-            // Region scissoring
-            if let Some(r) = self.region {
-                if r.is_contained() {
-                    let (w, h) = r.available_bounds();
-                    rpass.set_scissor_rect(r.x, r.y, w, h);
-                }
-            }
-
             rpass.draw(0..4, 0..self.vertices);
-        }
-
-        encoder.finish()
     }
 
     pub fn update_vertex_buffer(
@@ -217,11 +222,6 @@ impl Pipeline {
         });
 
         depth_texture.create_view(&wgpu::TextureViewDescriptor::default())
-    }
-
-    #[inline]
-    pub fn set_region(&mut self, region: Option<ScissorRegion>) {
-        self.region = region;
     }
 
     #[inline]

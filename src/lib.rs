@@ -50,57 +50,6 @@ pub mod font {
     pub use glyph_brush::ab_glyph::{Font, FontArc, FontRef, InvalidFont, ScaleFont};
 }
 
-/// Marks scissor region and tests itself automatically if it can fit inside
-/// the surface `config` dimensions to avoid `wgpu` related rendering errors.
-///
-/// `out_width` and `out_height` are dimensions of the bigger rectangle
-/// (*window*, usually *surface config* dimensions)
-/// in which the scissor region is located.
-#[derive(Debug, Clone, Copy)]
-pub struct ScissorRegion {
-    /// x coordinate of top left region point.
-    pub x: u32,
-
-    /// y coordinate of top left region point.
-    pub y: u32,
-
-    /// Width of scissor region.
-    pub width: u32,
-
-    /// Height of scissor region.
-    pub height: u32,
-
-    /// Width of outer rectangle.
-    pub out_width: u32,
-
-    /// Height of outer rectangle.
-    pub out_height: u32,
-}
-
-impl ScissorRegion {
-    /// Checks if the region is contained in surface bounds at all.
-    pub(crate) fn is_contained(&self) -> bool {
-        self.x < self.out_width && self.y < self.out_height
-    }
-
-    /// Gives available bounds paying attention to `out_width` and `out_height`.
-    pub(crate) fn available_bounds(&self) -> (u32, u32) {
-        let width = if (self.x + self.width) > self.out_width {
-            self.out_width - self.x
-        } else {
-            self.width
-        };
-
-        let height = if (self.y + self.height) > self.out_height {
-            self.out_height - self.y
-        } else {
-            self.height
-        };
-
-        (width, height)
-    }
-}
-
 /// Represents a two-dimensional array matrix with 4x4 dimensions.
 pub type Matrix = [[f32; 4]; 4];
 

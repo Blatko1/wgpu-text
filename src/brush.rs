@@ -1,7 +1,7 @@
 use crate::{
     error::BrushError,
     pipeline::{Pipeline, Vertex},
-    Matrix, ScissorRegion,
+    Matrix
 };
 use glyph_brush::{
     ab_glyph::{Font, FontArc, FontRef, InvalidFont, Rect},
@@ -77,13 +77,32 @@ where
     /// draw the text there.
     ///
     /// Use [`TextBrush::draw_with_depth`] to render with depth if enabled.
+    //#[inline]
+    //pub fn old_draw(
+    //    &mut self,
+    //    device: &wgpu::Device,
+    //    view: &wgpu::TextureView,
+    //) -> wgpu::CommandBuffer {
+    //    self.pipeline.draw(device, view, None)
+    //}
+
+    /// Draws all sections queued with [`queue`](#method.queue) function.
+    ///
+    /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
+    /// to update the inner vertex buffer and catch possible errors.**
+    ///
+    /// You can specify where to draw the text when providing the `view`.
+    /// For example, instead of giving the current `frame texture view`
+    /// and drawing to it, you can provide different texture view and
+    /// draw the text there.
+    ///
+    /// Use [`TextBrush::draw_with_depth`] to render with depth if enabled.
     #[inline]
-    pub fn draw(
-        &mut self,
-        device: &wgpu::Device,
-        view: &wgpu::TextureView,
-    ) -> wgpu::CommandBuffer {
-        self.pipeline.draw(device, view, None)
+    pub fn draw<'pass>(
+        &'pass mut self,
+        rpass: &mut wgpu::RenderPass<'pass>
+    ) {
+        self.pipeline.draw(rpass)
     }
 
     /// Draws all sections queued with [`queue`](#method.queue) function while utilizing
@@ -94,26 +113,26 @@ where
     ///
     /// # Panics!
     /// Will `panic!()` if depth is disabled. Enable depth when creating the `TextBrush`.
-    #[inline]
-    pub fn draw_with_depth(
-        &mut self,
-        device: &wgpu::Device,
-        view: &wgpu::TextureView,
-    ) -> wgpu::CommandBuffer {
-        let depth = wgpu::RenderPassDepthStencilAttachment {
-            view: self.pipeline.depth_texture_view.as_ref().expect(
-                "wgpu-text: Calling 'draw_with_depth()' \
-                function while depth is disabled!",
-            ),
-            depth_ops: Some(wgpu::Operations {
-                load: wgpu::LoadOp::Clear(1.0),
-                store: true,
-            }),
-            stencil_ops: None,
-        };
-
-        self.pipeline.draw(device, view, Some(depth))
-    }
+    //#[inline]
+    //pub fn draw_with_depth(
+    //    &mut self,
+    //    device: &wgpu::Device,
+    //    view: &wgpu::TextureView,
+    //) -> wgpu::CommandBuffer {
+    //    let depth = wgpu::RenderPassDepthStencilAttachment {
+    //        view: self.pipeline.depth_texture_view.as_ref().expect(
+    //            "wgpu-text: Calling 'draw_with_depth()' \
+    //            function while depth is disabled!",
+    //        ),
+    //        depth_ops: Some(wgpu::Operations {
+    //            load: wgpu::LoadOp::Clear(1.0),
+    //            store: true,
+    //        }),
+    //        stencil_ops: None,
+    //    };
+//
+    //    self.pipeline.draw(device, view, Some(depth))
+    //}
 
     // TODO maybe return BrushAction Result
     /// Processes all queued text and updates the vertex buffer, unless the text vertices
@@ -173,13 +192,6 @@ where
             }
         }
         Ok(())
-    }
-
-    /// Sets a scissor region which filters out each glyph fragment that crosses
-    /// the given `bounds`. Defaults to [`None`].
-    #[inline]
-    pub fn set_region(&mut self, region: Option<ScissorRegion>) {
-        self.pipeline.set_region(region);
     }
 
     /// Sets a [`wgpu::LoadOp`] which determines the operation to perform to the output

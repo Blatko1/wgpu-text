@@ -1,4 +1,4 @@
-#[path = "utils.rs"]
+/*#[path = "utils.rs"]
 mod utils;
 
 use std::time::{Duration, Instant, SystemTime};
@@ -193,8 +193,7 @@ fn main() {
                 match brush.process_queued(&device, &queue) {
                     Ok(_) => (),
                     Err(err) => {
-                        eprintln!("{err}");
-                        panic!("");
+                        panic!("{err}");
                     }
                 };
 
@@ -230,3 +229,4 @@ fn main() {
         }
     });
 }
+*/

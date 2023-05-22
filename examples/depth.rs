@@ -200,8 +200,7 @@ fn main() {
                 match brush.process_queued(&device, &queue) {
                     Ok(_) => (),
                     Err(err) => {
-                        eprintln!("{err}");
-                        panic!("");
+                        panic!("{err}");
                     }
                 };
 
