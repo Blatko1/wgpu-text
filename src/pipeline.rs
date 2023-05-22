@@ -2,7 +2,7 @@ use glyph_brush::{
     ab_glyph::{point, Rect},
     Rectangle,
 };
-use wgpu::{util::DeviceExt, CommandBuffer};
+use wgpu::util::DeviceExt;
 
 use crate::{cache::Cache, Matrix};
 
@@ -95,45 +95,7 @@ impl Pipeline {
         }
     }
 
-    ///// Raw draw.
-    //pub fn draw_old<'pass>(
-    //    &self,
-    //    device: &wgpu::Device,
-    //    view: &wgpu::TextureView,
-    //    depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>,
-    //) -> CommandBuffer {
-    //    let mut encoder =
-    //        device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-    //            label: Some("wgpu-text Command Encoder"),
-    //        });
-    //    {
-    //        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-    //            label: Some("wgpu-text Render Pass"),
-    //            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-    //                view,
-    //                resolve_target: None,
-    //                ops: wgpu::Operations {
-    //                    load: self.load_op,
-    //                    store: true,
-    //                },
-    //            })],
-    //            depth_stencil_attachment,
-    //        });
-    //        rpass.set_pipeline(&self.inner);
-    //        rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-    //        rpass.set_bind_group(0, &self.cache.bind_group, &[]);
-    //        // Region scissoring
-    //        if let Some(r) = self.region {
-    //            if r.is_contained() {
-    //                let (w, h) = r.available_bounds();
-    //                rpass.set_scissor_rect(r.x, r.y, w, h);
-    //            }
-    //        }
-    //        rpass.draw(0..4, 0..self.vertices);
-    //    }
-    //    encoder.finish()
-    //}
-        // TODO what about depth??
+    // TODO what about depth??
     /// Raw draw.
     pub fn draw<'pass>(
         &'pass self,

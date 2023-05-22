@@ -10,6 +10,12 @@ Amplified the *draw* functions according to *wgpu repository wiki*. Now they nee
 
 After amplifying the *draw* functions, there is no need for `set_load_op()` function.
 
+### Minor changes
+
+- renamed example `custom_surface` to `custom_output`
+- slight modifications to some examples
+
+
 ## Notable changes from **v0.6.6** to **v0.7.0**
 
 ### Breaking changes
