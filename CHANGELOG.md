@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.8.0
+
+### Breaking changes
+
+Removed `ScissorRegion` since there hardly any useful cases for its use and there are better alternatives like setting the `bounds` parameter of `Section`.
+
+Amplified the *draw* functions according to *wgpu repository wiki*. Now they need fewer arguments and have better performances since they use the borrowed `render_pass` instead of creating a new one.
+
+After amplifying the *draw* functions, there is no need for `set_load_op()` function.
+
 ## Notable changes from **v0.6.6** to **v0.7.0**
 
 ### Breaking changes

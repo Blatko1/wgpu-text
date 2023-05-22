@@ -37,6 +37,8 @@ where
     {
         self.inner.queue(section)
     }
+    // TODO maybe take in all sections in one 
+    // function and process them at the same time
 
     /// Returns a bounding box for the section glyphs calculated using each
     /// glyph's vertical & horizontal metrics. For more info, read about

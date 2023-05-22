@@ -12,7 +12,6 @@ pub struct Pipeline {
     pub depth_texture_view: Option<wgpu::TextureView>,
     inner: wgpu::RenderPipeline,
     cache: Cache,
-    load_op: wgpu::LoadOp<wgpu::Color>,
 
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_len: usize,
@@ -89,7 +88,6 @@ impl Pipeline {
             depth_texture_view: None,
             inner: pipeline,
             cache,
-            load_op: wgpu::LoadOp::Load,
 
             vertex_buffer,
             vertex_buffer_len: 0,
@@ -135,19 +133,21 @@ impl Pipeline {
     //    }
     //    encoder.finish()
     //}
-
+        // TODO what about depth??
     /// Raw draw.
     pub fn draw<'pass>(
         &'pass self,
         rpass: &mut wgpu::RenderPass<'pass>
     ) {
+        if self.vertices != 0 {
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_bind_group(0, &self.cache.bind_group, &[]);
 
             rpass.draw(0..4, 0..self.vertices);
+        }
     }
-
+// TODO look into preallocating the vertex buffer instead of constantly reallocating
     pub fn update_vertex_buffer(
         &mut self,
         vertices: Vec<Vertex>,
@@ -222,11 +222,6 @@ impl Pipeline {
         });
 
         depth_texture.create_view(&wgpu::TextureViewDescriptor::default())
-    }
-
-    #[inline]
-    pub fn set_load_op(&mut self, load_op: wgpu::LoadOp<wgpu::Color>) {
-        self.load_op = load_op;
     }
 }
 
