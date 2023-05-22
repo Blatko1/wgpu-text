@@ -196,20 +196,6 @@ where
         Ok(())
     }
 
-    /// Sets a [`wgpu::LoadOp`] which determines the operation to perform to the output
-    /// attachment (*texture view*) at the start of a render pass.
-    ///
-    /// #### Possible types are:
-    /// * [`wgpu::LoadOp::Clear`] - clears the output with the provided [`wgpu::Color`].
-    /// * [`wgpu::LoadOp::Load`] - new data overrides some old data meaning you should
-    /// take care of clearing the output.
-    ///
-    /// Defaults to [`wgpu::LoadOp::Load`].
-    #[inline]
-    pub fn set_load_op(&mut self, load_op: wgpu::LoadOp<wgpu::Color>) {
-        self.pipeline.set_load_op(load_op);
-    }
-
     /// Resizes the view. Updates the default orthographic view matrix with
     /// provided dimensions and uses it for rendering.
     ///
