@@ -117,6 +117,28 @@ fn main() {
                 _ => (),
             },
             winit::event::Event::RedrawRequested(_) => {
+                // Instead of creating a new section each time modify its
+                // data to gain some performance.
+                let section = Section::default()
+                .add_text(
+                    Text::new(&random_text)
+                        .with_scale(font_size)
+                        .with_color([0.9, 0.5, 0.5, 1.0]),
+                )
+                .with_bounds((config.width as f32, config.height as f32))
+                .with_layout(
+                    Layout::default()
+                        .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+                );
+
+            brush.queue(&section);
+            match brush.process_queued(&device, &queue) {
+                Ok(_) => (),
+                Err(err) => {
+                    panic!("{err}");
+                }
+            };
+
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
@@ -136,7 +158,7 @@ fn main() {
                     });
 
                 {
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                             view: &view,
@@ -153,31 +175,11 @@ fn main() {
                         })],
                         depth_stencil_attachment: None,
                     });
+
+                    brush.draw(&mut rpass)
                 }
 
-                let section = Section::default()
-                    .add_text(
-                        Text::new(&random_text)
-                            .with_scale(font_size)
-                            .with_color([0.9, 0.5, 0.5, 1.0]),
-                    )
-                    .with_bounds((config.width as f32, config.height as f32))
-                    .with_layout(
-                        Layout::default()
-                            .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
-                    );
-
-                brush.queue(&section);
-                match brush.process_queued(&device, &queue) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        panic!("{err}");
-                    }
-                };
-
-                let cmd_buffer = brush.draw(&device, &view);
-                // Has to be submitted last so it won't be overlapped.
-                queue.submit([encoder.finish(), cmd_buffer]);
+                queue.submit([encoder.finish()]);
                 frame.present();
 
                 fps += 1;

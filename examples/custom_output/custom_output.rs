@@ -159,7 +159,6 @@ fn main() {
         size.height,
         texture.format(),
     );
-    brush.set_load_op(wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT));
 
     let mut font_size = 25.;
     let mut section = Section::default()
@@ -264,6 +263,15 @@ fn main() {
                     0,
                     bytemuck::cast_slice(camera.global_matrix.as_slice()),
                 );
+
+                brush.queue(&section);
+                match brush.process_queued(&device, &queue) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        panic!("{err}");
+                    }
+                };
+
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
@@ -282,6 +290,26 @@ fn main() {
                         label: Some("Custom Surface Command Encoder"),
                     });
 
+                // Custom output render pass. Renders to custom texture.
+                {
+                    let mut rpass =
+                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Custom Surface Render Pass"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &texture_view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                                    store: true,
+                                },
+                            })],
+                            depth_stencil_attachment: None,
+                        });
+
+                    brush.draw(&mut rpass);
+                }
+
+                // Default render pass:
                 {
                     let mut rpass =
                         encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -308,17 +336,7 @@ fn main() {
                     rpass.draw(0..6, 0..1);
                 }
 
-                brush.queue(&section);
-                match brush.process_queued(&device, &queue) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        panic!("{err}");
-                    }
-                };
-
-                let cmd_buffer = brush.draw(&device, &texture_view);
-
-                queue.submit([cmd_buffer, encoder.finish()]);
+                queue.submit([encoder.finish()]);
                 frame.present();
 
                 fps += 1;

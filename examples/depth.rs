@@ -1,4 +1,4 @@
-#[path = "utils.rs"]
+/*#[path = "utils.rs"]
 mod utils;
 
 use std::time::{Duration, Instant, SystemTime};
@@ -158,6 +158,15 @@ fn main() {
                 _ => (),
             },
             winit::event::Event::RedrawRequested(_) => {
+                brush.queue(&section);
+                brush.queue(&section2);
+                match brush.process_queued(&device, &queue) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        panic!("{err}");
+                    }
+                };
+
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
@@ -177,7 +186,7 @@ fn main() {
                     });
 
                 {
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                             view: &view,
@@ -194,15 +203,9 @@ fn main() {
                         })],
                         depth_stencil_attachment: None,
                     });
+
+                    brush.draw(&mut rpass);
                 }
-                brush.queue(&section);
-                brush.queue(&section2);
-                match brush.process_queued(&device, &queue) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        panic!("{err}");
-                    }
-                };
 
                 let cmd_buffer = brush.draw_with_depth(&device, &view);
 
@@ -234,3 +237,4 @@ fn main() {
         }
     });
 }
+*/

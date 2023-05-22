@@ -26,5 +26,5 @@ rand = "0.8.5"
 nalgebra = "0.32.2"
 
 [[example]]
-path = "examples/custom_surface/custom_surface.rs"
-name = "custom_surface"
+path = "examples/custom_output/custom_output.rs"
+name = "custom_output"
