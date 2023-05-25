@@ -22,6 +22,7 @@ where
     F: Font + Sync,
     H: std::hash::BuildHasher,
 {
+    // TODO docs if using depth.
     /// Queues section for drawing. This method should be called every frame for
     /// each section that is going to be drawn.
     ///
