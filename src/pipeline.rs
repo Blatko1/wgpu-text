@@ -19,8 +19,6 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
-
     pub fn new(
         device: &wgpu::Device,
         render_format: wgpu::TextureFormat,
@@ -66,18 +64,7 @@ impl Pipeline {
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
                     format: render_format,
-                    blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::SrcAlpha,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                        alpha: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::One,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                    }),
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
@@ -152,38 +139,6 @@ impl Pipeline {
     #[inline]
     pub fn resize_texture(&mut self, device: &wgpu::Device, tex_dimensions: (u32, u32)) {
         self.cache.recreate_texture(device, tex_dimensions);
-    }
-
-    #[inline]
-    pub fn is_depth_enabled(&self) -> bool {
-        self.depth_texture_view.is_some()
-    }
-
-    #[inline]
-    pub fn update_depth_view(&mut self, device: &wgpu::Device, dimensions: (u32, u32)) {
-        self.depth_texture_view = Some(Self::create_depth_view(device, dimensions));
-    }
-
-    fn create_depth_view(
-        device: &wgpu::Device,
-        (width, height): (u32, u32),
-    ) -> wgpu::TextureView {
-        let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
-            size: wgpu::Extent3d {
-                width,
-                height,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: Self::DEPTH_FORMAT,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            label: Some("wgpu-text Depth Texture"),
-            view_formats: &[],
-        });
-
-        depth_texture.create_view(&wgpu::TextureViewDescriptor::default())
     }
 }
 

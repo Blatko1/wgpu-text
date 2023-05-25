@@ -1,4 +1,4 @@
-/*#[path = "utils.rs"]
+#[path = "utils.rs"]
 mod utils;
 
 use std::time::{Duration, Instant, SystemTime};
@@ -12,6 +12,8 @@ use winit::{
     event_loop::{self, ControlFlow},
     window::WindowBuilder,
 };
+
+const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
 #[allow(unused)]
 fn main() {
@@ -28,11 +30,21 @@ fn main() {
 
     let (device, queue, surface, mut config) = WgpuUtils::init(&window);
 
+    let mut depth_view = create_depth_view(&device, config.width, config.height);
+
+    let depth_stencil = Some(wgpu::DepthStencilState {
+        format: DEPTH_FORMAT,
+        depth_write_enabled: true,
+        depth_compare: wgpu::CompareFunction::Less,
+        stencil: wgpu::StencilState::default(),
+        bias: wgpu::DepthBiasState::default(),
+    });
+
     // All wgpu-text related below:
     let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font)
         .unwrap()
-        .with_depth()
+        .with_depth_stencil(depth_stencil)
         .build(&device, config.width, config.height, config.format);
 
     let mut font_size = 45.;
@@ -44,7 +56,7 @@ fn main() {
             )
             .with_scale(font_size)
             .with_color([0.9, 0.5, 0.5, 1.0])
-            .with_z(0.9), // In range 0.0 - 1.0 bigger number means it's more at the back
+            .with_z(0.08), // In range 0.0 - 1.0 bigger number means it's more at the back
         )
         .with_bounds((config.width as f32 / 2.0, config.height as f32))
         .with_layout(
@@ -98,7 +110,7 @@ fn main() {
                     section.bounds = (width * 0.5, height);
                     section.screen_position.1 = height * 0.5;
 
-                    brush.resize_depth_view(config.width, config.height, &device);
+                    depth_view = create_depth_view(&device, config.width, config.height);
                     brush.resize_view(width, height, &queue);
                     // You can also do this!
                     // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
@@ -201,16 +213,20 @@ fn main() {
                                 store: true,
                             },
                         })],
-                        depth_stencil_attachment: None,
+                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                            view: &depth_view,
+                            depth_ops: Some(wgpu::Operations {
+                                            load: wgpu::LoadOp::Clear(1.0),
+                                            store: true,
+                                        }),
+                            stencil_ops: None,
+                        }),
                     });
 
                     brush.draw(&mut rpass);
                 }
 
-                let cmd_buffer = brush.draw_with_depth(&device, &view);
-
-                // Has to be submitted last so it won't be overlapped.
-                queue.submit([encoder.finish(), cmd_buffer]);
+                queue.submit([encoder.finish()]);
                 frame.present();
 
                 fps += 1;
@@ -237,4 +253,22 @@ fn main() {
         }
     });
 }
-*/
+
+fn create_depth_view(device: &wgpu::Device, width: u32, height: u32) -> wgpu::TextureView {
+    let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
+        size: wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: DEPTH_FORMAT,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        label: Some("Depth Texture"),
+        view_formats: &[],
+    });
+
+    depth_texture.create_view(&wgpu::TextureViewDescriptor::default())
+}

@@ -67,27 +67,6 @@ where
         self.inner.fonts()
     }
 
-    // TODO instead of creating manually a render pass let the user pass it as an arg
-    /// Draws all sections queued with [`queue`](#method.queue) function.
-    ///
-    /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
-    /// to update the inner vertex buffer and catch possible errors.**
-    ///
-    /// You can specify where to draw the text when providing the `view`.
-    /// For example, instead of giving the current `frame texture view`
-    /// and drawing to it, you can provide different texture view and
-    /// draw the text there.
-    ///
-    /// Use [`TextBrush::draw_with_depth`] to render with depth if enabled.
-    //#[inline]
-    //pub fn old_draw(
-    //    &mut self,
-    //    device: &wgpu::Device,
-    //    view: &wgpu::TextureView,
-    //) -> wgpu::CommandBuffer {
-    //    self.pipeline.draw(device, view, None)
-    //}
-
     /// Draws all sections queued with [`queue`](#method.queue) function.
     ///
     /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
@@ -106,35 +85,6 @@ where
     ) {
         self.pipeline.draw(rpass)
     }
-
-    /// Draws all sections queued with [`queue`](#method.queue) function while utilizing
-    /// depth testing.
-    ///
-    /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
-    /// to update the inner vertex buffer and catch possible errors.**
-    ///
-    /// # Panics!
-    /// Will `panic!()` if depth is disabled. Enable depth when creating the `TextBrush`.
-    //#[inline]
-    //pub fn draw_with_depth(
-    //    &mut self,
-    //    device: &wgpu::Device,
-    //    view: &wgpu::TextureView,
-    //) -> wgpu::CommandBuffer {
-    //    let depth = wgpu::RenderPassDepthStencilAttachment {
-    //        view: self.pipeline.depth_texture_view.as_ref().expect(
-    //            "wgpu-text: Calling 'draw_with_depth()' \
-    //            function while depth is disabled!",
-    //        ),
-    //        depth_ops: Some(wgpu::Operations {
-    //            load: wgpu::LoadOp::Clear(1.0),
-    //            store: true,
-    //        }),
-    //        stencil_ops: None,
-    //    };
-//
-    //    self.pipeline.draw(device, view, Some(depth))
-    //}
 
     // TODO maybe return BrushAction Result
     /// Processes all queued text and updates the vertex buffer, unless the text vertices
@@ -231,25 +181,6 @@ where
     {
         self.pipeline.update_matrix(matrix.into(), queue);
     }
-
-    /// Resizes depth texture view to provided dimensions.
-    ///
-    /// Required if the `TextBrush` was built with [`BrushBuilder::with_depth()`].
-    ///
-    /// Should be called every time the window (`wgpu::SurfaceConfiguration`)
-    /// is being resized. If not used when required, the program will
-    /// crash with ***`wgpu error`***.
-    ///
-    /// # Panics!
-    /// Will `panic!()` if used while depth is disabled.
-    #[inline]
-    pub fn resize_depth_view(&mut self, width: u32, height: u32, device: &wgpu::Device) {
-        if self.pipeline.is_depth_enabled() {
-            self.pipeline.update_depth_view(device, (width, height));
-        } else {
-            panic!("wgpu-text: Resizing 'depth texture view' while depth is disabled!")
-        }
-    }
 }
 
 /// Builder for [`TextBrush`].
@@ -316,15 +247,8 @@ where
     ///
     /// `z` coordinate should be in range
     ///  [0.0, 1.0] not including 1.0.
-    pub fn with_depth(mut self) -> BrushBuilder<F, H> {
-        self.depth = Some(wgpu::DepthStencilState {
-            format: Pipeline::DEPTH_FORMAT,
-            depth_write_enabled: true,
-            depth_compare: wgpu::CompareFunction::Less,
-            stencil: wgpu::StencilState::default(),
-            bias: wgpu::DepthBiasState::default(),
-        });
-
+    pub fn with_depth_stencil(mut self, depth: Option<wgpu::DepthStencilState>) -> BrushBuilder<F, H> {
+        self.depth = depth;
         self
     }
 
@@ -341,7 +265,7 @@ where
         device: &wgpu::Device,
         output_width: u32,
         output_height: u32,
-        output_format: wgpu::TextureFormat,
+        output_format: wgpu::TextureFormat
     ) -> TextBrush<F, H> {
         let inner = self.inner.build();
 
@@ -349,17 +273,13 @@ where
             .matrix
             .unwrap_or_else(|| crate::ortho(output_width as f32, output_height as f32));
 
-        let has_depth = self.depth.is_some();
-        let mut pipeline = Pipeline::new(
+        let pipeline = Pipeline::new(
             device,
             output_format,
             self.depth,
             inner.texture_dimensions(),
             matrix,
         );
-        if has_depth {
-            pipeline.update_depth_view(device, (output_width, output_height));
-        }
 
         TextBrush { inner, pipeline }
     }

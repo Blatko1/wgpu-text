@@ -10,10 +10,13 @@ Amplified the *draw* functions according to *wgpu repository wiki*. Now they nee
 
 After amplifying the *draw* functions, there is no need for `set_load_op()` function.
 
+Removed *depth functions* (`resize_depth_view`, `with_depth`, ...) since now you have to add your own depth stencil and texture to the render pass borrowed to the *draw* functions. The only new function left is `with_depth_stencil()` in the `BrushBuilder` with which you can add a *depth stencil* to the *inner pipeline*.
+
 ### Minor changes
 
 - renamed example `custom_surface` to `custom_output`
 - slight modifications to some examples
+- removed example `scissoring.rs`
 
 
 ## Notable changes from **v0.6.6** to **v0.7.0**
