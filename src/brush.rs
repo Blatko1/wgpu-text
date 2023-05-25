@@ -1,7 +1,7 @@
 use crate::{
     error::BrushError,
     pipeline::{Pipeline, Vertex},
-    Matrix
+    Matrix,
 };
 use glyph_brush::{
     ab_glyph::{Font, FontArc, FontRef, InvalidFont, Rect},
@@ -37,7 +37,7 @@ where
     {
         self.inner.queue(section)
     }
-    // TODO maybe take in all sections in one 
+    // TODO maybe take in all sections in one
     // function and process them at the same time
 
     /// Returns a bounding box for the section glyphs calculated using each
@@ -76,17 +76,11 @@ where
     /// For example, instead of giving the current `frame texture view`
     /// and drawing to it, you can provide different texture view and
     /// draw the text there.
-    ///
-    /// Use [`TextBrush::draw_with_depth`] to render with depth if enabled.
     #[inline]
-    pub fn draw<'pass>(
-        &'pass mut self,
-        rpass: &mut wgpu::RenderPass<'pass>
-    ) {
+    pub fn draw<'pass>(&'pass mut self, rpass: &mut wgpu::RenderPass<'pass>) {
         self.pipeline.draw(rpass)
     }
 
-    // TODO maybe return BrushAction Result
     /// Processes all queued text and updates the vertex buffer, unless the text vertices
     /// remain unmodified when compared to the last frame.
     ///
@@ -240,14 +234,17 @@ where
         self
     }
 
-    /// If called while creating a BrushBuilder all drawn text will be depth tested.
+    /// Provide the *depth_stencil* if you are planning to utilize depth testing.
     ///
     /// For each section, depth can be set by modifying the z coordinate
     /// ([`glyph_brush::OwnedText::with_z()`]).
     ///
     /// `z` coordinate should be in range
     ///  [0.0, 1.0] not including 1.0.
-    pub fn with_depth_stencil(mut self, depth: Option<wgpu::DepthStencilState>) -> BrushBuilder<F, H> {
+    pub fn with_depth_stencil(
+        mut self,
+        depth: Option<wgpu::DepthStencilState>,
+    ) -> BrushBuilder<F, H> {
         self.depth = depth;
         self
     }
@@ -258,14 +255,12 @@ where
     ///
     /// If you are drawing a basic UI, you'd most likely want to be using
     /// [`wgpu::SurfaceConfiguration`]'s dimensions and texture format.
-    ///
-    /// To utilize `depth testing` call [`Self::with_depth()`] before building.
     pub fn build(
         self,
         device: &wgpu::Device,
         output_width: u32,
         output_height: u32,
-        output_format: wgpu::TextureFormat
+        output_format: wgpu::TextureFormat,
     ) -> TextBrush<F, H> {
         let inner = self.inner.build();
 

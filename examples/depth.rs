@@ -35,7 +35,7 @@ fn main() {
     let depth_stencil = Some(wgpu::DepthStencilState {
         format: DEPTH_FORMAT,
         depth_write_enabled: true,
-        depth_compare: wgpu::CompareFunction::Less,
+        depth_compare: wgpu::CompareFunction::LessEqual,
         stencil: wgpu::StencilState::default(),
         bias: wgpu::DepthBiasState::default(),
     });
@@ -143,14 +143,14 @@ fn main() {
                                 OwnedText::default()
                                     .with_scale(font_size)
                                     .with_color([0.9, 0.5, 0.5, 1.0])
-                                    .with_z(0.5),
+                                    .with_z(0.08),
                             );
                         }
                         section.text.push(
                             OwnedText::new(c.to_string())
                                 .with_scale(font_size)
                                 .with_color([0.9, 0.5, 0.5, 1.0])
-                                .with_z(0.5),
+                                .with_z(0.08),
                         );
                     }
                 }
@@ -198,30 +198,33 @@ fn main() {
                     });
 
                 {
-                    let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("Render Pass"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color {
-                                    r: 0.2,
-                                    g: 0.2,
-                                    b: 0.3,
-                                    a: 1.,
-                                }),
-                                store: true,
-                            },
-                        })],
-                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                            view: &depth_view,
-                            depth_ops: Some(wgpu::Operations {
-                                            load: wgpu::LoadOp::Clear(1.0),
-                                            store: true,
-                                        }),
-                            stencil_ops: None,
-                        }),
-                    });
+                    let mut rpass =
+                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Render Pass"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                                        r: 0.2,
+                                        g: 0.2,
+                                        b: 0.3,
+                                        a: 1.,
+                                    }),
+                                    store: true,
+                                },
+                            })],
+                            depth_stencil_attachment: Some(
+                                wgpu::RenderPassDepthStencilAttachment {
+                                    view: &depth_view,
+                                    depth_ops: Some(wgpu::Operations {
+                                        load: wgpu::LoadOp::Clear(1.0),
+                                        store: false,
+                                    }),
+                                    stencil_ops: None,
+                                },
+                            ),
+                        });
 
                     brush.draw(&mut rpass);
                 }
@@ -254,7 +257,11 @@ fn main() {
     });
 }
 
-fn create_depth_view(device: &wgpu::Device, width: u32, height: u32) -> wgpu::TextureView {
+fn create_depth_view(
+    device: &wgpu::Device,
+    width: u32,
+    height: u32,
+) -> wgpu::TextureView {
     let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
         size: wgpu::Extent3d {
             width,

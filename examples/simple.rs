@@ -91,7 +91,7 @@ fn main() {
                     config.width = new_size.width.max(1);
                     config.height = new_size.height.max(1);
                     surface.configure(&device, &config);
-                    
+
                     section.bounds = (config.width as f32 * 0.4, config.height as _);
                     section.screen_position.1 = config.height as f32 * 0.5;
 
@@ -180,23 +180,24 @@ fn main() {
                     });
 
                 {
-                    let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("Render Pass"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color {
-                                    r: 0.2,
-                                    g: 0.2,
-                                    b: 0.3,
-                                    a: 1.,
-                                }),
-                                store: true,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                    });
+                    let mut rpass =
+                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Render Pass"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                                        r: 0.2,
+                                        g: 0.2,
+                                        b: 0.3,
+                                        a: 1.,
+                                    }),
+                                    store: true,
+                                },
+                            })],
+                            depth_stencil_attachment: None,
+                        });
 
                     brush.draw(&mut rpass);
                 }

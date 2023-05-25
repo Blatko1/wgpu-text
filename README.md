@@ -29,7 +29,6 @@ use wgpu_text::section::{Section, Text, Layout, HorizontalAlign, BrushBuilder};
 
 let brush = BrushBuilder::using_font_bytes(font).unwrap()
  /* .initial_cache_size((16_384, 16_384))) */ // use this to avoid resizing cache texture
- /* .with_depth() */ // enables depth testing
     .build(&device, &config);
 
 // Directly implemented from glyph_brush.
@@ -69,7 +68,7 @@ Besides basic text rendering and **glyph-brush** features, some features add cus
 - **custom render-to view** - you can specify a custom texture view for it to render the text to instead of rendering it onto the frame view
 - **builtin matrix** - default matrix for orthographic projection (feel free to use it for creating custom matrices)
 - **custom matrix** - grants the ability to provide a custom matrix for purposes of custom view, rotation, etc. (the downside is that it applies to all rendered text)
-- **depth testing** - by adding a *z* coordinate, text can be set on top or below other text (if enabled)
+- **depth testing** - by adding a *z* coordinate, text can be set on top or below other text (if enabled). Watch out for the queueing order when queueing *text sections*. You should queue them from the furthest to the closest (according to the *z* coordinate, bigger the *z*, more further it is).
 
 ## **Future**
 

@@ -120,24 +120,24 @@ fn main() {
                 // Instead of creating a new section each time modify its
                 // data to gain some performance.
                 let section = Section::default()
-                .add_text(
-                    Text::new(&random_text)
-                        .with_scale(font_size)
-                        .with_color([0.9, 0.5, 0.5, 1.0]),
-                )
-                .with_bounds((config.width as f32, config.height as f32))
-                .with_layout(
-                    Layout::default()
-                        .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
-                );
+                    .add_text(
+                        Text::new(&random_text)
+                            .with_scale(font_size)
+                            .with_color([0.9, 0.5, 0.5, 1.0]),
+                    )
+                    .with_bounds((config.width as f32, config.height as f32))
+                    .with_layout(
+                        Layout::default()
+                            .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+                    );
 
-            brush.queue(&section);
-            match brush.process_queued(&device, &queue) {
-                Ok(_) => (),
-                Err(err) => {
-                    panic!("{err}");
-                }
-            };
+                brush.queue(&section);
+                match brush.process_queued(&device, &queue) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        panic!("{err}");
+                    }
+                };
 
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
@@ -158,23 +158,24 @@ fn main() {
                     });
 
                 {
-                    let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("Render Pass"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color {
-                                    r: 0.2,
-                                    g: 0.2,
-                                    b: 0.3,
-                                    a: 1.,
-                                }),
-                                store: true,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                    });
+                    let mut rpass =
+                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Render Pass"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                                        r: 0.2,
+                                        g: 0.2,
+                                        b: 0.3,
+                                        a: 1.,
+                                    }),
+                                    store: true,
+                                },
+                            })],
+                            depth_stencil_attachment: None,
+                        });
 
                     brush.draw(&mut rpass)
                 }
