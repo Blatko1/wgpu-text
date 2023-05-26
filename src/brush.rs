@@ -22,24 +22,86 @@ where
     F: Font + Sync,
     H: std::hash::BuildHasher,
 {
-    // TODO docs if using depth.
-    /// Queues section for drawing. This method should be called every frame for
-    /// each section that is going to be drawn.
+    /// Queues section for drawing, processes all queued text and updates the
+    /// inner vertex buffer, unless the text vertices remain unmodified when
+    /// compared to the last frame.
     ///
-    /// This can be called multiple times for different sections that want to use
-    /// the same font and gpu cache.
+    /// If utilizing *depth*, the `sections` list should have `Section`s ordered from
+    /// furthest to closest. They will be drawn in the order they are given.
+    ///
+    /// - This method should be called every frame.
+    ///
+    /// If not called when required, the draw functions will continue drawing data from the
+    /// inner vertex buffer meaning they will redraw old vertices.
     ///
     /// To learn about GPU texture caching, see
     /// [`caching behaviour`](https://docs.rs/glyph_brush/latest/glyph_brush/struct.GlyphBrush.html#caching-behaviour)
     #[inline]
-    pub fn queue<'a, S>(&mut self, section: S)
+    pub fn queue<'a, S>(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        sections: Vec<S>,
+    ) -> Result<(), BrushError>
     where
         S: Into<std::borrow::Cow<'a, Section<'a>>>,
     {
-        self.inner.queue(section)
+        // Queue sections:
+        for s in sections {
+            self.inner.queue(s);
+        }
+
+        // Process sections:
+        loop {
+            // Contains BrushAction enum which marks for
+            // drawing or redrawing (using old data).
+            let brush_action = self.inner.process_queued(
+                |rect, data| self.pipeline.update_texture(rect, data, queue),
+                Vertex::to_vertex,
+            );
+
+            match brush_action {
+                Ok(action) => {
+                    break match action {
+                        BrushAction::Draw(vertices) => {
+                            self.pipeline.update_vertex_buffer(vertices, device, queue)
+                        }
+                        BrushAction::ReDraw => (),
+                    }
+                }
+
+                Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
+                    if log::log_enabled!(log::Level::Warn) {
+                        log::warn!(
+                            "Resizing cache texture! This should be avoided \
+                            by building TextBrush with BrushBuilder::initial_cache_size() \
+                            and providing bigger cache texture dimensions."
+                        );
+                    }
+                    // Texture resizing:
+                    let max_image_dimension = device.limits().max_texture_dimension_2d;
+                    let (width, height) = if suggested.0 > max_image_dimension
+                        || suggested.1 > max_image_dimension
+                    {
+                        if self.inner.texture_dimensions().0 < max_image_dimension
+                            || self.inner.texture_dimensions().1 < max_image_dimension
+                        {
+                            (max_image_dimension, max_image_dimension)
+                        } else {
+                            return Err(BrushError::TooBigCacheTexture(
+                                max_image_dimension,
+                            ));
+                        }
+                    } else {
+                        suggested
+                    };
+                    self.pipeline.resize_texture(device, (width, height));
+                    self.inner.resize_texture(width, height);
+                }
+            }
+        }
+        Ok(())
     }
-    // TODO maybe take in all sections in one
-    // function and process them at the same time
 
     /// Returns a bounding box for the section glyphs calculated using each
     /// glyph's vertical & horizontal metrics. For more info, read about
@@ -80,65 +142,6 @@ where
     #[inline]
     pub fn draw<'pass>(&'pass mut self, rpass: &mut wgpu::RenderPass<'pass>) {
         self.pipeline.draw(rpass)
-    }
-
-    /// Processes all queued text and updates the vertex buffer, unless the text vertices
-    /// remain unmodified when compared to the last frame.
-    ///
-    /// If not called when required, the draw functions will continue drawing data from the
-    /// inner vertex buffer meaning they will redraw old vertices.
-    #[inline]
-    pub fn process_queued(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    ) -> Result<(), BrushError> {
-        loop {
-            let brush_action = self.inner.process_queued(
-                |rect, data| self.pipeline.update_texture(rect, data, queue),
-                Vertex::to_vertex,
-            );
-
-            match brush_action {
-                Ok(action) => {
-                    break match action {
-                        BrushAction::Draw(vertices) => {
-                            self.pipeline.update_vertex_buffer(vertices, device, queue)
-                        }
-                        BrushAction::ReDraw => (),
-                    }
-                }
-
-                Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
-                    if log::log_enabled!(log::Level::Warn) {
-                        log::warn!(
-                            "Resizing cache texture! This should be avoided \
-                            by building TextBrush with BrushBuilder::initial_cache_size() \
-                            and providing bigger cache texture dimensions."
-                        );
-                    }
-                    let max_image_dimension = device.limits().max_texture_dimension_2d;
-                    let (width, height) = if suggested.0 > max_image_dimension
-                        || suggested.1 > max_image_dimension
-                    {
-                        if self.inner.texture_dimensions().0 < max_image_dimension
-                            || self.inner.texture_dimensions().1 < max_image_dimension
-                        {
-                            (max_image_dimension, max_image_dimension)
-                        } else {
-                            return Err(BrushError::TooBigCacheTexture(
-                                max_image_dimension,
-                            ));
-                        }
-                    } else {
-                        suggested
-                    };
-                    self.pipeline.resize_texture(device, (width, height));
-                    self.inner.resize_texture(width, height);
-                }
-            }
-        }
-        Ok(())
     }
 
     /// Resizes the view. Updates the default orthographic view matrix with

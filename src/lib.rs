@@ -20,6 +20,7 @@ mod cache;
 mod error;
 mod pipeline;
 // TODO remove anything about scissor regions and set_load_op
+// TODO change readme example for draw function
 pub use brush::{BrushBuilder, TextBrush};
 
 /// Contains all needed objects for inserting, styling and iterating text and glyphs.

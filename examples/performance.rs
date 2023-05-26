@@ -117,8 +117,6 @@ fn main() {
                 _ => (),
             },
             winit::event::Event::RedrawRequested(_) => {
-                // Instead of creating a new section each time modify its
-                // data to gain some performance.
                 let section = Section::default()
                     .add_text(
                         Text::new(&random_text)
@@ -131,8 +129,7 @@ fn main() {
                             .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
                     );
 
-                brush.queue(&section);
-                match brush.process_queued(&device, &queue) {
+                match brush.queue(&device, &queue, vec![&section]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");

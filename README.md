@@ -65,7 +65,6 @@ Run examples with `--release` for accurate performance.
 
 Besides basic text rendering and **glyph-brush** features, some features add customization:
 
-- **custom render-to view** - you can specify a custom texture view for it to render the text to instead of rendering it onto the frame view
 - **builtin matrix** - default matrix for orthographic projection (feel free to use it for creating custom matrices)
 - **custom matrix** - grants the ability to provide a custom matrix for purposes of custom view, rotation, etc. (the downside is that it applies to all rendered text)
 - **depth testing** - by adding a *z* coordinate, text can be set on top or below other text (if enabled). Watch out for the queueing order when queueing *text sections*. You should queue them from the furthest to the closest (according to the *z* coordinate, bigger the *z*, more further it is).
@@ -73,7 +72,6 @@ Besides basic text rendering and **glyph-brush** features, some features add cus
 ## **Future**
 
 * wgpu stuff: maybe change to StagingBelt instead of Queue
-* mip-mapping example if possible
 
 ## **Contributing**
 

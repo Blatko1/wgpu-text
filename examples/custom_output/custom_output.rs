@@ -264,8 +264,7 @@ fn main() {
                     bytemuck::cast_slice(camera.global_matrix.as_slice()),
                 );
 
-                brush.queue(&section);
-                match brush.process_queued(&device, &queue) {
+                match brush.queue(&device, &queue, vec![&section]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");
