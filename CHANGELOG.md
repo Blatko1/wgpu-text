@@ -19,6 +19,7 @@ Removed old `queue()` and `process_queued()` functions. Added a new `queue()` fu
 - renamed example `custom_surface` to `custom_output`
 - slight modifications to some examples
 - removed example `scissoring.rs`
+- renamed the shader to `shader.wgsl`
 
 
 ## Notable changes from **v0.6.6** to **v0.7.0**

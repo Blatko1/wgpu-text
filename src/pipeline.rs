@@ -81,7 +81,6 @@ impl Pipeline {
         }
     }
 
-    // TODO what about depth??
     /// Raw draw.
     pub fn draw<'pass>(&'pass self, rpass: &mut wgpu::RenderPass<'pass>) {
         if self.vertices != 0 {

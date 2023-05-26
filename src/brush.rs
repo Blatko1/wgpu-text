@@ -10,8 +10,7 @@ use glyph_brush::{
 
 /// Wrapper over [`glyph_brush::GlyphBrush`]. In charge of drawing text.
 ///
-/// Used for queuing and rendering text with
-/// [`TextBrush::draw`] and [`TextBrush::draw_custom`].
+/// Used for queuing and rendering text with [`TextBrush::draw`].
 pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
     pipeline: Pipeline,
@@ -131,20 +130,12 @@ where
     }
 
     /// Draws all sections queued with [`queue`](#method.queue) function.
-    ///
-    /// **After queueing sections make sure to call [`TextBrush::process_queued()`]
-    /// to update the inner vertex buffer and catch possible errors.**
-    ///
-    /// You can specify where to draw the text when providing the `view`.
-    /// For example, instead of giving the current `frame texture view`
-    /// and drawing to it, you can provide different texture view and
-    /// draw the text there.
     #[inline]
     pub fn draw<'pass>(&'pass mut self, rpass: &mut wgpu::RenderPass<'pass>) {
         self.pipeline.draw(rpass)
     }
 
-    /// Resizes the view. Updates the default orthographic view matrix with
+    /// Resizes the view matrix. Updates the default orthographic view matrix with
     /// provided dimensions and uses it for rendering.
     ///
     /// Run this function whenever the surface config is resized.
@@ -255,7 +246,6 @@ where
 
     /// Builds a [`TextBrush`] while consuming [`BrushBuilder`], for later drawing text
     /// onto a texture of the specified width, height and [`wgpu::TextureFormat`].
-    /// You can provide a [`wgpu::TextureView`] while calling the `draw()` function.
     ///
     /// If you are drawing a basic UI, you'd most likely want to be using
     /// [`wgpu::SurfaceConfiguration`]'s dimensions and texture format.
