@@ -7,7 +7,7 @@
 
 **`wgpu-text`** is a wrapper over **[`glyph-brush`](https://github.com/alexheretic/glyph-brush)** for **fast** and **easy** text rendering in **_[`wgpu`](https://github.com/gfx-rs/wgpu)_**. It accepts **.otf** and **.ttf** fonts.
 
-<img src="showcase.png" align="right" style="padding: 0px 0px 5px 4px; margin-top: -10px" alt="Library Lorem Ipsum Showcase" width="390px">
+<img src="showcase.png" align="right" style="padding: 0px 0px 5px 4px; margin-top: -10px" alt="Library Lorem Ipsum Showcase" width="380px">
 
 This project was inspired by and is similar to **[`wgpu_glyph`](https://github.com/hecrj/wgpu_glyph)** but has additional features and is more straightforward. Also, there is no need to include **glyph-brush** in your project.
 
@@ -39,16 +39,17 @@ let section = Section::default().add_text(Text::new("Hello World"));
 
 // window event loop:
     winit::event::Event::RedrawRequested(_) => {
-        // Has to be queued every frame.
-        brush.queue(&section);
+        // Before are created Encoder and frame TextureView.
+
         // Crashes if inner cache exceeds limits.
-        brush.process_queued(&device, &queue).unwrap();
+        brush.process_queued(&device, &queue, vec![&section]).unwrap();
 
-        let text_buffer = brush.draw(&device, &view);
+        {
+            let mut rpass = encoder.begin_render_pass(...);
+            brush.draw(&mut rpass);
+        }
 
-        // Submit last to avoid overlaps.
-        queue.submit([some_other_cmd_buffer, text_buffer]);
-
+        queue.submit([encoder.finish()]);
         frame.present();
     }
 ```
