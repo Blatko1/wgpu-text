@@ -7,7 +7,7 @@
 
 **`wgpu-text`** is a wrapper over **[`glyph-brush`](https://github.com/alexheretic/glyph-brush)** for **fast** and **easy** text rendering in **_[`wgpu`](https://github.com/gfx-rs/wgpu)_**. It accepts **.otf** and **.ttf** fonts.
 
-<img src="showcase.png" align="right" style="padding: 0px 0px 5px 4px; margin-top: -10px" alt="Library Lorem Ipsum Showcase" width="380px">
+<img src="showcase.png" align="right" style="padding: 0px 0px 5px 4px; margin-top: -10px" alt="Library Lorem Ipsum Showcase" width="320px">
 
 This project was inspired by and is similar to **[`wgpu_glyph`](https://github.com/hecrj/wgpu_glyph)** but has additional features and is more straightforward. Also, there is no need to include **glyph-brush** in your project.
 
@@ -19,7 +19,7 @@ Add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-wgpu_text = "0.7.1"
+wgpu_text = "0.8.0"
 ```
 
 ## **Usage**
