@@ -170,7 +170,7 @@ fn main() {
                 _ => (),
             },
             winit::event::Event::RedrawRequested(_) => {
-                match brush.queue(&device, &queue, vec![&section, &section2]) {
+                match brush.queue(&device, &queue, vec![&section2, &section]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");

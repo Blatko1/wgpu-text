@@ -4,13 +4,15 @@
 
 ### Breaking changes
 
-Removed `ScissorRegion` since there hardly any useful cases for its use and there are better alternatives like setting the `bounds` parameter of `Section`.
+Removed `ScissorRegion` since there are hardly any valuable cases for its use, and there are better alternatives like setting the `bounds` parameter of `Section`.
 
-Amplified the *draw* functions according to *wgpu repository wiki*. Now they need fewer arguments and have better performances since they use the borrowed `render_pass` instead of creating a new one.
+Amplified the *draw* functions according to the *wgpu repository wiki*. Now they need fewer arguments and have better performances since they use the borrowed `render_pass` instead of creating a new one.
 
-After amplifying the *draw* functions, there is no need for `set_load_op()` function.
+After amplifying the *draw* functions, there is no need for the `set_load_op()` function.
 
-Removed *depth functions* (`resize_depth_view`, `with_depth`, ...) since now you have to add your own depth stencil and texture to the render pass borrowed to the *draw* functions. The only new function left is `with_depth_stencil()` in the `BrushBuilder` with which you can add a *depth stencil* to the *inner pipeline*.
+Removed *depth functions* (`resize_depth_view`, `with_depth`) since now you have to add your depth stencil and texture to the render pass that is being borrowed to the *draw* functions. The only new function left is `with_depth_stencil()` in the `BrushBuilder`, with which you can add a *depth stencil* to the *inner pipeline*.
+
+Removed old `queue()` and `process_queued()` functions. Added a new `queue()` function, representing both removed functions in one. It now takes a list of `Section`s. If depth is being utilized, you should pay attention to how you order `Section`s (order: furthest to closest). Each will be drawn in the order they are given.
 
 ### Minor changes
 
