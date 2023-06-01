@@ -35,6 +35,89 @@ where
     ///
     /// To learn about GPU texture caching, see
     /// [`caching behaviour`](https://docs.rs/glyph_brush/latest/glyph_brush/struct.GlyphBrush.html#caching-behaviour)
+    #[cfg(not(feature = "staging_belt"))]
+    #[inline]
+    pub fn queue<'a, S>(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        sections: Vec<S>,
+    ) -> Result<(), BrushError>
+    where
+        S: Into<std::borrow::Cow<'a, Section<'a>>>,
+    {
+        // Queue sections:
+        for s in sections {
+            self.inner.queue(s);
+        }
+
+        // Process sections:
+        loop {
+            // Contains BrushAction enum which marks for
+            // drawing or redrawing (using old data).
+            let brush_action = self.inner.process_queued(
+                |rect, data| self.pipeline.update_texture(rect, data, queue),
+                Vertex::to_vertex,
+            );
+
+            match brush_action {
+                Ok(action) => {
+                    break match action {
+                        BrushAction::Draw(vertices) => {
+                            self.pipeline.update_vertex_buffer(vertices, device, queue)
+                        }
+                        BrushAction::ReDraw => (),
+                    }
+                }
+
+                Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
+                    if log::log_enabled!(log::Level::Warn) {
+                        log::warn!(
+                            "Resizing cache texture! This should be avoided \
+                            by building TextBrush with BrushBuilder::initial_cache_size() \
+                            and providing bigger cache texture dimensions."
+                        );
+                    }
+                    // Texture resizing:
+                    let max_image_dimension = device.limits().max_texture_dimension_2d;
+                    let (width, height) = if suggested.0 > max_image_dimension
+                        || suggested.1 > max_image_dimension
+                    {
+                        if self.inner.texture_dimensions().0 < max_image_dimension
+                            || self.inner.texture_dimensions().1 < max_image_dimension
+                        {
+                            (max_image_dimension, max_image_dimension)
+                        } else {
+                            return Err(BrushError::TooBigCacheTexture(
+                                max_image_dimension,
+                            ));
+                        }
+                    } else {
+                        suggested
+                    };
+                    self.pipeline.resize_texture(device, (width, height));
+                    self.inner.resize_texture(width, height);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Queues section for drawing, processes all queued text and updates the
+    /// inner vertex buffer, unless the text vertices remain unmodified when
+    /// compared to the last frame.
+    ///
+    /// If utilizing *depth*, the `sections` list should have `Section`s ordered from
+    /// furthest to closest. They will be drawn in the order they are given.
+    ///
+    /// - This method should be called every frame.
+    ///
+    /// If not called when required, the draw functions will continue drawing data from the
+    /// inner vertex buffer meaning they will redraw old vertices.
+    ///
+    /// To learn about GPU texture caching, see
+    /// [`caching behaviour`](https://docs.rs/glyph_brush/latest/glyph_brush/struct.GlyphBrush.html#caching-behaviour)
+    #[cfg(feature = "staging_belt")]
     #[inline]
     pub fn queue<'a, S>(
         &mut self,
