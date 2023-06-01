@@ -42,7 +42,7 @@ let section = Section::default().add_text(Text::new("Hello World"));
         // Before are created Encoder and frame TextureView.
 
         // Crashes if inner cache exceeds limits.
-        brush.process_queued(&device, &queue, vec![&section]).unwrap();
+        brush.process_queued(&device, &queue, vec![&section, ...]).unwrap();
 
         {
             let mut rpass = encoder.begin_render_pass(...);
