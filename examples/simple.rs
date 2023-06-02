@@ -14,7 +14,6 @@ use winit::{
 };
 
 // TODO text layout of characters like 'š, ć, ž, đ' doesn't work correctly.
-#[allow(unused)]
 fn main() {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "error");
