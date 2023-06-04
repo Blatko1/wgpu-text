@@ -22,6 +22,7 @@ impl Pipeline {
         device: &wgpu::Device,
         render_format: wgpu::TextureFormat,
         depth_stencil: Option<wgpu::DepthStencilState>,
+        multisample: wgpu::MultisampleState,
         tex_dimensions: (u32, u32),
         matrix: Matrix,
     ) -> Pipeline {
@@ -58,7 +59,7 @@ impl Pipeline {
                 ..Default::default()
             },
             depth_stencil,
-            multisample: wgpu::MultisampleState::default(),
+            multisample,
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
