@@ -176,6 +176,7 @@ where
 #[non_exhaustive]
 pub struct BrushBuilder<F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
+    multisample: wgpu::MultisampleState,
     depth: Option<wgpu::DepthStencilState>,
     matrix: Option<Matrix>,
 }
@@ -204,6 +205,7 @@ impl BrushBuilder<()> {
     pub fn using_fonts<F: Font>(fonts: Vec<F>) -> BrushBuilder<F> {
         BrushBuilder {
             inner: glyph_brush::GlyphBrushBuilder::using_fonts(fonts),
+            multisample: wgpu::MultisampleState::default(),
             depth: None,
             matrix: None,
         }
@@ -217,6 +219,12 @@ where
 {
     // Default `BrushBuilder` functions:
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
+
+    /// Provide the multi sampling used by the pipeline
+    pub fn with_multisample(mut self, multisample: wgpu::MultisampleState) -> Self {
+        self.multisample = multisample;
+        self
+    }
 
     /// Uses the provided `matrix` when rendering.
     ///
@@ -266,6 +274,7 @@ where
             device,
             output_format,
             self.depth,
+            self.multisample,
             inner.texture_dimensions(),
             matrix,
         );
