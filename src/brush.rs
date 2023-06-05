@@ -177,7 +177,7 @@ where
 pub struct BrushBuilder<F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
     multisample: wgpu::MultisampleState,
-    depth: Option<wgpu::DepthStencilState>,
+    depth_stencil: Option<wgpu::DepthStencilState>,
     matrix: Option<Matrix>,
 }
 
@@ -206,7 +206,7 @@ impl BrushBuilder<()> {
         BrushBuilder {
             inner: glyph_brush::GlyphBrushBuilder::using_fonts(fonts),
             multisample: wgpu::MultisampleState::default(),
-            depth: None,
+            depth_stencil: None,
             matrix: None,
         }
     }
@@ -220,12 +220,6 @@ where
     // Default `BrushBuilder` functions:
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
 
-    /// Provide the multi sampling used by the pipeline
-    pub fn with_multisample(mut self, multisample: wgpu::MultisampleState) -> Self {
-        self.multisample = multisample;
-        self
-    }
-
     /// Uses the provided `matrix` when rendering.
     ///
     /// To update the render matrix use [`TextBrush::update_matrix()`].
@@ -234,6 +228,14 @@ where
         M: Into<Matrix>,
     {
         self.matrix = Some(matrix.into());
+        self
+    }
+
+    /// Provide the `wgpu::MultisampleState` used by the inner pipeline.
+    /// 
+    /// Defaults to value returned by [`wgpu::MultisampleState::default()`].
+    pub fn with_multisample(mut self, multisample: wgpu::MultisampleState) -> Self {
+        self.multisample = multisample;
         self
     }
 
@@ -246,34 +248,34 @@ where
     ///  [0.0, 1.0] not including 1.0.
     pub fn with_depth_stencil(
         mut self,
-        depth: Option<wgpu::DepthStencilState>,
+        depth_stencil: Option<wgpu::DepthStencilState>,
     ) -> BrushBuilder<F, H> {
-        self.depth = depth;
+        self.depth_stencil = depth_stencil;
         self
     }
 
     /// Builds a [`TextBrush`] while consuming [`BrushBuilder`], for later drawing text
-    /// onto a texture of the specified width, height and [`wgpu::TextureFormat`].
+    /// onto a texture of the specified `render_width`, `render_height` and [`wgpu::TextureFormat`].
     ///
     /// If you are drawing a basic UI, you'd most likely want to be using
     /// [`wgpu::SurfaceConfiguration`]'s dimensions and texture format.
     pub fn build(
         self,
         device: &wgpu::Device,
-        output_width: u32,
-        output_height: u32,
-        output_format: wgpu::TextureFormat,
+        render_width: u32,
+        render_height: u32,
+        render_format: wgpu::TextureFormat,
     ) -> TextBrush<F, H> {
         let inner = self.inner.build();
 
         let matrix = self
             .matrix
-            .unwrap_or_else(|| crate::ortho(output_width as f32, output_height as f32));
+            .unwrap_or_else(|| crate::ortho(render_width as f32, render_height as f32));
 
         let pipeline = Pipeline::new(
             device,
-            output_format,
-            self.depth,
+            render_format,
+            self.depth_stencil,
             self.multisample,
             inner.texture_dimensions(),
             matrix,
