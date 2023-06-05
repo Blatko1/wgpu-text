@@ -4,7 +4,7 @@
 
 ### New function
 
-Added a new function `with_multisample()` in `BrushBuilder` by @AndriBaal [#12](https://github.com/Blatko1/wgpu-text/pull/12) which specifies the `wgpu::MultisampleState` for the inner pipeline.
+Added a new function `with_multisample()` in `BrushBuilder` by @AndriBaal in [#12](https://github.com/Blatko1/wgpu-text/pull/12) which specifies the `wgpu::MultisampleState` for the inner pipeline.
 
 ### Minor changes
 
