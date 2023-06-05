@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use glyph_brush::{
     ab_glyph::{point, Rect},
     Rectangle,
@@ -23,6 +25,7 @@ impl Pipeline {
         render_format: wgpu::TextureFormat,
         depth_stencil: Option<wgpu::DepthStencilState>,
         multisample: wgpu::MultisampleState,
+        multiview: Option<NonZeroU32>,
         tex_dimensions: (u32, u32),
         matrix: Matrix,
     ) -> Pipeline {
@@ -69,7 +72,7 @@ impl Pipeline {
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
-            multiview: None,
+            multiview,
         });
 
         Self {

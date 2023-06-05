@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use crate::{
     error::BrushError,
     pipeline::{Pipeline, Vertex},
@@ -176,8 +178,9 @@ where
 #[non_exhaustive]
 pub struct BrushBuilder<F, H = DefaultSectionHasher> {
     inner: glyph_brush::GlyphBrushBuilder<F, H>,
-    multisample: wgpu::MultisampleState,
     depth_stencil: Option<wgpu::DepthStencilState>,
+    multisample: wgpu::MultisampleState,
+    multiview: Option<NonZeroU32>,
     matrix: Option<Matrix>,
 }
 
@@ -205,8 +208,9 @@ impl BrushBuilder<()> {
     pub fn using_fonts<F: Font>(fonts: Vec<F>) -> BrushBuilder<F> {
         BrushBuilder {
             inner: glyph_brush::GlyphBrushBuilder::using_fonts(fonts),
-            multisample: wgpu::MultisampleState::default(),
             depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None,
             matrix: None,
         }
     }
@@ -236,6 +240,14 @@ where
     /// Defaults to value returned by [`wgpu::MultisampleState::default()`].
     pub fn with_multisample(mut self, multisample: wgpu::MultisampleState) -> Self {
         self.multisample = multisample;
+        self
+    }
+
+    /// Provide the `multiview` attribute used by the inner pipeline.
+    /// 
+    /// Defaults to `None`.
+    pub fn with_multiview(mut self, multiview: NonZeroU32) -> Self {
+        self.multiview = Some(multiview);
         self
     }
 
@@ -277,6 +289,7 @@ where
             render_format,
             self.depth_stencil,
             self.multisample,
+            self.multiview,
             inner.texture_dimensions(),
             matrix,
         );
