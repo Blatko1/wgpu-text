@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.8.2
+
+### Minor changes
+
+- reexported `glyph_brush` as whole
+
 ## v0.8.1
 
 ### New functions

@@ -4,7 +4,7 @@ mod utils;
 use rand::Rng;
 use std::time::{Duration, Instant, SystemTime};
 use utils::WgpuUtils;
-use wgpu_text::section::{BuiltInLineBreaker, Layout, Section, Text};
+use wgpu_text::glyph_brush::{BuiltInLineBreaker, Layout, Section, Text};
 use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},

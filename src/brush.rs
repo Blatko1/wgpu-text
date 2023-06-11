@@ -236,7 +236,7 @@ where
     }
 
     /// Provide the `wgpu::MultisampleState` used by the inner pipeline.
-    /// 
+    ///
     /// Defaults to value returned by [`wgpu::MultisampleState::default()`].
     pub fn with_multisample(mut self, multisample: wgpu::MultisampleState) -> Self {
         self.multisample = multisample;
@@ -244,7 +244,7 @@ where
     }
 
     /// Provide the `multiview` attribute used by the inner pipeline.
-    /// 
+    ///
     /// Defaults to `None`.
     pub fn with_multiview(mut self, multiview: NonZeroU32) -> Self {
         self.multiview = Some(multiview);
