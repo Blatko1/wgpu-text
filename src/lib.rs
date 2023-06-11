@@ -5,7 +5,7 @@
 //! but has additional features and is more straightforward. Also, there is no need to
 //! include **glyph-brush** in your project.
 //!
-//! Some features are directly implemented from glyph-brush, so it's recommended to go through
+//! Since the crate **glyph-brush** is reexported and heavily dependent on, it's recommended to go through
 //! [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html) and
 //! [Section examples](https://github.com/alexheretic/glyph-brush/tree/master/gfx-glyph/examples)
 //! for a better understanding of adding and managing text.

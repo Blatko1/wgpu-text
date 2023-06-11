@@ -11,7 +11,7 @@
 
 This project was inspired by and is similar to **[`wgpu_glyph`](https://github.com/hecrj/wgpu_glyph)** but has additional features and is more straightforward. Also, there is no need to include **glyph-brush** in your project.
 
-Some features are directly implemented from **glyph-brush**, so it's recommended to go through [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html) and [Section examples](https://github.com/alexheretic/glyph-brush/tree/master/gfx-glyph/examples) for better understanding of managing and adding text.
+Since the crate **glyph-brush** is *reexported* and heavily dependent on, it's recommended to go through [Section docs](https://docs.rs/glyph_brush/latest/glyph_brush/struct.Section.html) and [Section examples](https://github.com/alexheretic/glyph-brush/tree/master/gfx-glyph/examples) for better understanding of managing and adding text.
 
 ## **Installation**
 
@@ -25,7 +25,7 @@ wgpu_text = "0.8.1"
 ## **Usage**
 
 ```rust
-use wgpu_text::section::{Section, Text, Layout, HorizontalAlign, BrushBuilder};
+use wgpu_text::glyph_brush::{Section, Text, Layout, HorizontalAlign, BrushBuilder};
 
 let brush = BrushBuilder::using_font_bytes(font).unwrap()
  /* .initial_cache_size((16_384, 16_384))) */ // use this to avoid resizing cache texture
