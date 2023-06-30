@@ -20,13 +20,10 @@ impl WgpuUtils {
             backends,
             dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
         });
-        let (size, surface) = unsafe {
-            let size = window.inner_size();
-            let surface = instance.create_surface(&window).unwrap();
-            (size, surface)
-        };
+        let surface = unsafe { instance.create_surface(&window) }.unwrap();
+
         let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
+            power_preference: wgpu::PowerPreference::LowPower,
             compatible_surface: Some(&surface),
             ..Default::default()
         }))
@@ -42,6 +39,7 @@ impl WgpuUtils {
         ))
         .unwrap();
 
+        let size = window.inner_size();
         let config = surface
             .get_default_config(&adapter, size.width, size.height)
             .expect("Surface isn't supported by the adapter.");

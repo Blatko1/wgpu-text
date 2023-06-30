@@ -4,7 +4,7 @@
 
 ### Minor changes
 
-- reexported `glyph_brush` as whole
+- reexported `glyph_brush` as a whole
 
 ## v0.8.1
 
