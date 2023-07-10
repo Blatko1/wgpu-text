@@ -12,18 +12,18 @@ categories = ["graphics", "rendering"]
 include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 
 [dependencies]
-wgpu = "0.16.1"
+wgpu = "0.16.2"
 glyph_brush = "0.7.7"
 log = "0.4.19"
 bytemuck = { version = "1.13.1", features = ["derive"] }
 
 [dev-dependencies]
-wgpu = { version = "0.16.1", features = ["spirv"] }
+wgpu = { version = "0.16.2", features = ["spirv"] }
 winit = "0.28.6"
 pollster = "0.3.0"
 env_logger = "0.10.0"
 rand = "0.8.5"
-nalgebra = "0.32.2"
+nalgebra = "0.32.3"
 
 [[example]]
 path = "examples/custom_output/custom_output.rs"
