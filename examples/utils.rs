@@ -23,7 +23,6 @@ impl WgpuUtils {
         let surface = unsafe { instance.create_surface(&window) }.unwrap();
 
         let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::LowPower,
             compatible_surface: Some(&surface),
             ..Default::default()
         }))
