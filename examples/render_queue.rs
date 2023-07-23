@@ -6,7 +6,7 @@ use utils::WgpuUtils;
 use wgpu_text::glyph_brush::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
-use wgpu_text::{BrushBuilder, RenderElement, TextBrush};
+use wgpu_text::ExternalBrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
@@ -30,7 +30,7 @@ fn main() {
 
     // All wgpu-text related below:
     let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
+    let mut brush = ExternalBrushBuilder::using_font_bytes(font).unwrap().build(
         &device,
         config.width,
         config.height,
@@ -189,7 +189,7 @@ fn main() {
                             depth_stencil_attachment: None,
                         });
 
-                    let draw_queue = brush.multi_draw_queue(&device, &queue);
+                    let mut draw_queue = brush.draw_queue(&device, &queue);
                     draw_queue.append(vec![&section, &section2], None).unwrap();
 
                     brush.draw(&mut rpass);

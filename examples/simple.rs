@@ -6,7 +6,7 @@ use utils::WgpuUtils;
 use wgpu_text::glyph_brush::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
-use wgpu_text::{BrushBuilder, RenderElement};
+use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
@@ -191,6 +191,32 @@ fn main() {
 
                     brush
                         .queue(&device, &queue, vec![&section, &section2])
+                        .unwrap();
+                    brush.draw(&mut rpass);
+                }
+
+                {
+                    let mut rpass =
+                        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Render Pass"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                                        r: 0.2,
+                                        g: 0.2,
+                                        b: 0.3,
+                                        a: 1.,
+                                    }),
+                                    store: true,
+                                },
+                            })],
+                            depth_stencil_attachment: None,
+                        });
+
+                    brush
+                        .queue(&device, &queue, vec![&section])
                         .unwrap();
                     brush.draw(&mut rpass);
                 }

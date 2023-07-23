@@ -15,14 +15,14 @@
 //!
 //! > Look trough [`examples`](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
-mod external;
-mod internal;
-
+mod brush;
+mod pipeline;
+mod cache;
 mod error;
-mod vertex;
 
-pub use brush::{BrushBuilder, RenderElement, TextBrush};
+pub use error::BrushError;
 pub use glyph_brush;
+pub use brush::{BrushBuilder, TextBrush};
 
 /// Represents a two-dimensional array matrix with 4x4 dimensions.
 pub type Matrix = [[f32; 4]; 4];

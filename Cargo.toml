@@ -16,6 +16,7 @@ wgpu = "0.17.0"
 glyph_brush = "0.7.7"
 log = "0.4.19"
 bytemuck = { version = "1.13.1", features = ["derive"] }
+image = "0.24.6"
 
 [dev-dependencies]
 wgpu = { version = "0.17.0", features = ["spirv"] }
