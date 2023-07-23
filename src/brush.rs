@@ -1,4 +1,4 @@
-use crate::{error::BrushError, pipeline::{Vertex, Pipeline}, Matrix};
+use crate::{error::BrushError, pipeline::{Vertex, Pipeline, DrawChain}, Matrix};
 use glyph_brush::{
     ab_glyph::{Font, FontArc, FontRef, InvalidFont, Rect},
     BrushAction, DefaultSectionHasher, Extra, GlyphCruncher, Section, SectionGlyphIter, 
@@ -9,8 +9,8 @@ use std::{borrow::Cow, num::NonZeroU32};
 ///
 /// Used for queuing and rendering text with [`TextBrush::draw`].
 pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
-    inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
-    pipeline: Pipeline,
+    pub(crate) inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
+    pub(crate) pipeline: Pipeline,
 }
 
 impl<F, H> TextBrush<F, H>
@@ -42,59 +42,7 @@ where
     where
         S: Into<Cow<'a, Section<'a>>>,
     {
-        // Queue sections:
-        for s in sections {
-            self.inner.queue(s);
-        }
-        // Process sections:
-        loop {
-            // Contains BrushAction enum which marks for
-            // drawing or redrawing (using old data).
-            let brush_action = self.inner.process_queued(
-                |rect, data| self.pipeline.update_texture(rect, data, queue),
-                Vertex::to_vertex,
-            );
-
-            match brush_action {
-                Ok(action) => {
-                    break match action {
-                        BrushAction::Draw(vertices) => {
-                            self.pipeline.update_vertex_buffer(vertices, device, queue);
-                        }
-                        BrushAction::ReDraw => (),
-                    }
-                }
-
-                Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
-                    if log::log_enabled!(log::Level::Warn) {
-                        log::warn!(
-                            "Resizing cache texture! This should be avoided \
-                            by building TextBrush with BrushBuilder::initial_cache_size() \
-                            and providing bigger cache texture dimensions."
-                        );
-                    }
-                    // Texture resizing:
-                    let max_image_dimension = device.limits().max_texture_dimension_2d;
-                    let (width, height) = if suggested.0 > max_image_dimension
-                        || suggested.1 > max_image_dimension
-                    {
-                        if self.inner.texture_dimensions().0 < max_image_dimension
-                            || self.inner.texture_dimensions().1 < max_image_dimension
-                        {
-                            (max_image_dimension, max_image_dimension)
-                        } else {
-                            return Err(BrushError::TooBigCacheTexture(
-                                max_image_dimension,
-                            ));
-                        }
-                    } else {
-                        suggested
-                    };
-                    self.pipeline.resize_texture(device, (width, height));
-                    self.inner.resize_texture(width, height);
-                }
-            }
-        }
+        
         Ok(())
     }
 
@@ -129,6 +77,12 @@ where
     #[inline]
     pub fn draw<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
         self.pipeline.draw(rpass)
+    }
+
+    /// Draws all sections queued with [`queue`](#method.queue) function.
+    #[inline]
+    pub fn begin_draw_chain<'rpass>(&'rpass mut self, rpass: &'rpass mut wgpu::RenderPass<'rpass>) -> DrawChain<F, H> {
+        DrawChain::new(self, rpass).begin()
     }
 
     /// Resizes the view matrix. Updates the default orthographic view matrix with
@@ -289,5 +243,69 @@ where
         );
 
         TextBrush { inner, pipeline }
+    }
+}
+
+fn process_queued<'a, F, H, S>(inner: &glyph_brush::GlyphBrush<Vertex, Extra, F, H>, device: &wgpu::Device, sections: Vec<S>) -> Result<(), BrushError> where
+    F: Font + Sync,
+    H: std::hash::BuildHasher,
+    S: Into<Cow<'a, Section<'a>>>, {
+
+        if sections.is_empty() {
+            return Ok(())
+        }
+    // Queue sections:
+    for s in sections {
+        inner.queue(s);
+    }
+    // Process sections:
+    loop {
+        let mut texture_data;
+        // Contains BrushAction enum which marks for
+        // drawing or redrawing (using old data).
+        let brush_action = inner.process_queued(
+            |rect, data| {texture_data = (rect, data)},
+            Vertex::to_vertex,
+        );
+
+        match brush_action {
+            Ok(action) => {
+                break match action {
+                    BrushAction::Draw(vertices) => {
+                        vertices
+                    }
+                    BrushAction::ReDraw => (),
+                }
+            }
+
+            Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
+                if log::log_enabled!(log::Level::Warn) {
+                    log::warn!(
+                        "Resizing cache texture! This should be avoided \
+                        by building TextBrush with BrushBuilder::initial_cache_size() \
+                        and providing bigger cache texture dimensions."
+                    );
+                }
+                // Texture resizing:
+                let max_image_dimension = device.limits().max_texture_dimension_2d;
+                let (width, height) = if suggested.0 > max_image_dimension
+                    || suggested.1 > max_image_dimension
+                {
+                    if inner.texture_dimensions().0 < max_image_dimension
+                        || inner.texture_dimensions().1 < max_image_dimension
+                    {
+                        (max_image_dimension, max_image_dimension)
+                    } else {
+                        return Err(BrushError::TooBigCacheTexture(
+                            max_image_dimension,
+                        ));
+                    }
+                } else {
+                    suggested
+                };
+                pipeline.resize_texture(device, (width, height));
+                inner.resize_texture(width, height);
+            }
+        }
     }
 }

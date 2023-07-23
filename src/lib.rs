@@ -21,8 +21,8 @@ mod cache;
 mod error;
 
 pub use error::BrushError;
-pub use glyph_brush;
 pub use brush::{BrushBuilder, TextBrush};
+pub use glyph_brush;
 
 /// Represents a two-dimensional array matrix with 4x4 dimensions.
 pub type Matrix = [[f32; 4]; 4];

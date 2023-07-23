@@ -1,17 +1,17 @@
-use glyph_brush::Rectangle;
-use std::num::NonZeroU32;
+use glyph_brush::{Rectangle, ab_glyph::{FontArc, Font}, DefaultSectionHasher, Section};
+use std::{num::NonZeroU32, borrow::Cow};
 use wgpu::util::DeviceExt;
 
-use crate::{cache::Cache, Matrix};
+use crate::{cache::Cache, Matrix, TextBrush};
 
 /// Responsible for drawing text.
 #[derive(Debug)]
 pub struct Pipeline {
-    pub inner: wgpu::RenderPipeline,
+    inner: wgpu::RenderPipeline,
     cache: Cache,
 
     vertex_buffer: wgpu::Buffer,
-    vertex_buffer_len: usize,
+    vertex_buffer_max_len: usize,
     vertex_count: u32,
 }
 
@@ -76,7 +76,7 @@ impl Pipeline {
             cache,
 
             vertex_buffer,
-            vertex_buffer_len: 0,
+            vertex_buffer_max_len: 0,
             vertex_count: 0,
         }
     }
@@ -101,8 +101,8 @@ impl Pipeline {
         self.vertex_count = vertices.len() as u32;
         let data: &[u8] = bytemuck::cast_slice(&vertices);
 
-        if vertices.len() > self.vertex_buffer_len {
-            self.vertex_buffer_len = vertices.len();
+        if vertices.len() > self.vertex_buffer_max_len {
+            self.vertex_buffer_max_len = vertices.len();
 
             self.vertex_buffer =
                 device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -129,6 +129,31 @@ impl Pipeline {
     #[inline]
     pub fn resize_texture(&mut self, device: &wgpu::Device, tex_dimensions: (u32, u32)) {
         self.cache.recreate_texture(device, tex_dimensions);
+    }
+}
+
+pub struct DrawChain<'rpass, F, H> {
+    brush: &'rpass mut TextBrush<F, H>,
+    rpass: &'rpass mut wgpu::RenderPass<'rpass>
+}
+
+impl<'rpass, F, H> DrawChain<'rpass, F, H> {
+    pub(crate) fn new(brush: &'rpass mut TextBrush<F, H>, rpass: &'rpass mut wgpu::RenderPass<'rpass>) -> Self {
+        Self {
+            brush,
+            rpass,
+        }
+    }
+
+    pub(crate) fn begin(self) -> Self {
+        self.rpass.set_pipeline(&self.brush.pipeline.inner);
+        self.rpass.set_bind_group(0, &self.brush.pipeline.cache.bind_group, &[]);
+        self
+    }
+
+    pub fn draw<S>(self, sections:Vec<S>) -> Self where S: Into<Cow<'rpass, Section<'rpass>>> {
+        
+        self
     }
 }
 
