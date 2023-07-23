@@ -1,8 +1,8 @@
-use std::num::NonZeroU32;
+use std::{borrow::Cow, marker::PhantomData, num::NonZeroU32};
 
 use crate::{
     error::BrushError,
-    pipeline::{Pipeline, Vertex},
+    internal::pipeline::{Pipeline, Vertex},
     Matrix,
 };
 use glyph_brush::{
@@ -30,7 +30,7 @@ where
     /// If utilizing *depth*, the `sections` list should have `Section`s ordered from
     /// furthest to closest. They will be drawn in the order they are given.
     ///
-    /// - This method should be called every frame.
+    /// - This function should be called every frame.
     ///
     /// If not called when required, the draw functions will continue drawing data from the
     /// inner vertex buffer meaning they will redraw old vertices.
@@ -45,7 +45,7 @@ where
         sections: Vec<S>,
     ) -> Result<(), BrushError>
     where
-        S: Into<std::borrow::Cow<'a, Section<'a>>>,
+        S: Into<Cow<'a, Section<'a>>>,
     {
         // Queue sections:
         for s in sections {
@@ -65,7 +65,7 @@ where
                 Ok(action) => {
                     break match action {
                         BrushAction::Draw(vertices) => {
-                            self.pipeline.update_vertex_buffer(vertices, device, queue)
+                            self.pipeline.update_vertex_buffer(vertices, device, queue);
                         }
                         BrushAction::ReDraw => (),
                     }
@@ -131,11 +131,43 @@ where
         self.inner.fonts()
     }
 
+    pub fn multi_draw_queue(&self, device: &wgpu::Device, queue: &wgpu::Queue) -> MultiDrawQueue<F, H> {
+        MultiDrawQueue {
+            inner: &self.inner,
+            pipeline: &self.pipeline,
+            device,
+            queue,
+            buffers: Vec::new(),
+        }
+    }
+
     /// Draws all sections queued with [`queue`](#method.queue) function.
     #[inline]
-    pub fn draw<'pass>(&'pass self, rpass: &mut wgpu::RenderPass<'pass>) {
+    pub fn draw<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
         self.pipeline.draw(rpass)
     }
+
+    #[inline]
+    pub fn multi_draw<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
+        self.pipeline.draw(rpass)
+    }
+
+    /// Draws all sections queued with [`queue`](#method.queue) function.
+    /*#[inline]
+    pub fn draw_queue<'rpass, 'a, S>(
+        &'rpass mut self,
+        device: &'rpass wgpu::Device,
+        queue: &'rpass wgpu::Queue,
+        rpass: &mut wgpu::RenderPass<'rpass>,
+        render_queue: Vec<RenderElement<'a, S>>,
+    ) where
+        S: Into<Cow<'a, Section<'a>>>,
+    {
+        for elem in render_queue {
+            self.queue(device, queue, elem.content);
+            self.pipeline.draw(rpass)
+        }
+    }*/
 
     /// Resizes the view matrix. Updates the default orthographic view matrix with
     /// provided dimensions and uses it for rendering.
@@ -155,7 +187,7 @@ where
     /// }
     /// ```
     #[inline]
-    pub fn resize_view(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
+    pub fn resize_view(&self, width: f32, height: f32, queue: &wgpu::Queue) {
         self.update_matrix(crate::ortho(width, height), queue);
     }
 
@@ -166,7 +198,7 @@ where
     ///
     /// Feel free to use [`ortho()`] to create more complex matrices by yourself.
     #[inline]
-    pub fn update_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
+    pub fn update_matrix<M>(&self, matrix: M, queue: &wgpu::Queue)
     where
         M: Into<Matrix>,
     {
@@ -295,5 +327,97 @@ where
         );
 
         TextBrush { inner, pipeline }
+    }
+}
+
+pub struct MultiDrawQueue<'a, F = FontArc, H = DefaultSectionHasher> {
+    inner: &'a glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
+    pipeline: &'a Pipeline,
+    device: &'a wgpu::Device,
+    queue: &'a wgpu::Queue,
+    buffers: Vec<i32>
+}
+
+impl<'a, F, H> MultiDrawQueue<'a, F, H> where
+F: Font + Sync,
+H: std::hash::BuildHasher 
+{
+    pub fn append<S>(&self, sections: Vec<S>, matrix: Option<Matrix>) -> Result<(), BrushError> where S: Into<Cow<'a, Section<'a>>> {
+        // Queue sections:
+        for s in sections {
+            self.inner.queue(s);
+        }
+
+        // Process sections:
+        loop {
+            let update_texture;
+            // Contains BrushAction enum which marks for
+            // drawing or redrawing (using old data).
+            let brush_action = self.inner.process_queued(
+                |rect, data| update_texture = (rect, data),
+                Vertex::to_vertex,
+            );
+
+            match brush_action {
+                Ok(action) => {
+                    break match action {
+                        BrushAction::Draw(vertices) => {
+                            self.pipeline.update_vertex_buffer(vertices, device, queue);
+                        }
+                        BrushAction::ReDraw => unreachable!(),
+                    }
+                }
+
+                Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
+                    if log::log_enabled!(log::Level::Warn) {
+                        log::warn!(
+                            "Resizing cache texture! This should be avoided \
+                            by building TextBrush with BrushBuilder::initial_cache_size() \
+                            and providing bigger cache texture dimensions."
+                        );
+                    }
+                    // Texture resizing:
+                    let max_image_dimension = self.device.limits().max_texture_dimension_2d;
+                    let (width, height) = if suggested.0 > max_image_dimension
+                        || suggested.1 > max_image_dimension
+                    {
+                        if self.inner.texture_dimensions().0 < max_image_dimension
+                            || self.inner.texture_dimensions().1 < max_image_dimension
+                        {
+                            (max_image_dimension, max_image_dimension)
+                        } else {
+                            return Err(BrushError::TooBigCacheTexture(
+                                max_image_dimension,
+                            ));
+                        }
+                    } else {
+                        suggested
+                    };
+                    self.pipeline.resize_texture(self.device, (width, height));
+                    self.inner.resize_texture(width, height);
+                }
+            }
+        }
+        self.inner.process_queued(|_, _|{}, Vertex::to_vertex);
+        Ok(())
+    }
+}
+
+pub struct RenderBuffer<'a, S>
+where
+    S: Into<Cow<'a, Section<'a>>>,
+{
+    pub content: Vec<S>,
+    pub matrix: Option<Matrix>,
+    phantom: PhantomData<&'a S>,
+}
+
+impl<'a, S: Into<Cow<'a, Section<'a>>>> RenderElement<'a, S> {
+    pub fn new(content: Vec<S>, matrix: Option<Matrix>) -> Self {
+        Self {
+            content,
+            matrix,
+            phantom: PhantomData,
+        }
     }
 }

@@ -135,16 +135,11 @@ impl Cache {
         });
     }
 
-    pub fn update_matrix(&mut self, matrix: Matrix, queue: &wgpu::Queue) {
+    pub fn update_matrix(&self, matrix: Matrix, queue: &wgpu::Queue) {
         queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&matrix));
     }
 
-    pub fn update_texture(
-        &mut self,
-        size: Rectangle<u32>,
-        data: &[u8],
-        queue: &wgpu::Queue,
-    ) {
+    pub fn update_texture(&self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &self.texture,

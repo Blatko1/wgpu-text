@@ -9,7 +9,7 @@ readme = "README.md"
 repository = "https://github.com/Blatko1/wgpu-text"
 keywords = ["wgpu", "text", "ttf", "render", "font"]
 categories = ["graphics", "rendering"]
-include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
+include = ["src/**/*", "LICENSE", "README.md", ".gitignore"]
 
 [dependencies]
 wgpu = "0.17.0"

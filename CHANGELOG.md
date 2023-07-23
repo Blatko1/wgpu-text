@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.9.0
+
+### Major changes 
+
+The `draw()` function no longer needs `Self` to be mutable - by @PPakalns in [#18](https://github.com/Blatko1/wgpu-text/pull/18).
+
 ## v0.8.3
 
 - `wgpu` crate version -> v0.16.2

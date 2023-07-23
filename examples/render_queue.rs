@@ -1,51 +1,34 @@
 #[path = "utils.rs"]
 mod utils;
 
-use rand::Rng;
 use std::time::{Duration, Instant, SystemTime};
 use utils::WgpuUtils;
-use wgpu_text::glyph_brush::{BuiltInLineBreaker, Layout, Section, Text};
-use wgpu_text::BrushBuilder;
+use wgpu_text::glyph_brush::{
+    BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
+};
+use wgpu_text::{BrushBuilder, RenderElement, TextBrush};
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
     window::WindowBuilder,
 };
 
-const RANDOM_CHARACTERS: usize = 30_000;
-
-fn generate_random_chars() -> String {
-    let mut result = String::new();
-    let mut rng = rand::thread_rng();
-    for _ in 0..RANDOM_CHARACTERS {
-        let rand = rng.gen_range(0x0041..0x0070);
-        let char = char::from_u32(rand).unwrap();
-        result.push(char);
-    }
-    result.trim().to_owned()
-}
-
+// TODO text layout of characters like 'š, ć, ž, đ' doesn't work correctly.
 fn main() {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "error");
     }
     env_logger::init();
 
-    if cfg!(debug_assertions) {
-        eprintln!(
-            "You should probably run an example called 'performance' in release mode.\n\
-            e.g. use `cargo run --example performance --release`\n"
-        );
-    }
-
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("wgpu-text: 'performance' example")
+        .with_title("wgpu-text: 'simple' example")
         .build(&event_loop)
         .unwrap();
 
     let (device, queue, surface, mut config) = WgpuUtils::init(&window);
 
+    // All wgpu-text related below:
     let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
         &device,
@@ -54,9 +37,40 @@ fn main() {
         config.format,
     );
 
-    let mut random_text = generate_random_chars();
-    let mut font_size: f32 = 9.;
+    let mut font_size = 25.;
+    let mut section = Section::default()
+        .add_text(
+            Text::new(
+                "Try typing some text,\n \
+                del - delete all, backspace - remove last character",
+            )
+            .with_scale(font_size)
+            .with_color([0.9, 0.5, 0.5, 1.0]),
+        )
+        .with_bounds((config.width as f32 * 0.4, config.height as f32))
+        .with_layout(
+            Layout::default()
+                .v_align(VerticalAlign::Center)
+                .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+        )
+        .with_screen_position((50.0, config.height as f32 * 0.5))
+        .to_owned();
+    let section2 = Section::default()
+        .add_text(
+            Text::new("Other section")
+                .with_scale(40.0)
+                .with_color([0.2, 0.5, 0.8, 1.0]),
+        )
+        .with_bounds((config.width as f32 * 0.5, config.height as f32))
+        .with_layout(
+            Layout::default()
+                .v_align(VerticalAlign::Top)
+                .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+        )
+        .with_screen_position((500.0, config.height as f32 * 0.2))
+        .to_owned();
 
+    // FPS and window updating:
     let mut then = SystemTime::now();
     let mut now = SystemTime::now();
     let mut fps = 0;
@@ -77,6 +91,9 @@ fn main() {
                     config.height = new_size.height.max(1);
                     surface.configure(&device, &config);
 
+                    section.bounds = (config.width as f32 * 0.4, config.height as _);
+                    section.screen_position.1 = config.height as f32 * 0.5;
+
                     brush.resize_view(config.width as f32, config.height as f32, &queue);
                     // You can also do this!
                     // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
@@ -92,14 +109,31 @@ fn main() {
                     ..
                 } => match keypress {
                     VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
-                    VirtualKeyCode::Delete => random_text.clear(),
-                    VirtualKeyCode::Back => {
-                        random_text.pop();
+                    VirtualKeyCode::Delete => section.text.clear(),
+                    VirtualKeyCode::Back if !section.text.is_empty() => {
+                        let mut end_text = section.text.remove(section.text.len() - 1);
+                        end_text.text.pop();
+                        if !end_text.text.is_empty() {
+                            section.text.push(end_text);
+                        }
                     }
                     _ => (),
                 },
                 WindowEvent::ReceivedCharacter(c) => {
-                    random_text.push(c);
+                    if c != '\u{7f}' && c != '\u{8}' {
+                        if section.text.is_empty() {
+                            section.text.push(
+                                OwnedText::default()
+                                    .with_scale(font_size)
+                                    .with_color([0.9, 0.5, 0.5, 1.0]),
+                            );
+                        }
+                        section.text.push(
+                            OwnedText::new(c.to_string())
+                                .with_scale(font_size)
+                                .with_color([0.9, 0.5, 0.5, 1.0]),
+                        );
+                    }
                 }
                 WindowEvent::MouseWheel {
                     delta: winit::event::MouseScrollDelta::LineDelta(_, y),
@@ -112,23 +146,11 @@ fn main() {
                     } else {
                         size *= 4.0 / 5.0
                     };
-                    font_size = (size.max(3.0).min(2000.0) * 2.0).round() / 2.0;
+                    font_size = (size.max(3.0).min(25000.0) * 2.0).round() / 2.0;
                 }
                 _ => (),
             },
             winit::event::Event::RedrawRequested(_) => {
-                let section = Section::default()
-                    .add_text(
-                        Text::new(&random_text)
-                            .with_scale(font_size)
-                            .with_color([0.9, 0.5, 0.5, 1.0]),
-                    )
-                    .with_bounds((config.width as f32, config.height as f32))
-                    .with_layout(
-                        Layout::default()
-                            .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
-                    );
-
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
@@ -167,7 +189,9 @@ fn main() {
                             depth_stencil_attachment: None,
                         });
 
-                    brush.queue(&device, &queue, vec![&section]).unwrap();
+                    let draw_queue = brush.multi_draw_queue(&device, &queue);
+                    draw_queue.append(vec![&section, &section2], None).unwrap();
+
                     brush.draw(&mut rpass);
                 }
 
@@ -176,11 +200,8 @@ fn main() {
 
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    window.set_title(&format!(
-                        "wgpu-text: 'performance' example, FPS: {}, glyphs: {}",
-                        fps,
-                        random_text.len()
-                    ));
+                    window
+                        .set_title(&format!("wgpu-text: 'simple' example, FPS: {}", fps));
                     fps = 0;
                     then = now;
                 }

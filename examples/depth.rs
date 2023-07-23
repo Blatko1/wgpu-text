@@ -169,13 +169,6 @@ fn main() {
                 _ => (),
             },
             winit::event::Event::RedrawRequested(_) => {
-                match brush.queue(&device, &queue, vec![&section2, &section]) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        panic!("{err}");
-                    }
-                };
-
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
@@ -223,6 +216,9 @@ fn main() {
                             ),
                         });
 
+                    brush
+                        .queue(&device, &queue, vec![&section2, &section])
+                        .unwrap();
                     brush.draw(&mut rpass);
                 }
 

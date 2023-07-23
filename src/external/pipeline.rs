@@ -11,12 +11,12 @@ use crate::{cache::Cache, Matrix};
 /// Responsible for drawing text.
 #[derive(Debug)]
 pub struct Pipeline {
-    inner: wgpu::RenderPipeline,
+    pub inner: wgpu::RenderPipeline,
     cache: Cache,
 
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_len: usize,
-    vertices: u32,
+    vertex_count: u32,
 }
 
 impl Pipeline {
@@ -81,18 +81,18 @@ impl Pipeline {
 
             vertex_buffer,
             vertex_buffer_len: 0,
-            vertices: 0,
+            vertex_count: 0,
         }
     }
 
     /// Raw draw.
-    pub fn draw<'pass>(&'pass self, rpass: &mut wgpu::RenderPass<'pass>) {
-        if self.vertices != 0 {
+    pub fn draw<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
+        if self.vertex_count != 0 {
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_bind_group(0, &self.cache.bind_group, &[]);
 
-            rpass.draw(0..4, 0..self.vertices);
+            rpass.draw(0..4, 0..self.vertex_count);
         }
     }
     // TODO look into preallocating the vertex buffer instead of constantly reallocating
@@ -102,7 +102,7 @@ impl Pipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        self.vertices = vertices.len() as u32;
+        self.vertex_count = vertices.len() as u32;
         let data: &[u8] = bytemuck::cast_slice(&vertices);
 
         if vertices.len() > self.vertex_buffer_len {
@@ -121,13 +121,13 @@ impl Pipeline {
     }
 
     #[inline]
-    pub fn update_matrix(&mut self, matrix: Matrix, queue: &wgpu::Queue) {
+    pub fn update_matrix(&self, matrix: Matrix, queue: &wgpu::Queue) {
         self.cache.update_matrix(matrix, queue);
     }
 
     #[inline]
     pub fn update_texture(
-        &mut self,
+        &self,
         size: Rectangle<u32>,
         data: &[u8],
         queue: &wgpu::Queue,

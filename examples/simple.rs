@@ -6,7 +6,7 @@ use utils::WgpuUtils;
 use wgpu_text::glyph_brush::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
-use wgpu_text::BrushBuilder;
+use wgpu_text::{BrushBuilder, RenderElement};
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
@@ -151,13 +151,6 @@ fn main() {
                 _ => (),
             },
             winit::event::Event::RedrawRequested(_) => {
-                match brush.queue(&device, &queue, vec![&section, &section2]) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        panic!("{err}");
-                    }
-                };
-
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
@@ -196,6 +189,9 @@ fn main() {
                             depth_stencil_attachment: None,
                         });
 
+                    brush
+                        .queue(&device, &queue, vec![&section, &section2])
+                        .unwrap();
                     brush.draw(&mut rpass);
                 }
 
