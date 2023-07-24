@@ -1,7 +1,11 @@
-use crate::{error::BrushError, pipeline::{Vertex, Pipeline, DrawChain}, Matrix};
+use crate::{
+    error::BrushError,
+    pipeline::{DrawChain, Pipeline, Vertex},
+    Matrix, cache::Cache,
+};
 use glyph_brush::{
     ab_glyph::{Font, FontArc, FontRef, InvalidFont, Rect},
-    BrushAction, DefaultSectionHasher, Extra, GlyphCruncher, Section, SectionGlyphIter, 
+    BrushAction, DefaultSectionHasher, Extra, GlyphCruncher, Section, SectionGlyphIter,
 };
 use std::{borrow::Cow, num::NonZeroU32};
 
@@ -10,7 +14,7 @@ use std::{borrow::Cow, num::NonZeroU32};
 /// Used for queuing and rendering text with [`TextBrush::draw`].
 pub struct TextBrush<F = FontArc, H = DefaultSectionHasher> {
     pub(crate) inner: glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
-    pub(crate) pipeline: Pipeline,
+    pub(crate) pipeline: Pipeline
 }
 
 impl<F, H> TextBrush<F, H>
@@ -42,7 +46,10 @@ where
     where
         S: Into<Cow<'a, Section<'a>>>,
     {
-        
+        match process_queued(&mut self.inner, &mut self.pipeline.cache, device, queue, sections)? {
+            BrushAction::Draw(vertices) => self.pipeline.update_vertex_buffer(vertices, device, queue),
+            BrushAction::ReDraw => (),
+        };
         Ok(())
     }
 
@@ -81,8 +88,10 @@ where
 
     /// Draws all sections queued with [`queue`](#method.queue) function.
     #[inline]
-    pub fn begin_draw_chain<'rpass>(&'rpass mut self, rpass: &'rpass mut wgpu::RenderPass<'rpass>) -> DrawChain<F, H> {
-        DrawChain::new(self, rpass).begin()
+    pub fn draw_chain<'a, S>(
+        &self
+    ) -> DrawChain<'a, S> where S: Into<Cow<'a, Section<'a>>> + Clone {
+        DrawChain::new()
     }
 
     /// Resizes the view matrix. Updates the default orthographic view matrix with
@@ -246,37 +255,35 @@ where
     }
 }
 
-fn process_queued<'a, F, H, S>(inner: &glyph_brush::GlyphBrush<Vertex, Extra, F, H>, device: &wgpu::Device, sections: Vec<S>) -> Result<(), BrushError> where
-    F: Font + Sync,
-    H: std::hash::BuildHasher,
-    S: Into<Cow<'a, Section<'a>>>, {
-
-        if sections.is_empty() {
-            return Ok(())
-        }
+ #[inline]
+pub(crate) fn process_queued<'a, S, F, H>(
+    inner: &mut glyph_brush::GlyphBrush<Vertex, Extra, F, H>,
+    cache: &mut Cache,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    sections: Vec<S>,
+) -> Result<BrushAction<Vertex>, BrushError> 
+where
+    S: Into<Cow<'a, Section<'a>>>,
+    
+F: Font + Sync,
+H: std::hash::BuildHasher 
+{
     // Queue sections:
     for s in sections {
         inner.queue(s);
     }
     // Process sections:
-    loop {
-        let mut texture_data;
+    let action = loop {
         // Contains BrushAction enum which marks for
         // drawing or redrawing (using old data).
         let brush_action = inner.process_queued(
-            |rect, data| {texture_data = (rect, data)},
+            |rect, data| cache.update_texture(rect, data, queue),
             Vertex::to_vertex,
         );
 
         match brush_action {
-            Ok(action) => {
-                break match action {
-                    BrushAction::Draw(vertices) => {
-                        vertices
-                    }
-                    BrushAction::ReDraw => (),
-                }
-            }
+            Ok(action) => break action,
 
             Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
                 if log::log_enabled!(log::Level::Warn) {
@@ -303,9 +310,10 @@ fn process_queued<'a, F, H, S>(inner: &glyph_brush::GlyphBrush<Vertex, Extra, F,
                 } else {
                     suggested
                 };
-                pipeline.resize_texture(device, (width, height));
+                cache.recreate_texture(device, (width, height));
                 inner.resize_texture(width, height);
             }
         }
-    }
+    };
+    Ok(action)
 }

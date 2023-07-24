@@ -3,9 +3,10 @@ mod utils;
 
 use std::time::{Duration, Instant, SystemTime};
 use utils::WgpuUtils;
-use wgpu_text::{glyph_brush::{
-    BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
-}, BrushBuilder};
+use wgpu_text::{
+    glyph_brush::{BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign},
+    BrushBuilder,
+};
 use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{self, ControlFlow},
@@ -167,7 +168,7 @@ fn main() {
                     device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                         label: Some("Command Encoder"),
                     });
-
+                    let chain = brush.draw_chain().add_draw(vec![&section], None).add_draw(vec![&section2], None);
                 {
                     let mut rpass =
                         encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -187,11 +188,7 @@ fn main() {
                             })],
                             depth_stencil_attachment: None,
                         });
-
-                    brush.draw_chain(&device, &queue);
-                    draw_queue.append(vec![&section, &section2], None).unwrap();
-
-                    brush.draw(&mut rpass);
+                    chain.draw(&mut rpass, &mut brush, &device, &queue).unwrap();
                 }
 
                 queue.submit([encoder.finish()]);
@@ -200,7 +197,7 @@ fn main() {
                 fps += 1;
                 if now.duration_since(then).unwrap().as_millis() > 1000 {
                     window
-                        .set_title(&format!("wgpu-text: 'simple' example, FPS: {}", fps));
+                        .set_title(&format!("wgpu-text: 'draw_chain' example, FPS: {}", fps));
                     fps = 0;
                     then = now;
                 }

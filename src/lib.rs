@@ -16,12 +16,12 @@
 //! > Look trough [`examples`](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
 mod brush;
-mod pipeline;
 mod cache;
 mod error;
+mod pipeline;
 
-pub use error::BrushError;
 pub use brush::{BrushBuilder, TextBrush};
+pub use error::BrushError;
 pub use glyph_brush;
 
 /// Represents a two-dimensional array matrix with 4x4 dimensions.

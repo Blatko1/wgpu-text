@@ -215,9 +215,7 @@ fn main() {
                             depth_stencil_attachment: None,
                         });
 
-                    brush
-                        .queue(&device, &queue, vec![&section])
-                        .unwrap();
+                    brush.queue(&device, &queue, vec![&section]).unwrap();
                     brush.draw(&mut rpass);
                 }
 

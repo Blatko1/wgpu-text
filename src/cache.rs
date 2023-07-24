@@ -6,19 +6,14 @@ use crate::Matrix;
 /// Responsible for texture caching and the global matrix.
 #[derive(Debug)]
 pub struct Cache {
-    pub bind_group_layout: wgpu::BindGroupLayout,
-    pub bind_group: wgpu::BindGroup,
-
-    matrix_buffer: wgpu::Buffer,
-    texture: wgpu::Texture,
-    sampler: wgpu::Sampler,
+    pub(crate) texture: wgpu::Texture,
+    pub(crate) sampler: wgpu::Sampler,
 }
 
 impl Cache {
     pub fn new(
         device: &wgpu::Device,
-        tex_dimensions: (u32, u32),
-        matrix: Matrix,
+        tex_dimensions: (u32, u32)
     ) -> Self {
         let texture = Self::create_cache_texture(device, tex_dimensions);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -31,77 +26,9 @@ impl Cache {
             ..Default::default()
         });
 
-        let matrix_buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("wgpu-text Matrix Buffer"),
-                contents: bytemuck::cast_slice(&matrix),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            });
-
-        let bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("wgpu-text Matrix, Texture and Sampler Bind Group Layout"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float {
-                                filterable: true,
-                            },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(
-                            wgpu::SamplerBindingType::Filtering,
-                        ),
-                        count: None,
-                    },
-                ],
-            });
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("wgpu-text Bind Group"),
-            layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: matrix_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(
-                        &texture.create_view(&wgpu::TextureViewDescriptor::default()),
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-        });
-
         Self {
-            matrix_buffer,
             texture,
-            sampler,
-            bind_group,
-            bind_group_layout,
+            sampler
         }
     }
 
@@ -111,32 +38,6 @@ impl Cache {
         tex_dimensions: (u32, u32),
     ) {
         self.texture = Self::create_cache_texture(device, tex_dimensions);
-        self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("wgpu-text Bind Group"),
-            layout: &self.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: self.matrix_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self
-                            .texture
-                            .create_view(&wgpu::TextureViewDescriptor::default()),
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
-                },
-            ],
-        });
-    }
-
-    pub fn update_matrix(&self, matrix: Matrix, queue: &wgpu::Queue) {
-        queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&matrix));
     }
 
     pub fn update_texture(&self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {

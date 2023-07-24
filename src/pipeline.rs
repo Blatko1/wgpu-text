@@ -1,14 +1,21 @@
-use glyph_brush::{Rectangle, ab_glyph::{FontArc, Font}, DefaultSectionHasher, Section};
-use std::{num::NonZeroU32, borrow::Cow};
+use glyph_brush::{
+    ab_glyph::{Font, FontArc},
+    DefaultSectionHasher, Rectangle, Section, Extra,
+};
+use std::{borrow::Cow, num::NonZeroU32, marker::PhantomData};
 use wgpu::util::DeviceExt;
 
-use crate::{cache::Cache, Matrix, TextBrush};
+use crate::{cache::Cache, Matrix, TextBrush, BrushError, brush::process_queued};
 
 /// Responsible for drawing text.
 #[derive(Debug)]
 pub struct Pipeline {
     inner: wgpu::RenderPipeline,
-    cache: Cache,
+    pub(crate) cache: Cache,
+
+    bind_group_layout: wgpu::BindGroupLayout,
+    bind_group: wgpu::BindGroup,
+    matrix_buffer: wgpu::Buffer,
 
     vertex_buffer: wgpu::Buffer,
     vertex_buffer_max_len: usize,
@@ -25,7 +32,7 @@ impl Pipeline {
         tex_dimensions: (u32, u32),
         matrix: Matrix,
     ) -> Pipeline {
-        let cache = Cache::new(device, tex_dimensions, matrix);
+        let cache = Cache::new(device, tex_dimensions);
 
         let shader =
             device.create_shader_module(wgpu::include_wgsl!("shader/shader.wgsl"));
@@ -37,10 +44,74 @@ impl Pipeline {
             mapped_at_creation: false,
         });
 
+        let matrix_buffer =
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("wgpu-text Matrix Buffer"),
+                contents: bytemuck::cast_slice(&matrix),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            });
+
+        let bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("wgpu-text Matrix, Texture and Sampler Bind Group Layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float {
+                                filterable: true,
+                            },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(
+                            wgpu::SamplerBindingType::Filtering,
+                        ),
+                        count: None,
+                    },
+                ],
+            });
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("wgpu-text Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: matrix_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(
+                        &cache.texture.create_view(&wgpu::TextureViewDescriptor::default())),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&cache.sampler),
+                },
+            ],
+        });
+
         let pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("wgpu-text Render Pipeline Layout"),
-                bind_group_layouts: &[&cache.bind_group_layout],
+                bind_group_layouts: &[&bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -75,6 +146,10 @@ impl Pipeline {
             inner: pipeline,
             cache,
 
+            bind_group_layout,
+            bind_group,
+            matrix_buffer,
+
             vertex_buffer,
             vertex_buffer_max_len: 0,
             vertex_count: 0,
@@ -86,25 +161,37 @@ impl Pipeline {
         if self.vertex_count != 0 {
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            rpass.set_bind_group(0, &self.cache.bind_group, &[]);
+            rpass.set_bind_group(0, &self.bind_group, &[]);
 
             rpass.draw(0..4, 0..self.vertex_count);
         }
     }
-    // TODO look into preallocating the vertex buffer instead of constantly reallocating
+
     pub fn update_vertex_buffer(
         &mut self,
         vertices: Vec<Vertex>,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        self.vertex_count = vertices.len() as u32;
+        Self::_update_vertex_buffer(&mut self.vertex_count, &mut self.vertex_buffer_max_len, &mut self.vertex_buffer,vertices, device, queue);
+    }
+
+    // TODO look into preallocating the vertex buffer instead of constantly reallocating
+    fn _update_vertex_buffer(
+        vertex_count: &mut u32,
+        buffer_max_len: &mut usize,
+        buffer: &mut wgpu::Buffer,
+        vertices: Vec<Vertex>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        *vertex_count = vertices.len() as u32;
         let data: &[u8] = bytemuck::cast_slice(&vertices);
 
-        if vertices.len() > self.vertex_buffer_max_len {
-            self.vertex_buffer_max_len = vertices.len();
+        if vertices.len() > *buffer_max_len {
+            *buffer_max_len = vertices.len();
 
-            self.vertex_buffer =
+            *buffer =
                 device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("wgpu-text Vertex Buffer"),
                     usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
@@ -113,12 +200,12 @@ impl Pipeline {
 
             return;
         }
-        queue.write_buffer(&self.vertex_buffer, 0, data);
+        queue.write_buffer(buffer, 0, data);
     }
 
     #[inline]
     pub fn update_matrix(&self, matrix: Matrix, queue: &wgpu::Queue) {
-        self.cache.update_matrix(matrix, queue);
+        queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&matrix));
     }
 
     #[inline]
@@ -129,32 +216,84 @@ impl Pipeline {
     #[inline]
     pub fn resize_texture(&mut self, device: &wgpu::Device, tex_dimensions: (u32, u32)) {
         self.cache.recreate_texture(device, tex_dimensions);
+        self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("wgpu-text Bind Group"),
+            layout: &self.bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.matrix_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(
+                        &self.cache.texture.create_view(&wgpu::TextureViewDescriptor::default())),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&self.cache.sampler),
+                },
+            ],
+        });
     }
 }
 
-pub struct DrawChain<'rpass, F, H> {
-    brush: &'rpass mut TextBrush<F, H>,
-    rpass: &'rpass mut wgpu::RenderPass<'rpass>
+pub struct DrawChain<'a, S> where S: Into<Cow<'a, Section<'a>>> + Clone {
+    draws: Vec<DrawCall<'a, S>>,
+    phantom: PhantomData<&'a S>
 }
 
-impl<'rpass, F, H> DrawChain<'rpass, F, H> {
-    pub(crate) fn new(brush: &'rpass mut TextBrush<F, H>, rpass: &'rpass mut wgpu::RenderPass<'rpass>) -> Self {
-        Self {
-            brush,
-            rpass,
+impl<'a, S> DrawChain<'a, S> where S: Into<Cow<'a, Section<'a>>> + Clone {
+    pub(crate) fn new(
+    ) -> Self {
+        Self {draws: Vec::new(), phantom: PhantomData}
+    }
+
+    pub fn add_draw(mut self, content: Vec<S>, matrix: Option<Matrix>) -> Self {
+        self.draws.push(DrawCall {
+            content: content,
+            matrix,
+            phantom: PhantomData,
+        });
+        self
+    }
+
+    pub fn draw<'rpass, F, H>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>, brush: &'rpass mut TextBrush<F, H>, device: &'rpass wgpu::Device, queue: &'rpass wgpu::Queue) -> Result<(), BrushError> where
+    F: Font + Sync,
+    H: std::hash::BuildHasher
+    {
+        self._draw(rpass, device, queue, &mut brush.pipeline, &mut brush.inner)?;
+
+        Ok(())
+    }
+
+    fn _draw<'rpass, F, H>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>, device: &'rpass wgpu::Device, queue: &'rpass wgpu::Queue, pipeline: &'rpass mut Pipeline, inner: &'rpass mut glyph_brush::GlyphBrush<Vertex, Extra, F, H>) -> Result<(), BrushError> where
+    F: Font + Sync,
+    H: std::hash::BuildHasher
+    {
+        rpass.set_pipeline(&pipeline.inner);
+        rpass.set_bind_group(0, &pipeline.bind_group, &[]);
+        rpass.set_vertex_buffer(0, pipeline.vertex_buffer.slice(..));
+        for draw in &self.draws {
+            if let Some(matrix) = draw.matrix {
+                queue.write_buffer(&pipeline.matrix_buffer, 0, bytemuck::cast_slice(&matrix));
+            }
+            match process_queued(inner, &mut pipeline.cache, device, queue, draw.content.clone())? {
+                glyph_brush::BrushAction::Draw(vertices) => Pipeline::_update_vertex_buffer(&mut pipeline.vertex_count, &mut pipeline.vertex_buffer_max_len, &mut pipeline.vertex_buffer, vertices, device, queue),
+                glyph_brush::BrushAction::ReDraw => (),
+            };
+
+            rpass.draw(0..4, 0..pipeline.vertex_count);
         }
-    }
 
-    pub(crate) fn begin(self) -> Self {
-        self.rpass.set_pipeline(&self.brush.pipeline.inner);
-        self.rpass.set_bind_group(0, &self.brush.pipeline.cache.bind_group, &[]);
-        self
+        Ok(())
     }
+}
 
-    pub fn draw<S>(self, sections:Vec<S>) -> Self where S: Into<Cow<'rpass, Section<'rpass>>> {
-        
-        self
-    }
+struct DrawCall<'a, S> where S: Into<Cow<'a, Section<'a>>> + Clone {
+    content: Vec<S>,
+    matrix: Option<Matrix>,
+    phantom: PhantomData<&'a S>
 }
 
 use glyph_brush::ab_glyph::{point, Rect};
