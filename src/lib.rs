@@ -20,6 +20,7 @@ mod cache;
 mod error;
 mod pipeline;
 
+pub use error::BrushError;
 pub use brush::{BrushBuilder, TextBrush};
 pub use glyph_brush;
 

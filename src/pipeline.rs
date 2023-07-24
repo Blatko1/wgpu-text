@@ -121,13 +121,13 @@ impl Pipeline {
     }
 
     #[inline]
-    pub fn update_matrix(&mut self, matrix: Matrix, queue: &wgpu::Queue) {
+    pub fn update_matrix(&self, matrix: Matrix, queue: &wgpu::Queue) {
         self.cache.update_matrix(matrix, queue);
     }
 
     #[inline]
     pub fn update_texture(
-        &mut self,
+        &self,
         size: Rectangle<u32>,
         data: &[u8],
         queue: &wgpu::Queue,

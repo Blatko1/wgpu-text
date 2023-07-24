@@ -2,7 +2,13 @@
 
 ## v0.8.3
 
-- `wgpu` crate version -> v0.16.2
+- `wgpu` crate version -> v0.17.0
+
+- 
+
+- removed redundant `mut` from functions `update_matrix()` and `resize_view()`
+  
+- `BrushError` is now public
 
 ## v0.8.2
 

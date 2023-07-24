@@ -155,7 +155,7 @@ where
     /// }
     /// ```
     #[inline]
-    pub fn resize_view(&mut self, width: f32, height: f32, queue: &wgpu::Queue) {
+    pub fn resize_view(&self, width: f32, height: f32, queue: &wgpu::Queue) {
         self.update_matrix(crate::ortho(width, height), queue);
     }
 
@@ -166,7 +166,7 @@ where
     ///
     /// Feel free to use [`ortho()`] to create more complex matrices by yourself.
     #[inline]
-    pub fn update_matrix<M>(&mut self, matrix: M, queue: &wgpu::Queue)
+    pub fn update_matrix<M>(&self, matrix: M, queue: &wgpu::Queue)
     where
         M: Into<Matrix>,
     {
