@@ -48,7 +48,9 @@ impl Cache {
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
-                            min_binding_size: None,
+                            min_binding_size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<Matrix>() as wgpu::BufferAddress,
+                            ),
                         },
                         count: None,
                     },
@@ -139,12 +141,7 @@ impl Cache {
         queue.write_buffer(&self.matrix_buffer, 0, bytemuck::cast_slice(&matrix));
     }
 
-    pub fn update_texture(
-        &self,
-        size: Rectangle<u32>,
-        data: &[u8],
-        queue: &wgpu::Queue,
-    ) {
+    pub fn update_texture(&self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &self.texture,
