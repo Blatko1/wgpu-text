@@ -2,7 +2,9 @@
 
 ## v0.8.4
 
-- small performance improvement by adding `min_binding_size` to the matrix BindGroup 
+- small performance improvement by adding `min_binding_size` to the matrix BindGroup
+- `wgpu` crate version -> v0.17.1
+- other crates versions updates
 
 ## v0.8.3
 
