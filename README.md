@@ -25,14 +25,14 @@ wgpu_text = "0.8.4"
 ## **Usage**
 
 ```rust
-use wgpu_text::glyph_brush::{Section, Text, Layout, HorizontalAlign, BrushBuilder};
+use wgpu_text::{glyph_brush::{Section as TextSection, Text}, BrushBuilder, TextBrush};
 
 let brush = BrushBuilder::using_font_bytes(font).unwrap()
  /* .initial_cache_size((16_384, 16_384))) */ // use this to avoid resizing cache texture
-    .build(&device, &config);
+    .build(&device, config.width, config.height, config.format);
 
 // Directly implemented from glyph_brush.
-let section = Section::default().add_text(Text::new("Hello World"));
+let section = TextSection::default().add_text(Text::new("Hello World"));
 
 // on window resize:
         brush.resize_view(config.width as f32, config.height as f32, &queue);
@@ -42,7 +42,7 @@ let section = Section::default().add_text(Text::new("Hello World"));
         // Before are created Encoder and frame TextureView.
 
         // Crashes if inner cache exceeds limits.
-        brush.process_queued(&device, &queue, vec![&section, ...]).unwrap();
+        brush.queue(&device, &queue, vec![&section, ...]).unwrap();
 
         {
             let mut rpass = encoder.begin_render_pass(...);
