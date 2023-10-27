@@ -155,7 +155,6 @@ impl Vertex {
             extra,
         }: glyph_brush::GlyphVertex,
     ) -> Vertex {
-        let bounds = bounds;
         let mut rect = Rect {
             min: point(pixel_coords.min.x, pixel_coords.min.y),
             max: point(pixel_coords.max.x, pixel_coords.max.y),

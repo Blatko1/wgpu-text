@@ -31,14 +31,10 @@ pub fn create_pipeline(
     bind_group_layouts: &[&wgpu::BindGroupLayout],
     config: &wgpu::SurfaceConfiguration,
 ) -> wgpu::RenderPipeline {
-    let vertex_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Custom Surface Vertex Shader"),
-        source: wgpu::util::make_spirv(include_bytes!("shaders/vertex.glsl.spv")),
-    });
-    let fragment_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Custom Surface Fragment Shader"),
-        source: wgpu::util::make_spirv(include_bytes!("shaders/fragment.glsl.spv")),
-    });
+    let vertex_module =
+        device.create_shader_module(wgpu::include_wgsl!("shaders/vertex.vert.wgsl"));
+    let fragment_module =
+        device.create_shader_module(wgpu::include_wgsl!("shaders/fragment.frag.wgsl"));
 
     let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Custom Surface Render Pipeline Layout"),

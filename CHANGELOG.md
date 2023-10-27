@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.8.5
+
+- `wgpu` crate version -> v0.18.0
+- changed example code according to the `wgpu` updates
+
 ## v0.8.4
 
 - small performance improvement by adding `min_binding_size` to the matrix BindGroup

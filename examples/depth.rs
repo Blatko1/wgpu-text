@@ -208,7 +208,7 @@ fn main() {
                                         b: 0.3,
                                         a: 1.,
                                     }),
-                                    store: true,
+                                    store: wgpu::StoreOp::Store,
                                 },
                             })],
                             depth_stencil_attachment: Some(
@@ -216,11 +216,13 @@ fn main() {
                                     view: &depth_view,
                                     depth_ops: Some(wgpu::Operations {
                                         load: wgpu::LoadOp::Clear(1.0),
-                                        store: false,
+                                        store: wgpu::StoreOp::Discard,
                                     }),
                                     stencil_ops: None,
                                 },
                             ),
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
                         });
 
                     brush.draw(&mut rpass);
