@@ -1,7 +1,7 @@
 use std::{error::Error, fmt::Display};
 
 /// Result of `TextBrush` errors and problems.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BrushError {
     /// Cache texture exceeded the limitations stated in `wgpu::Device`.
     TooBigCacheTexture(u32),
