@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `BrushError` now derives `Clone`, `Copy`, `PartialEq` and `Eq`
+
 ## v0.8.5
 
 - `wgpu` crate version -> v0.18.0
