@@ -12,13 +12,13 @@ categories = ["graphics", "rendering"]
 include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 
 [dependencies]
-wgpu = "0.18.0"
+wgpu = "0.19.0"
 glyph_brush = "0.7.8"
 log = "0.4.20"
 bytemuck = { version = "1.14.0", features = ["derive"] }
 
 [dev-dependencies]
-wgpu = { version = "0.18.0", features = ["spirv"] }
+wgpu = { version = "0.19.0", features = ["spirv"] }
 winit = "0.28.7"
 pollster = "0.3.0"
 env_logger = "0.10.0"
