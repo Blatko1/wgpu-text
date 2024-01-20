@@ -279,7 +279,7 @@ where
         render_format: wgpu::TextureFormat,
     ) -> TextBrush<F, H> {
         let inner = self.inner.build();
-
+        
         let matrix = self
             .matrix
             .unwrap_or_else(|| crate::ortho(render_width as f32, render_height as f32));

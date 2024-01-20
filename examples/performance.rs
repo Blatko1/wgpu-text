@@ -2,12 +2,15 @@
 mod utils;
 
 use rand::Rng;
+use winit::event::{MouseScrollDelta, Event, KeyEvent};
+use winit::keyboard::{Key, NamedKey};
+use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime};
 use utils::WgpuUtils;
 use wgpu_text::glyph_brush::{BuiltInLineBreaker, Layout, Section, Text};
 use wgpu_text::BrushBuilder;
 use winit::{
-    event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::{ElementState, WindowEvent},
     event_loop::{self, ControlFlow},
     window::WindowBuilder,
 };
@@ -38,13 +41,14 @@ fn main() {
         );
     }
 
-    let event_loop = event_loop::EventLoop::new();
+    let event_loop = event_loop::EventLoop::new().unwrap();
     let window = WindowBuilder::new()
         .with_title("wgpu-text: 'performance' example")
         .build(&event_loop)
         .unwrap();
+    let window = Arc::new(window);
 
-    let (device, queue, surface, mut config) = WgpuUtils::init(&window);
+    let (device, queue, surface, mut config) = WgpuUtils::init(window.clone());
 
     let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
     let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
@@ -63,16 +67,24 @@ fn main() {
     // change '60.0' if you want different FPS cap
     let target_framerate = Duration::from_secs_f64(1.0 / 60.0);
     let mut delta_time = Instant::now();
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
-
+    event_loop.run(move |event, elwt| {
         match event {
-            winit::event::Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(new_size)
-                | WindowEvent::ScaleFactorChanged {
-                    new_inner_size: &mut new_size,
-                    ..
-                } => {
+            Event::LoopExiting => {
+                println!("Exiting!");
+            }
+            Event::NewEvents(_) => {
+                if target_framerate <= delta_time.elapsed() {
+                    window.request_redraw();
+                    delta_time = Instant::now();
+                } else {
+                    elwt.set_control_flow(ControlFlow::WaitUntil(
+                        Instant::now().checked_sub(delta_time.elapsed()).unwrap()
+                            + target_framerate,
+                    ));
+                }
+            }
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::Resized(new_size) => {
                     config.width = new_size.width.max(1);
                     config.height = new_size.height.max(1);
                     surface.configure(&device, &config);
@@ -80,31 +92,26 @@ fn main() {
                     brush.resize_view(config.width as f32, config.height as f32, &queue);
                     // You can also do this!
                     // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
-                }
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                WindowEvent::KeyboardInput {
-                    input:
-                        KeyboardInput {
-                            state: ElementState::Pressed,
-                            virtual_keycode: Some(keypress),
-                            ..
-                        },
-                    ..
-                } => match keypress {
-                    VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
-                    VirtualKeyCode::Delete => random_text.clear(),
-                    VirtualKeyCode::Back => {
-                        random_text.pop();
-                    }
-                    _ => (),
                 },
-                WindowEvent::ReceivedCharacter(c) => {
-                    random_text.push(c);
-                }
-                WindowEvent::MouseWheel {
-                    delta: winit::event::MouseScrollDelta::LineDelta(_, y),
+                WindowEvent::CloseRequested => elwt.exit(),
+                WindowEvent::KeyboardInput { event: KeyEvent {
+                    logical_key,
+                    state: ElementState::Pressed,
                     ..
-                } => {
+                }, .. } => match logical_key {
+                    Key::Named(k) => 
+                        match k {
+                            NamedKey::Escape => elwt.exit(),
+                            NamedKey::Delete => random_text.clear(),
+                            NamedKey::Backspace => {random_text.pop();},
+                            _ => ()
+                        },
+                    Key::Character(char) => {
+                        random_text.push_str(char.as_str());
+                    },
+                    _ => ()
+                },
+                WindowEvent::MouseWheel { delta: MouseScrollDelta::LineDelta(_, y), ..} => {
                     // increase/decrease font size
                     let mut size = font_size;
                     if y > 0.0 {
@@ -112,12 +119,10 @@ fn main() {
                     } else {
                         size *= 4.0 / 5.0
                     };
-                    font_size = (size.max(3.0).min(2000.0) * 2.0).round() / 2.0;
+                    font_size = (size.max(3.0).min(25000.0) * 2.0).round() / 2.0;
                 }
-                _ => (),
-            },
-            winit::event::Event::RedrawRequested(_) => {
-                let section = Section::default()
+                WindowEvent::RedrawRequested => {
+                    let section = Section::default()
                     .add_text(
                         Text::new(&random_text)
                             .with_scale(font_size)
@@ -193,19 +198,10 @@ fn main() {
                     then = now;
                 }
                 now = SystemTime::now();
-            }
-            winit::event::Event::MainEventsCleared => {
-                if target_framerate <= delta_time.elapsed() {
-                    window.request_redraw();
-                    delta_time = Instant::now();
-                } else {
-                    *control_flow = ControlFlow::WaitUntil(
-                        Instant::now().checked_sub(delta_time.elapsed()).unwrap()
-                            + target_framerate,
-                    );
-                }
+                },
+                _ => ()
             }
             _ => (),
         }
-    });
+    }).unwrap();
 }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use pollster::block_on;
 
 // TODO add cache texture preview example
@@ -7,13 +9,14 @@ pub struct WgpuUtils;
 
 impl WgpuUtils {
     pub fn init(
-        window: &winit::window::Window,
+        window: Arc<winit::window::Window>,
     ) -> (
         wgpu::Device,
         wgpu::Queue,
-        wgpu::Surface,
+        wgpu::Surface<'static>,
         wgpu::SurfaceConfiguration,
     ) {
+        let size = window.inner_size();
         let backends =
             wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -22,7 +25,7 @@ impl WgpuUtils {
             flags: wgpu::InstanceFlags::default(),
             gles_minor_version: wgpu::Gles3MinorVersion::default(),
         });
-        let surface = unsafe { instance.create_surface(&window) }.unwrap();
+        let surface = instance.create_surface(window).unwrap();
 
         let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             compatible_surface: Some(&surface),
@@ -33,14 +36,13 @@ impl WgpuUtils {
         let (device, queue) = block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: Some("Device"),
-                features: wgpu::Features::empty(),
-                limits: wgpu::Limits::default(),
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::default(),
             },
             None,
         ))
         .unwrap();
 
-        let size = window.inner_size();
         let config = surface
             .get_default_config(&adapter, size.width, size.height)
             .expect("Surface isn't supported by the adapter.");
