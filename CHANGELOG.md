@@ -2,6 +2,12 @@
 
 ## v0.8.6
 
+- `wgpu` crate version -> 0.19.3
+- `log` crate version -> 0.4.21
+- `bytemuck` crate version -> 1.15.0
+
+## v0.8.6
+
 - `wgpu` crate version -> 0.19.0
 - `winit` crate version in examples -> 0.29.10
 - `BrushError` now derives `Clone`, `Copy`, `PartialEq` and `Eq`
