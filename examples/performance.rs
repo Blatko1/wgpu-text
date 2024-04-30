@@ -3,14 +3,13 @@ mod ctx;
 
 use ctx::Ctx;
 use glyph_brush::ab_glyph::FontRef;
-use glyph_brush::{OwnedSection, OwnedText, VerticalAlign};
 use rand::Rng;
 use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant,};
 use wgpu_text::glyph_brush::{BuiltInLineBreaker, Layout, Section, Text};
 use wgpu_text::{BrushBuilder, TextBrush};
 use winit::application::ApplicationHandler;
-use winit::event::{Event, KeyEvent, MouseScrollDelta};
+use winit::event::{ KeyEvent, MouseScrollDelta};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key, NamedKey};
 use winit::window::Window;
@@ -38,14 +37,13 @@ struct State<'a> {
     window: Option<Arc<Window>>,
     font: &'a [u8],
     brush: Option<TextBrush<FontRef<'a>>>,
+    random_text: String,
     font_size: f32,
-    section_0: Option<OwnedSection>,
-    section_1: Option<OwnedSection>,
-    then: SystemTime,
-    now: SystemTime,
-    fps: i32,
+
     target_framerate: Duration,
     delta_time: Instant,
+    fps_update_time: Instant,
+    fps: i32,
 
     // wgpu
     ctx: Option<Ctx>,
@@ -69,48 +67,11 @@ impl ApplicationHandler for State<'_> {
         let config = &ctx.config;
 
         self.brush = Some(BrushBuilder::using_font_bytes(self.font).unwrap().build(
-            &device,
+            device,
             config.width,
             config.height,
             config.format,
         ));
-
-        self.section_0 = Some(
-            Section::default()
-                .add_text(
-                    Text::new(
-                        "Try typing some text,\n \
-                del - delete all, backspace - remove last character",
-                    )
-                    .with_scale(self.font_size)
-                    .with_color([0.9, 0.5, 0.5, 1.0]),
-                )
-                .with_bounds((config.width as f32 * 0.4, config.height as f32))
-                .with_layout(
-                    Layout::default()
-                        .v_align(VerticalAlign::Center)
-                        .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
-                )
-                .with_screen_position((50.0, config.height as f32 * 0.5))
-                .to_owned(),
-        );
-
-        self.section_1 = Some(
-            Section::default()
-                .add_text(
-                    Text::new("Other section")
-                        .with_scale(40.0)
-                        .with_color([0.2, 0.5, 0.8, 1.0]),
-                )
-                .with_bounds((config.width as f32 * 0.5, config.height as f32))
-                .with_layout(
-                    Layout::default()
-                        .v_align(VerticalAlign::Top)
-                        .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
-                )
-                .with_screen_position((500.0, config.height as f32 * 0.2))
-                .to_owned(),
-        );
 
         self.window = Some(window);
     }
@@ -132,70 +93,31 @@ impl ApplicationHandler for State<'_> {
 
                 config.width = new_size.width.max(1);
                 config.height = new_size.height.max(1);
-                surface.configure(&device, &config);
+                surface.configure(device, config);
 
-                // You can also do this!
-                // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
-
-                config.width = new_size.width.max(1);
-                config.height = new_size.height.max(1);
-                surface.configure(&device, &config);
-
-                brush.resize_view(config.width as f32, config.height as f32, &queue);
+                brush.resize_view(config.width as f32, config.height as f32, queue);
                 // You can also do this!
                 // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
             }
             WindowEvent::CloseRequested => elwt.exit(),
-            WindowEvent::KeyboardInput {
-                event:
-                    KeyEvent {
-                        logical_key,
-                        state: ElementState::Pressed,
-                        ..
+            WindowEvent::KeyboardInput { event: KeyEvent {
+                logical_key,
+                state: ElementState::Pressed,
+                ..
+            }, .. } => match logical_key {
+                Key::Named(k) => 
+                    match k {
+                        NamedKey::Escape => elwt.exit(),
+                        NamedKey::Delete => self.random_text.clear(),
+                        NamedKey::Backspace => {self.random_text.pop();},
+                        _ => ()
                     },
-                ..
-            } => match logical_key {
-                Key::Named(k) => match k {
-                    NamedKey::Escape => elwt.exit(),
-                    NamedKey::Delete => self.section_0.as_mut().unwrap().text.clear(),
-                    NamedKey::Backspace
-                        if !self.section_0.clone().unwrap().text.is_empty() =>
-                    {
-                        let section = self.section_0.as_mut().unwrap();
-                        let mut end_text = section.text.remove(section.text.len() - 1);
-                        end_text.text.pop();
-                        if !end_text.text.is_empty() {
-                            self.section_0.as_mut().unwrap().text.push(end_text.clone());
-                            println!("{:?}", end_text);
-                        }
-                    }
-                    _ => (),
-                },
                 Key::Character(char) => {
-                    let c = char.as_str();
-                    if c != "\u{7f}" && c != "\u{8}" {
-                        if self.section_0.clone().unwrap().text.is_empty() {
-                            self.section_0.as_mut().unwrap().text.push(
-                                OwnedText::default()
-                                    .with_scale(self.font_size)
-                                    .with_color([0.9, 0.5, 0.5, 1.0]),
-                            );
-                            println!("Clearning text field");
-                        }
-                        self.section_0.as_mut().unwrap().text.push(
-                            OwnedText::new(c.to_string())
-                                .with_scale(self.font_size)
-                                .with_color([0.9, 0.5, 0.5, 1.0]),
-                        );
-                        println!("{:?}", c);
-                    }
-                }
-                _ => (),
+                    self.random_text.push_str(char.as_str());
+                },
+                _ => ()
             },
-            WindowEvent::MouseWheel {
-                delta: MouseScrollDelta::LineDelta(_, y),
-                ..
-            } => {
+            WindowEvent::MouseWheel { delta: MouseScrollDelta::LineDelta(_, y), ..} => {
                 // increase/decrease font size
                 let mut size = self.font_size;
                 if y > 0.0 {
@@ -212,10 +134,20 @@ impl ApplicationHandler for State<'_> {
                 let device = &ctx.device;
                 let config = &ctx.config;
                 let surface = &ctx.surface;
-                let section_0 = self.section_0.as_ref().unwrap();
-                let section_1 = self.section_1.as_ref().unwrap();
 
-                match brush.queue(&device, &queue, vec![section_0, section_1]) {
+                let section = Section::default()
+                    .add_text(
+                        Text::new(&self.random_text)
+                            .with_scale(self.font_size)
+                            .with_color([0.9, 0.5, 0.5, 1.0]),
+                    )
+                    .with_bounds((config.width as f32, config.height as f32))
+                    .with_layout(
+                        Layout::default()
+                            .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+                    );
+
+                match brush.queue(device, queue, vec![&section]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");
@@ -225,7 +157,7 @@ impl ApplicationHandler for State<'_> {
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
-                        surface.configure(&device, &config);
+                        surface.configure(device, config);
                         surface
                             .get_current_texture()
                             .expect("Failed to acquire next surface texture!")
@@ -262,7 +194,7 @@ impl ApplicationHandler for State<'_> {
                             occlusion_query_set: None,
                         });
 
-                    brush.draw(&mut rpass);
+                    brush.draw(&mut rpass)
                 }
 
                 queue.submit([encoder.finish()]);
@@ -272,21 +204,20 @@ impl ApplicationHandler for State<'_> {
         }
     }
 
-    fn new_events(&mut self, elwt: &ActiveEventLoop, _cause: winit::event::StartCause) {
+    fn new_events(&mut self, _elwt: &ActiveEventLoop, _cause: winit::event::StartCause) {
         if self.target_framerate <= self.delta_time.elapsed() {
             self.window.clone().unwrap().request_redraw();
             self.delta_time = Instant::now();
             self.fps += 1;
-            if self.now.duration_since(self.then).unwrap().as_millis() > 1000 {
+            if self.fps_update_time.elapsed().as_millis() > 1000 {
                 let window = self.window.as_mut().unwrap();
                 window.set_title(&format!(
                     "wgpu-text: 'performance' example, FPS: {}",
                     self.fps
                 ));
                 self.fps = 0;
-                self.then = self.now;
+                self.fps_update_time = Instant::now();
             }
-            self.now = SystemTime::now();
         }
     }
 
@@ -315,17 +246,16 @@ fn main() {
         window: None,
         font: include_bytes!("fonts/DejaVuSans.ttf"),
         brush: None,
-        font_size: 25.,
-        section_0: None,
-        section_1: None,
-        then: SystemTime::now(),
-        now: SystemTime::now(),
-        fps: 0,
-
+        random_text: generate_random_chars(),
+        font_size: 9.,
+        
         // FPS and window updating:
         // change '60.0' if you want different FPS cap
         target_framerate: Duration::from_secs_f64(1.0 / 60.0),
         delta_time: Instant::now(),
+        fps_update_time: Instant::now(),
+        fps: 0,
+
         ctx: None,
     };
 

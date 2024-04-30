@@ -54,7 +54,7 @@ impl ApplicationHandler for State<'_> {
         let config = &ctx.config;
 
         self.brush = Some(BrushBuilder::using_font_bytes(self.font).unwrap().build(
-            &device,
+            device,
             config.width,
             config.height,
             config.format,
@@ -118,12 +118,12 @@ impl ApplicationHandler for State<'_> {
 
                 config.width = new_size.width.max(1);
                 config.height = new_size.height.max(1);
-                surface.configure(&device, &config);
+                surface.configure(device, config);
 
                 section_0.bounds = (config.width as f32 * 0.4, config.height as _);
                 section_0.screen_position.1 = config.height as f32 * 0.5;
 
-                brush.resize_view(config.width as f32, config.height as f32, &queue);
+                brush.resize_view(config.width as f32, config.height as f32, queue);
 
                 // You can also do this!
                 // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
@@ -195,7 +195,7 @@ impl ApplicationHandler for State<'_> {
                 let section_0 = self.section_0.as_ref().unwrap();
                 let section_1 = self.section_1.as_ref().unwrap();
 
-                match brush.queue(&device, &queue, vec![section_0, section_1]) {
+                match brush.queue(device, queue, vec![section_0, section_1]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");
@@ -205,7 +205,7 @@ impl ApplicationHandler for State<'_> {
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
-                        surface.configure(&device, &config);
+                        surface.configure(device, config);
                         surface
                             .get_current_texture()
                             .expect("Failed to acquire next surface texture!")
