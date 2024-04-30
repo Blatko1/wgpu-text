@@ -6,6 +6,7 @@ use glyph_brush::ab_glyph::FontRef;
 use glyph_brush::OwnedSection;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use wgpu::{DepthStencilState, TextureView};
 use wgpu_text::glyph_brush::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
@@ -36,6 +37,8 @@ struct State<'a> {
 
     // wgpu
     ctx: Option<Ctx>,
+    depth_stencil: Option<DepthStencilState>,
+    depth_view: Option<TextureView>,
 }
 
 impl ApplicationHandler for State<'_> {
@@ -43,8 +46,7 @@ impl ApplicationHandler for State<'_> {
         let window = Arc::new(
             event_loop
                 .create_window(
-                    Window::default_attributes()
-                        .with_title("wgpu-text: 'simple' example"),
+                    Window::default_attributes().with_title("wgpu-text: 'depth' example"),
                 )
                 .unwrap(),
         );
@@ -54,8 +56,10 @@ impl ApplicationHandler for State<'_> {
         let ctx = self.ctx.as_ref().unwrap();
         let device = &ctx.device;
         let config = &ctx.config;
+        self.depth_view = Some(create_depth_view(device, config.width, config.height));
 
-        self.brush = Some(BrushBuilder::using_font_bytes(self.font).unwrap().build(
+        self.brush = Some(BrushBuilder::using_font_bytes(self.font).unwrap()
+        .with_depth_stencil(self.depth_stencil.clone()).build(
             device,
             config.width,
             config.height,
@@ -70,9 +74,10 @@ impl ApplicationHandler for State<'_> {
                 del - delete all, backspace - remove last character",
                     )
                     .with_scale(self.font_size)
-                    .with_color([0.9, 0.5, 0.5, 1.0]),
+                    .with_color([0.9, 0.5, 0.5, 1.0])
+                    .with_z(0.08), // In range 0.0 - 1.0 bigger number means it's more at the back
                 )
-                .with_bounds((config.width as f32 * 0.4, config.height as f32))
+                .with_bounds((config.width as f32 / 2.0, config.height as f32))
                 .with_layout(
                     Layout::default()
                         .v_align(VerticalAlign::Center)
@@ -86,16 +91,17 @@ impl ApplicationHandler for State<'_> {
             Section::default()
                 .add_text(
                     Text::new("Other section")
-                        .with_scale(40.0)
-                        .with_color([0.2, 0.5, 0.8, 1.0]),
+                        .with_scale(80.0)
+                        .with_color([0.2, 0.5, 0.8, 1.0])
+                        .with_z(0.1), // In range 0.0 - 1.0 bigger number means it's more at the back
                 )
-                .with_bounds((config.width as f32 * 0.5, config.height as f32))
+                .with_bounds((config.width as f32 / 2.0, config.height as f32))
                 .with_layout(
                     Layout::default()
                         .v_align(VerticalAlign::Top)
                         .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
                 )
-                .with_screen_position((500.0, config.height as f32 * 0.2))
+                .with_screen_position((50.0, config.height as f32 * 0.5))
                 .to_owned(),
         );
 
@@ -122,10 +128,18 @@ impl ApplicationHandler for State<'_> {
                 config.height = new_size.height.max(1);
                 surface.configure(device, config);
 
-                section_0.bounds = (config.width as f32 * 0.4, config.height as _);
-                section_0.screen_position.1 = config.height as f32 * 0.5;
+                let width = config.width as f32;
+                let height = config.height as f32;
 
-                brush.resize_view(config.width as f32, config.height as f32, queue);
+                section_0.bounds = (width * 0.5, height);
+                section_0.screen_position.1 = height * 0.5;
+
+                self.depth_view.replace(create_depth_view(
+                    device,
+                    config.width,
+                    config.height,
+                ));
+                brush.resize_view(width, height, queue);
 
                 // You can also do this!
                 // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
@@ -158,17 +172,20 @@ impl ApplicationHandler for State<'_> {
                 Key::Character(char) => {
                     let c = char.as_str();
                     if c != "\u{7f}" && c != "\u{8}" {
-                        if self.section_0.clone().unwrap().text.is_empty() {
-                            self.section_0.as_mut().unwrap().text.push(
+                        let section_0 = self.section_0.as_mut().unwrap();
+                        if section_0.text.is_empty() {
+                            section_0.text.push(
                                 OwnedText::default()
                                     .with_scale(self.font_size)
-                                    .with_color([0.9, 0.5, 0.5, 1.0]),
+                                    .with_color([0.9, 0.5, 0.5, 1.0])
+                                    .with_z(0.08),
                             );
                         }
-                        self.section_0.as_mut().unwrap().text.push(
+                        section_0.text.push(
                             OwnedText::new(c.to_string())
                                 .with_scale(self.font_size)
-                                .with_color([0.9, 0.5, 0.5, 1.0]),
+                                .with_color([0.9, 0.5, 0.5, 1.0])
+                                .with_z(0.08),
                         );
                     }
                 }
@@ -197,7 +214,7 @@ impl ApplicationHandler for State<'_> {
                 let section_0 = self.section_0.as_ref().unwrap();
                 let section_1 = self.section_1.as_ref().unwrap();
 
-                match brush.queue(device, queue, vec![section_0, section_1]) {
+                match brush.queue(device, queue, vec![section_1, section_0]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");
@@ -239,7 +256,16 @@ impl ApplicationHandler for State<'_> {
                                     store: wgpu::StoreOp::Store,
                                 },
                             })],
-                            depth_stencil_attachment: None,
+                            depth_stencil_attachment: Some(
+                                wgpu::RenderPassDepthStencilAttachment {
+                                    view: self.depth_view.as_ref().unwrap(),
+                                    depth_ops: Some(wgpu::Operations {
+                                        load: wgpu::LoadOp::Clear(1.0),
+                                        store: wgpu::StoreOp::Discard,
+                                    }),
+                                    stencil_ops: None,
+                                },
+                            ),
                             timestamp_writes: None,
                             occlusion_query_set: None,
                         });
@@ -261,10 +287,8 @@ impl ApplicationHandler for State<'_> {
             self.fps += 1;
             if self.fps_update_time.elapsed().as_millis() > 1000 {
                 let window = self.window.as_mut().unwrap();
-                window.set_title(&format!(
-                    "wgpu-text: 'simple' example, FPS: {}",
-                    self.fps
-                ));
+                window
+                    .set_title(&format!("wgpu-text: 'depth' example, FPS: {}", self.fps));
                 self.fps = 0;
                 self.fps_update_time = Instant::now();
             }
@@ -289,7 +313,7 @@ fn main() {
         window: None,
         font: include_bytes!("fonts/DejaVuSans.ttf"),
         brush: None,
-        font_size: 25.,
+        font_size: 45.,
         section_0: None,
         section_1: None,
 
@@ -301,6 +325,14 @@ fn main() {
         fps: 0,
 
         ctx: None,
+        depth_stencil: Some(wgpu::DepthStencilState {
+            format: DEPTH_FORMAT,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::LessEqual,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }),
+        depth_view: None,
     };
 
     let _ = event_loop.run_app(&mut state);
