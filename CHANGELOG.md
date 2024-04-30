@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.8.8
+
+- `wgpu` crate version -> 0.20.0
+
 ## v0.8.7
 
 - `wgpu` crate version -> 0.19.3
