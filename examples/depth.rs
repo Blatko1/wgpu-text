@@ -14,7 +14,7 @@ use wgpu_text::{BrushBuilder, TextBrush};
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, WindowEvent};
 use winit::event::{KeyEvent, MouseScrollDelta};
-use winit::event_loop::{self, ActiveEventLoop};
+use winit::event_loop::{self, ActiveEventLoop, ControlFlow};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::Window;
 
@@ -58,13 +58,12 @@ impl ApplicationHandler for State<'_> {
         let config = &ctx.config;
         self.depth_view = Some(create_depth_view(device, config.width, config.height));
 
-        self.brush = Some(BrushBuilder::using_font_bytes(self.font).unwrap()
-        .with_depth_stencil(self.depth_stencil.clone()).build(
-            device,
-            config.width,
-            config.height,
-            config.format,
-        ));
+        self.brush = Some(
+            BrushBuilder::using_font_bytes(self.font)
+                .unwrap()
+                .with_depth_stencil(self.depth_stencil.clone())
+                .build(device, config.width, config.height, config.format),
+        );
 
         self.section_0 = Some(
             Section::default()
@@ -308,6 +307,7 @@ fn main() {
     env_logger::init();
 
     let event_loop = event_loop::EventLoop::new().unwrap();
+    event_loop.set_control_flow(ControlFlow::Poll);
 
     let mut state = State {
         window: None,

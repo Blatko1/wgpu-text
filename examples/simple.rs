@@ -13,7 +13,7 @@ use wgpu_text::{BrushBuilder, TextBrush};
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, WindowEvent};
 use winit::event::{KeyEvent, MouseScrollDelta};
-use winit::event_loop::{self, ActiveEventLoop};
+use winit::event_loop::{self, ActiveEventLoop, ControlFlow};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::Window;
 
@@ -282,6 +282,7 @@ fn main() {
     env_logger::init();
 
     let event_loop = event_loop::EventLoop::new().unwrap();
+    event_loop.set_control_flow(ControlFlow::Poll);
 
     let mut state = State {
         window: None,

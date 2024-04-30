@@ -26,5 +26,5 @@ rand = "0.8.5"
 nalgebra = "0.32.5"
 
 [[example]]
-path = "examples/custom_output/custom_output.rs"
-name = "custom_output"
+path = "examples/custom_target/custom_target.rs"
+name = "custom_target"

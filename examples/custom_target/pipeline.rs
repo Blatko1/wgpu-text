@@ -49,6 +49,7 @@ pub fn create_pipeline(
             module: &vertex_module,
             entry_point: "main",
             buffers: &[Vertex::buffer_layout()],
+            compilation_options: Default::default(),
         },
         primitive: wgpu::PrimitiveState {
             topology: wgpu::PrimitiveTopology::TriangleList,
@@ -71,6 +72,7 @@ pub fn create_pipeline(
                 blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
+            compilation_options: Default::default(),
         }),
         multiview: None,
     });

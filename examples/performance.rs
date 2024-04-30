@@ -5,12 +5,12 @@ use ctx::Ctx;
 use glyph_brush::ab_glyph::FontRef;
 use rand::Rng;
 use std::sync::Arc;
-use std::time::{Duration, Instant,};
+use std::time::{Duration, Instant};
 use wgpu_text::glyph_brush::{BuiltInLineBreaker, Layout, Section, Text};
 use wgpu_text::{BrushBuilder, TextBrush};
 use winit::application::ApplicationHandler;
-use winit::event::{ KeyEvent, MouseScrollDelta};
-use winit::event_loop::ActiveEventLoop;
+use winit::event::{KeyEvent, MouseScrollDelta};
+use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::Window;
 use winit::{
@@ -100,24 +100,32 @@ impl ApplicationHandler for State<'_> {
                 // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
             }
             WindowEvent::CloseRequested => elwt.exit(),
-            WindowEvent::KeyboardInput { event: KeyEvent {
-                logical_key,
-                state: ElementState::Pressed,
-                ..
-            }, .. } => match logical_key {
-                Key::Named(k) => 
-                    match k {
-                        NamedKey::Escape => elwt.exit(),
-                        NamedKey::Delete => self.random_text.clear(),
-                        NamedKey::Backspace => {self.random_text.pop();},
-                        _ => ()
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        logical_key,
+                        state: ElementState::Pressed,
+                        ..
                     },
+                ..
+            } => match logical_key {
+                Key::Named(k) => match k {
+                    NamedKey::Escape => elwt.exit(),
+                    NamedKey::Delete => self.random_text.clear(),
+                    NamedKey::Backspace => {
+                        self.random_text.pop();
+                    }
+                    _ => (),
+                },
                 Key::Character(char) => {
                     self.random_text.push_str(char.as_str());
-                },
-                _ => ()
+                }
+                _ => (),
             },
-            WindowEvent::MouseWheel { delta: MouseScrollDelta::LineDelta(_, y), ..} => {
+            WindowEvent::MouseWheel {
+                delta: MouseScrollDelta::LineDelta(_, y),
+                ..
+            } => {
                 // increase/decrease font size
                 let mut size = self.font_size;
                 if y > 0.0 {
@@ -241,6 +249,7 @@ fn main() {
     }
 
     let event_loop = event_loop::EventLoop::new().unwrap();
+    event_loop.set_control_flow(ControlFlow::Poll);
 
     let mut state = State {
         window: None,
@@ -248,7 +257,7 @@ fn main() {
         brush: None,
         random_text: generate_random_chars(),
         font_size: 9.,
-        
+
         // FPS and window updating:
         // change '60.0' if you want different FPS cap
         target_framerate: Duration::from_secs_f64(1.0 / 60.0),
