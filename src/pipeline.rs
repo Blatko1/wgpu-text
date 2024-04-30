@@ -55,6 +55,7 @@ impl Pipeline {
                 module: &shader,
                 entry_point: "vs_main",
                 buffers: &[Vertex::buffer_layout()],
+                compilation_options: Default::default(),
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleStrip,
@@ -71,6 +72,7 @@ impl Pipeline {
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: Default::default(),
             }),
             multiview,
         });
