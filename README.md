@@ -72,4 +72,4 @@ Besides basic text rendering and **glyph-brush** features, some features add cus
 
 ## **Contributing**
 
-All contributions are welcome.
+All kinds of contributions are welcome.
