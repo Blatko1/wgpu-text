@@ -1,18 +1,21 @@
-#[path = "utils.rs"]
-mod utils;
+#[path = "ctx.rs"]
+mod ctx;
 
+use ctx::Ctx;
+use glyph_brush::ab_glyph::FontRef;
 use rand::Rng;
-use winit::event::{MouseScrollDelta, Event, KeyEvent};
-use winit::keyboard::{Key, NamedKey};
 use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime};
-use utils::WgpuUtils;
+use std::time::{Duration, Instant};
 use wgpu_text::glyph_brush::{BuiltInLineBreaker, Layout, Section, Text};
-use wgpu_text::BrushBuilder;
+use wgpu_text::{BrushBuilder, TextBrush};
+use winit::application::ApplicationHandler;
+use winit::event::{KeyEvent, MouseScrollDelta};
+use winit::event_loop::{ActiveEventLoop, ControlFlow};
+use winit::keyboard::{Key, NamedKey};
+use winit::window::Window;
 use winit::{
     event::{ElementState, WindowEvent},
-    event_loop::{self, ControlFlow},
-    window::WindowBuilder,
+    event_loop::{self},
 };
 
 const RANDOM_CHARACTERS: usize = 30_000;
@@ -28,104 +31,122 @@ fn generate_random_chars() -> String {
     result.trim().to_owned()
 }
 
-fn main() {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "error");
-    }
-    env_logger::init();
+struct State<'a> {
+    // Use an `Option` to allow the window to not be available until the
+    // application is properly running.
+    window: Option<Arc<Window>>,
+    font: &'a [u8],
+    brush: Option<TextBrush<FontRef<'a>>>,
+    random_text: String,
+    font_size: f32,
 
-    if cfg!(debug_assertions) {
-        eprintln!(
-            "You should probably run an example called 'performance' in release mode.\n\
-            e.g. use `cargo run --example performance --release`\n"
+    target_framerate: Duration,
+    delta_time: Instant,
+    fps_update_time: Instant,
+    fps: i32,
+
+    // wgpu
+    ctx: Option<Ctx>,
+}
+
+impl ApplicationHandler for State<'_> {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let window = Arc::new(
+            event_loop
+                .create_window(
+                    Window::default_attributes()
+                        .with_title("wgpu-text: 'simple' example"),
+                )
+                .unwrap(),
         );
+
+        self.ctx = Some(Ctx::new(window.clone()));
+
+        let ctx = self.ctx.as_ref().unwrap();
+        let device = &ctx.device;
+        let config = &ctx.config;
+
+        self.brush = Some(BrushBuilder::using_font_bytes(self.font).unwrap().build(
+            device,
+            config.width,
+            config.height,
+            config.format,
+        ));
+
+        self.window = Some(window);
     }
 
-    let event_loop = event_loop::EventLoop::new().unwrap();
-    let window = WindowBuilder::new()
-        .with_title("wgpu-text: 'performance' example")
-        .build(&event_loop)
-        .unwrap();
-    let window = Arc::new(window);
-
-    let (device, queue, surface, mut config) = WgpuUtils::init(window.clone());
-
-    let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
-        &device,
-        config.width,
-        config.height,
-        config.format,
-    );
-
-    let mut random_text = generate_random_chars();
-    let mut font_size: f32 = 9.;
-
-    let mut then = SystemTime::now();
-    let mut now = SystemTime::now();
-    let mut fps = 0;
-    // change '60.0' if you want different FPS cap
-    let target_framerate = Duration::from_secs_f64(1.0 / 60.0);
-    let mut delta_time = Instant::now();
-    event_loop.run(move |event, elwt| {
+    fn window_event(
+        &mut self,
+        elwt: &ActiveEventLoop,
+        _window_id: winit::window::WindowId,
+        event: WindowEvent,
+    ) {
         match event {
-            Event::LoopExiting => {
-                println!("Exiting!");
-            }
-            Event::NewEvents(_) => {
-                if target_framerate <= delta_time.elapsed() {
-                    window.request_redraw();
-                    delta_time = Instant::now();
-                } else {
-                    elwt.set_control_flow(ControlFlow::WaitUntil(
-                        Instant::now().checked_sub(delta_time.elapsed()).unwrap()
-                            + target_framerate,
-                    ));
-                }
-            }
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(new_size) => {
-                    config.width = new_size.width.max(1);
-                    config.height = new_size.height.max(1);
-                    surface.configure(&device, &config);
+            WindowEvent::Resized(new_size) => {
+                let ctx = self.ctx.as_mut().unwrap();
+                let queue = &ctx.queue;
+                let device = &ctx.device;
+                let config = &mut ctx.config;
+                let surface = &ctx.surface;
+                let brush = self.brush.as_mut().unwrap();
 
-                    brush.resize_view(config.width as f32, config.height as f32, &queue);
-                    // You can also do this!
-                    // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
-                },
-                WindowEvent::CloseRequested => elwt.exit(),
-                WindowEvent::KeyboardInput { event: KeyEvent {
-                    logical_key,
-                    state: ElementState::Pressed,
-                    ..
-                }, .. } => match logical_key {
-                    Key::Named(k) => 
-                        match k {
-                            NamedKey::Escape => elwt.exit(),
-                            NamedKey::Delete => random_text.clear(),
-                            NamedKey::Backspace => {random_text.pop();},
-                            _ => ()
-                        },
-                    Key::Character(char) => {
-                        random_text.push_str(char.as_str());
+                config.width = new_size.width.max(1);
+                config.height = new_size.height.max(1);
+                surface.configure(device, config);
+
+                brush.resize_view(config.width as f32, config.height as f32, queue);
+                // You can also do this!
+                // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
+            }
+            WindowEvent::CloseRequested => elwt.exit(),
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        logical_key,
+                        state: ElementState::Pressed,
+                        ..
                     },
-                    _ => ()
+                ..
+            } => match logical_key {
+                Key::Named(k) => match k {
+                    NamedKey::Escape => elwt.exit(),
+                    NamedKey::Delete => self.random_text.clear(),
+                    NamedKey::Backspace => {
+                        self.random_text.pop();
+                    }
+                    _ => (),
                 },
-                WindowEvent::MouseWheel { delta: MouseScrollDelta::LineDelta(_, y), ..} => {
-                    // increase/decrease font size
-                    let mut size = font_size;
-                    if y > 0.0 {
-                        size += (size / 4.0).max(2.0)
-                    } else {
-                        size *= 4.0 / 5.0
-                    };
-                    font_size = (size.max(3.0).min(25000.0) * 2.0).round() / 2.0;
+                Key::Character(char) => {
+                    self.random_text.push_str(char.as_str());
                 }
-                WindowEvent::RedrawRequested => {
-                    let section = Section::default()
+                _ => (),
+            },
+            WindowEvent::MouseWheel {
+                delta: MouseScrollDelta::LineDelta(_, y),
+                ..
+            } => {
+                // increase/decrease font size
+                let mut size = self.font_size;
+                if y > 0.0 {
+                    size += (size / 4.0).max(2.0)
+                } else {
+                    size *= 4.0 / 5.0
+                };
+                self.font_size = (size.max(3.0).min(25000.0) * 2.0).round() / 2.0;
+            }
+            WindowEvent::RedrawRequested => {
+                let brush = self.brush.as_mut().unwrap();
+                let ctx = self.ctx.as_ref().unwrap();
+                let queue = &ctx.queue;
+                let device = &ctx.device;
+                let config = &ctx.config;
+                let surface = &ctx.surface;
+
+                let section = Section::default()
                     .add_text(
-                        Text::new(&random_text)
-                            .with_scale(font_size)
+                        Text::new(&self.random_text)
+                            .with_scale(self.font_size)
                             .with_color([0.9, 0.5, 0.5, 1.0]),
                     )
                     .with_bounds((config.width as f32, config.height as f32))
@@ -134,7 +155,7 @@ fn main() {
                             .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
                     );
 
-                match brush.queue(&device, &queue, vec![&section]) {
+                match brush.queue(device, queue, vec![&section]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");
@@ -144,7 +165,7 @@ fn main() {
                 let frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(_) => {
-                        surface.configure(&device, &config);
+                        surface.configure(device, config);
                         surface
                             .get_current_texture()
                             .expect("Failed to acquire next surface texture!")
@@ -186,22 +207,66 @@ fn main() {
 
                 queue.submit([encoder.finish()]);
                 frame.present();
-
-                fps += 1;
-                if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    window.set_title(&format!(
-                        "wgpu-text: 'performance' example, FPS: {}, glyphs: {}",
-                        fps,
-                        random_text.len()
-                    ));
-                    fps = 0;
-                    then = now;
-                }
-                now = SystemTime::now();
-                },
-                _ => ()
             }
             _ => (),
         }
-    }).unwrap();
+    }
+
+    fn new_events(&mut self, _elwt: &ActiveEventLoop, _cause: winit::event::StartCause) {
+        if self.target_framerate <= self.delta_time.elapsed() {
+            self.window.clone().unwrap().request_redraw();
+            self.delta_time = Instant::now();
+            self.fps += 1;
+            if self.fps_update_time.elapsed().as_millis() > 1000 {
+                let window = self.window.as_mut().unwrap();
+                window.set_title(&format!(
+                    "wgpu-text: 'performance' example, FPS: {}",
+                    self.fps
+                ));
+                self.fps = 0;
+                self.fps_update_time = Instant::now();
+            }
+        }
+    }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        println!("Exiting!");
+    }
+}
+
+// TODO text layout of characters like 'š, ć, ž, đ' doesn't work correctly.
+fn main() {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "error");
+    }
+    env_logger::init();
+
+    if cfg!(debug_assertions) {
+        eprintln!(
+            "You should probably run an example called 'performance' in release mode.\n\
+            e.g. use `cargo run --example performance --release`\n"
+        );
+    }
+
+    let event_loop = event_loop::EventLoop::new().unwrap();
+    event_loop.set_control_flow(ControlFlow::Poll);
+
+    let mut state = State {
+        window: None,
+        font: include_bytes!("fonts/DejaVuSans.ttf"),
+        brush: None,
+        random_text: generate_random_chars(),
+        font_size: 9.,
+
+        // FPS and window updating:
+        // change '60.0' if you want different FPS cap
+        target_framerate: Duration::from_secs_f64(1.0 / 60.0),
+        delta_time: Instant::now(),
+        fps_update_time: Instant::now(),
+        fps: 0,
+
+        ctx: None,
+    };
+
+    let _ = event_loop.run_app(&mut state);
 }
