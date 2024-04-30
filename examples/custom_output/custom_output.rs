@@ -1,7 +1,7 @@
 mod camera;
 mod pipeline;
-#[path = "../utils.rs"]
-mod utils;
+#[path = "../ctx.rs"]
+mod ctx;
 
 use camera::Camera;
 use glyph_brush::{OwnedText, VerticalAlign};
@@ -10,14 +10,13 @@ use winit::event::{Event, KeyEvent, MouseScrollDelta};
 use winit::keyboard::{NamedKey, Key};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime};
-use utils::WgpuUtils;
+use ctx::Ctx;
 use wgpu::util::DeviceExt;
 use wgpu_text::glyph_brush::{BuiltInLineBreaker, Layout, Section, Text};
 use wgpu_text::BrushBuilder;
 use winit::{
     event::{ElementState, WindowEvent},
     event_loop::{self, ControlFlow},
-    window::WindowBuilder,
 };
 // TODO test with custom .png texture
 const VERTICES: &[Vertex] = &[

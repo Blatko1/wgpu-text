@@ -1,9 +1,9 @@
-#[path = "utils.rs"]
-mod utils;
+#[path = "ctx.rs"]
+mod ctx;
 
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime};
-use utils::WgpuUtils;
+use ctx::Ctx;
 use wgpu_text::glyph_brush::{
     BuiltInLineBreaker, Layout, OwnedText, Section, Text, VerticalAlign,
 };
@@ -13,7 +13,6 @@ use winit::keyboard::{Key, NamedKey};
 use winit::{
     event::{ElementState, WindowEvent},
     event_loop::{self, ControlFlow},
-    window::WindowBuilder,
 };
 
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;

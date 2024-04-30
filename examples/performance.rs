@@ -1,18 +1,22 @@
-#[path = "utils.rs"]
-mod utils;
+#[path = "ctx.rs"]
+mod ctx;
 
+use ctx::Ctx;
+use glyph_brush::ab_glyph::FontRef;
+use glyph_brush::{OwnedSection, OwnedText, VerticalAlign};
 use rand::Rng;
-use winit::event::{MouseScrollDelta, Event, KeyEvent};
-use winit::keyboard::{Key, NamedKey};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime};
-use utils::WgpuUtils;
 use wgpu_text::glyph_brush::{BuiltInLineBreaker, Layout, Section, Text};
-use wgpu_text::BrushBuilder;
+use wgpu_text::{BrushBuilder, TextBrush};
+use winit::application::ApplicationHandler;
+use winit::event::{Event, KeyEvent, MouseScrollDelta};
+use winit::event_loop::ActiveEventLoop;
+use winit::keyboard::{Key, NamedKey};
+use winit::window::Window;
 use winit::{
     event::{ElementState, WindowEvent},
-    event_loop::{self, ControlFlow},
-    window::WindowBuilder,
+    event_loop::{self},
 };
 
 const RANDOM_CHARACTERS: usize = 30_000;
@@ -28,113 +32,190 @@ fn generate_random_chars() -> String {
     result.trim().to_owned()
 }
 
-fn main() {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "error");
-    }
-    env_logger::init();
+struct State<'a> {
+    // Use an `Option` to allow the window to not be available until the
+    // application is properly running.
+    window: Option<Arc<Window>>,
+    font: &'a [u8],
+    brush: Option<TextBrush<FontRef<'a>>>,
+    font_size: f32,
+    section_0: Option<OwnedSection>,
+    section_1: Option<OwnedSection>,
+    then: SystemTime,
+    now: SystemTime,
+    fps: i32,
+    target_framerate: Duration,
+    delta_time: Instant,
 
-    if cfg!(debug_assertions) {
-        eprintln!(
-            "You should probably run an example called 'performance' in release mode.\n\
-            e.g. use `cargo run --example performance --release`\n"
+    // wgpu
+    ctx: Option<Ctx>,
+}
+
+impl ApplicationHandler for State<'_> {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let window = Arc::new(
+            event_loop
+                .create_window(
+                    Window::default_attributes()
+                        .with_title("wgpu-text: 'simple' example"),
+                )
+                .unwrap(),
         );
+
+        self.ctx = Some(Ctx::new(window.clone()));
+
+        let ctx = self.ctx.as_ref().unwrap();
+        let device = &ctx.device;
+        let config = &ctx.config;
+
+        self.brush = Some(BrushBuilder::using_font_bytes(self.font).unwrap().build(
+            &device,
+            config.width,
+            config.height,
+            config.format,
+        ));
+
+        self.section_0 = Some(
+            Section::default()
+                .add_text(
+                    Text::new(
+                        "Try typing some text,\n \
+                del - delete all, backspace - remove last character",
+                    )
+                    .with_scale(self.font_size)
+                    .with_color([0.9, 0.5, 0.5, 1.0]),
+                )
+                .with_bounds((config.width as f32 * 0.4, config.height as f32))
+                .with_layout(
+                    Layout::default()
+                        .v_align(VerticalAlign::Center)
+                        .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+                )
+                .with_screen_position((50.0, config.height as f32 * 0.5))
+                .to_owned(),
+        );
+
+        self.section_1 = Some(
+            Section::default()
+                .add_text(
+                    Text::new("Other section")
+                        .with_scale(40.0)
+                        .with_color([0.2, 0.5, 0.8, 1.0]),
+                )
+                .with_bounds((config.width as f32 * 0.5, config.height as f32))
+                .with_layout(
+                    Layout::default()
+                        .v_align(VerticalAlign::Top)
+                        .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
+                )
+                .with_screen_position((500.0, config.height as f32 * 0.2))
+                .to_owned(),
+        );
+
+        self.window = Some(window);
     }
 
-    let event_loop = event_loop::EventLoop::new().unwrap();
-    let window = WindowBuilder::new()
-        .with_title("wgpu-text: 'performance' example")
-        .build(&event_loop)
-        .unwrap();
-    let window = Arc::new(window);
-
-    let (device, queue, surface, mut config) = WgpuUtils::init(window.clone());
-
-    let font: &[u8] = include_bytes!("fonts/DejaVuSans.ttf");
-    let mut brush = BrushBuilder::using_font_bytes(font).unwrap().build(
-        &device,
-        config.width,
-        config.height,
-        config.format,
-    );
-
-    let mut random_text = generate_random_chars();
-    let mut font_size: f32 = 9.;
-
-    let mut then = SystemTime::now();
-    let mut now = SystemTime::now();
-    let mut fps = 0;
-    // change '60.0' if you want different FPS cap
-    let target_framerate = Duration::from_secs_f64(1.0 / 60.0);
-    let mut delta_time = Instant::now();
-    event_loop.run(move |event, elwt| {
+    fn window_event(
+        &mut self,
+        elwt: &ActiveEventLoop,
+        _window_id: winit::window::WindowId,
+        event: WindowEvent,
+    ) {
         match event {
-            Event::LoopExiting => {
-                println!("Exiting!");
-            }
-            Event::NewEvents(_) => {
-                if target_framerate <= delta_time.elapsed() {
-                    window.request_redraw();
-                    delta_time = Instant::now();
-                } else {
-                    elwt.set_control_flow(ControlFlow::WaitUntil(
-                        Instant::now().checked_sub(delta_time.elapsed()).unwrap()
-                            + target_framerate,
-                    ));
-                }
-            }
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(new_size) => {
-                    config.width = new_size.width.max(1);
-                    config.height = new_size.height.max(1);
-                    surface.configure(&device, &config);
+            WindowEvent::Resized(new_size) => {
+                let ctx = self.ctx.as_mut().unwrap();
+                let queue = &ctx.queue;
+                let device = &ctx.device;
+                let config = &mut ctx.config;
+                let surface = &ctx.surface;
+                let brush = self.brush.as_mut().unwrap();
 
-                    brush.resize_view(config.width as f32, config.height as f32, &queue);
-                    // You can also do this!
-                    // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
-                },
-                WindowEvent::CloseRequested => elwt.exit(),
-                WindowEvent::KeyboardInput { event: KeyEvent {
-                    logical_key,
-                    state: ElementState::Pressed,
-                    ..
-                }, .. } => match logical_key {
-                    Key::Named(k) => 
-                        match k {
-                            NamedKey::Escape => elwt.exit(),
-                            NamedKey::Delete => random_text.clear(),
-                            NamedKey::Backspace => {random_text.pop();},
-                            _ => ()
-                        },
-                    Key::Character(char) => {
-                        random_text.push_str(char.as_str());
+                config.width = new_size.width.max(1);
+                config.height = new_size.height.max(1);
+                surface.configure(&device, &config);
+
+                // You can also do this!
+                // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
+
+                config.width = new_size.width.max(1);
+                config.height = new_size.height.max(1);
+                surface.configure(&device, &config);
+
+                brush.resize_view(config.width as f32, config.height as f32, &queue);
+                // You can also do this!
+                // brush.update_matrix(wgpu_text::ortho(config.width, config.height), &queue);
+            }
+            WindowEvent::CloseRequested => elwt.exit(),
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        logical_key,
+                        state: ElementState::Pressed,
+                        ..
                     },
-                    _ => ()
+                ..
+            } => match logical_key {
+                Key::Named(k) => match k {
+                    NamedKey::Escape => elwt.exit(),
+                    NamedKey::Delete => self.section_0.as_mut().unwrap().text.clear(),
+                    NamedKey::Backspace
+                        if !self.section_0.clone().unwrap().text.is_empty() =>
+                    {
+                        let section = self.section_0.as_mut().unwrap();
+                        let mut end_text = section.text.remove(section.text.len() - 1);
+                        end_text.text.pop();
+                        if !end_text.text.is_empty() {
+                            self.section_0.as_mut().unwrap().text.push(end_text.clone());
+                            println!("{:?}", end_text);
+                        }
+                    }
+                    _ => (),
                 },
-                WindowEvent::MouseWheel { delta: MouseScrollDelta::LineDelta(_, y), ..} => {
-                    // increase/decrease font size
-                    let mut size = font_size;
-                    if y > 0.0 {
-                        size += (size / 4.0).max(2.0)
-                    } else {
-                        size *= 4.0 / 5.0
-                    };
-                    font_size = (size.max(3.0).min(25000.0) * 2.0).round() / 2.0;
+                Key::Character(char) => {
+                    let c = char.as_str();
+                    if c != "\u{7f}" && c != "\u{8}" {
+                        if self.section_0.clone().unwrap().text.is_empty() {
+                            self.section_0.as_mut().unwrap().text.push(
+                                OwnedText::default()
+                                    .with_scale(self.font_size)
+                                    .with_color([0.9, 0.5, 0.5, 1.0]),
+                            );
+                            println!("Clearning text field");
+                        }
+                        self.section_0.as_mut().unwrap().text.push(
+                            OwnedText::new(c.to_string())
+                                .with_scale(self.font_size)
+                                .with_color([0.9, 0.5, 0.5, 1.0]),
+                        );
+                        println!("{:?}", c);
+                    }
                 }
-                WindowEvent::RedrawRequested => {
-                    let section = Section::default()
-                    .add_text(
-                        Text::new(&random_text)
-                            .with_scale(font_size)
-                            .with_color([0.9, 0.5, 0.5, 1.0]),
-                    )
-                    .with_bounds((config.width as f32, config.height as f32))
-                    .with_layout(
-                        Layout::default()
-                            .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
-                    );
+                _ => (),
+            },
+            WindowEvent::MouseWheel {
+                delta: MouseScrollDelta::LineDelta(_, y),
+                ..
+            } => {
+                // increase/decrease font size
+                let mut size = self.font_size;
+                if y > 0.0 {
+                    size += (size / 4.0).max(2.0)
+                } else {
+                    size *= 4.0 / 5.0
+                };
+                self.font_size = (size.max(3.0).min(25000.0) * 2.0).round() / 2.0;
+            }
+            WindowEvent::RedrawRequested => {
+                let brush = self.brush.as_mut().unwrap();
+                let ctx = self.ctx.as_ref().unwrap();
+                let queue = &ctx.queue;
+                let device = &ctx.device;
+                let config = &ctx.config;
+                let surface = &ctx.surface;
+                let section_0 = self.section_0.as_ref().unwrap();
+                let section_1 = self.section_1.as_ref().unwrap();
 
-                match brush.queue(&device, &queue, vec![&section]) {
+                match brush.queue(&device, &queue, vec![section_0, section_1]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");
@@ -181,27 +262,72 @@ fn main() {
                             occlusion_query_set: None,
                         });
 
-                    brush.draw(&mut rpass)
+                    brush.draw(&mut rpass);
                 }
 
                 queue.submit([encoder.finish()]);
                 frame.present();
-
-                fps += 1;
-                if now.duration_since(then).unwrap().as_millis() > 1000 {
-                    window.set_title(&format!(
-                        "wgpu-text: 'performance' example, FPS: {}, glyphs: {}",
-                        fps,
-                        random_text.len()
-                    ));
-                    fps = 0;
-                    then = now;
-                }
-                now = SystemTime::now();
-                },
-                _ => ()
             }
             _ => (),
         }
-    }).unwrap();
+    }
+
+    fn new_events(&mut self, elwt: &ActiveEventLoop, _cause: winit::event::StartCause) {
+        if self.target_framerate <= self.delta_time.elapsed() {
+            self.window.clone().unwrap().request_redraw();
+            self.delta_time = Instant::now();
+            self.fps += 1;
+            if self.now.duration_since(self.then).unwrap().as_millis() > 1000 {
+                let window = self.window.as_mut().unwrap();
+                window.set_title(&format!(
+                    "wgpu-text: 'performance' example, FPS: {}",
+                    self.fps
+                ));
+                self.fps = 0;
+                self.then = self.now;
+            }
+            self.now = SystemTime::now();
+        }
+    }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        println!("Exiting!");
+    }
+}
+
+// TODO text layout of characters like 'š, ć, ž, đ' doesn't work correctly.
+fn main() {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "error");
+    }
+    env_logger::init();
+
+    if cfg!(debug_assertions) {
+        eprintln!(
+            "You should probably run an example called 'performance' in release mode.\n\
+            e.g. use `cargo run --example performance --release`\n"
+        );
+    }
+
+    let event_loop = event_loop::EventLoop::new().unwrap();
+
+    let mut state = State {
+        window: None,
+        font: include_bytes!("fonts/DejaVuSans.ttf"),
+        brush: None,
+        font_size: 25.,
+        section_0: None,
+        section_1: None,
+        then: SystemTime::now(),
+        now: SystemTime::now(),
+        fps: 0,
+
+        // FPS and window updating:
+        // change '60.0' if you want different FPS cap
+        target_framerate: Duration::from_secs_f64(1.0 / 60.0),
+        delta_time: Instant::now(),
+        ctx: None,
+    };
+
+    let _ = event_loop.run_app(&mut state);
 }

@@ -1,21 +1,20 @@
 use std::sync::Arc;
 
 use pollster::block_on;
+use wgpu::{Device, Queue, Surface, SurfaceConfiguration};
 
 // TODO add cache texture preview example
 // TODO add mip-mapping example
 // TODO add wasm example
-pub struct WgpuUtils;
+pub struct Ctx {
+    pub device: Device,
+    pub queue: Queue,
+    pub surface: Surface<'static>,
+    pub config: SurfaceConfiguration,
+}
 
-impl WgpuUtils {
-    pub fn init(
-        window: Arc<winit::window::Window>,
-    ) -> (
-        wgpu::Device,
-        wgpu::Queue,
-        wgpu::Surface<'static>,
-        wgpu::SurfaceConfiguration,
-    ) {
+impl Ctx {
+    pub fn new(window: Arc<winit::window::Window>) -> Self {
         let size = window.inner_size();
         let backends =
             wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
@@ -48,7 +47,12 @@ impl WgpuUtils {
             .expect("Surface isn't supported by the adapter.");
         surface.configure(&device, &config);
 
-        (device, queue, surface, config)
+        Self {
+            device,
+            queue,
+            surface,
+            config,
+        }
     }
 }
 
