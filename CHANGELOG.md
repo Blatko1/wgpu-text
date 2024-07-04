@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.8.9
+
+TODO: modifications to function for queueing the text sections
+
+- `wgpu` crate version -> 0.20.1
+- `glyph_brush` crate version -> 0.7.9
+- `bytemuck` crate version -> 0.16.1
+- `log` crate version -> 0.4.22
+
 ## v0.8.8
 
 - `wgpu` crate version -> 0.20.0
