@@ -75,6 +75,7 @@ pub fn create_pipeline(
             compilation_options: Default::default(),
         }),
         multiview: None,
+        cache: None,
     });
     pipeline
 }
