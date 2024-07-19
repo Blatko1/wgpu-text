@@ -1,12 +1,12 @@
 # Changelog
 
-## v0.8.9
+## v0.9.0
 
 TODO: modifications to function for queueing the text sections
 
-- `wgpu` crate version -> 0.20.1
+- `wgpu` crate version -> 22.0.0 - by @VladasZ in [#38](https://github.com/Blatko1/wgpu-text/pull/38)
 - `glyph_brush` crate version -> 0.7.9
-- `bytemuck` crate version -> 0.16.1
+- `bytemuck` crate version -> 1.16.1
 - `log` crate version -> 0.4.22
 
 ## v0.8.8

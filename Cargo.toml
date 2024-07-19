@@ -19,7 +19,7 @@ bytemuck = { version = "1.16.1", features = ["derive"] }
 
 [dev-dependencies]
 wgpu = { version = "22.0.0", features = ["spirv"] }
-winit = "0.30.3"
+winit = "0.30.4"
 pollster = "0.3.0"
 env_logger = "0.11.3"
 rand = "0.8.5"
