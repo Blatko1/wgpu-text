@@ -38,11 +38,11 @@ where
     /// To learn about GPU texture caching, see
     /// [`caching behaviour`](https://docs.rs/glyph_brush/latest/glyph_brush/struct.GlyphBrush.html#caching-behaviour)
     #[inline]
-    pub fn queue<'a, S>(
+    pub fn queue<'a, S, I: IntoIterator<Item = S>>(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        sections: Vec<S>,
+        sections: I,
     ) -> Result<(), BrushError>
     where
         S: Into<std::borrow::Cow<'a, Section<'a>>>,

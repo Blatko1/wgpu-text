@@ -325,7 +325,7 @@ impl ApplicationHandler for State<'_> {
                     bytemuck::cast_slice(camera.global_matrix.as_slice()),
                 );
 
-                match brush.queue(device, queue, vec![section]) {
+                match brush.queue(device, queue, [section]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");

@@ -155,7 +155,7 @@ impl ApplicationHandler for State<'_> {
                             .line_breaker(BuiltInLineBreaker::AnyCharLineBreaker),
                     );
 
-                match brush.queue(device, queue, vec![&section]) {
+                match brush.queue(device, queue, [section]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");

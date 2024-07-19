@@ -213,7 +213,7 @@ impl ApplicationHandler for State<'_> {
                 let section_0 = self.section_0.as_ref().unwrap();
                 let section_1 = self.section_1.as_ref().unwrap();
 
-                match brush.queue(device, queue, vec![section_1, section_0]) {
+                match brush.queue(device, queue, [section_1, section_0]) {
                     Ok(_) => (),
                     Err(err) => {
                         panic!("{err}");
