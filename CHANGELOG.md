@@ -2,8 +2,7 @@
 
 ## v0.9.0
 
-TODO: modifications to function for queueing the text sections
-
+- `TextBrush::queue()` function can now take any item which implements IntoIterator trait (i.e. static arrays)
 - `wgpu` crate version -> 22.0.0 - by @VladasZ in [#38](https://github.com/Blatko1/wgpu-text/pull/38)
 - `glyph_brush` crate version -> 0.7.9
 - `bytemuck` crate version -> 1.16.1
