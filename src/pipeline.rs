@@ -75,6 +75,7 @@ impl Pipeline {
                 compilation_options: Default::default(),
             }),
             multiview,
+            cache: None,
         });
 
         Self {
