@@ -19,7 +19,7 @@ Add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-wgpu_text = "0.8.8"
+wgpu_text = "0.9.0"
 ```
 
 ## **Usage**
@@ -42,7 +42,7 @@ let section = TextSection::default().add_text(Text::new("Hello World"));
         // Before are created Encoder and frame TextureView.
 
         // Crashes if inner cache exceeds limits.
-        brush.queue(&device, &queue, vec![&section, ...]).unwrap();
+        brush.queue(&device, &queue, [&section, ...]).unwrap();
 
         {
             let mut rpass = encoder.begin_render_pass(...);
