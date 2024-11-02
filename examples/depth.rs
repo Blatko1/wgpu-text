@@ -201,7 +201,7 @@ impl ApplicationHandler for State<'_> {
                 } else {
                     size *= 4.0 / 5.0
                 };
-                self.font_size = (size.max(3.0).min(25000.0) * 2.0).round() / 2.0;
+                self.font_size = (size.clamp(3.0, 25000.0) * 2.0).round() / 2.0;
             }
             WindowEvent::RedrawRequested => {
                 let brush = self.brush.as_mut().unwrap();

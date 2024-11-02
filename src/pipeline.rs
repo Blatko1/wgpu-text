@@ -53,7 +53,7 @@ impl Pipeline {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers: &[Vertex::buffer_layout()],
                 compilation_options: Default::default(),
             },
@@ -66,7 +66,7 @@ impl Pipeline {
             multisample,
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: render_format,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),

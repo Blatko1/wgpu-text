@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.9.1
+
+- `wgpu` crate version -> 23.0.0
+- `glyph_brush` crate version -> 0.7.11
+- `bytemuck` crate version -> 1.19.0
+
 ## v0.9.0
 
 - `TextBrush::queue()` function can now take any item which implements IntoIterator trait (i.e. static arrays)

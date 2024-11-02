@@ -47,7 +47,7 @@ pub fn create_pipeline(
         layout: Some(&layout),
         vertex: wgpu::VertexState {
             module: &vertex_module,
-            entry_point: "main",
+            entry_point: Some("main"),
             buffers: &[Vertex::buffer_layout()],
             compilation_options: Default::default(),
         },
@@ -66,7 +66,7 @@ pub fn create_pipeline(
         },
         fragment: Some(wgpu::FragmentState {
             module: &fragment_module,
-            entry_point: "main",
+            entry_point: Some("main"),
             targets: &[Some(wgpu::ColorTargetState {
                 format: config.format,
                 blend: Some(wgpu::BlendState::ALPHA_BLENDING),
