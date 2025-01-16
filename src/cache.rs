@@ -143,7 +143,7 @@ impl Cache {
 
     pub fn update_texture(&self, size: Rectangle<u32>, data: &[u8], queue: &wgpu::Queue) {
         queue.write_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d {
@@ -154,7 +154,7 @@ impl Cache {
                 aspect: wgpu::TextureAspect::All,
             },
             data,
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(size.width()),
                 rows_per_image: Some(size.height()),

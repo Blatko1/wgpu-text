@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.9.2
+
+- `wgpu` crate version -> 24.0.0
+- `log` crate version -> 0.4.25
+- `bytemuck` crate version -> 1.21.0
+
 ## v0.9.1
 
 - `wgpu` crate version -> 23.0.0

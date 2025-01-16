@@ -12,16 +12,16 @@ categories = ["graphics", "rendering"]
 include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 
 [dependencies]
-wgpu = { version = "23.0.0", default-features = false, features = ["wgsl"]}
+wgpu = "24.0.0"
 glyph_brush = "0.7.11"
-log = "0.4.22"
-bytemuck = { version = "1.19.0", features = ["derive"] }
+log = "0.4.25"
+bytemuck = { version = "1.21.0", features = ["derive"] }
 
 [dev-dependencies]
-wgpu = { version = "23.0.0", features = ["spirv"] }
-winit = "0.30.5"
+wgpu = { version = "24.0.0", features = ["spirv"] }
+winit = "0.30.8"
 pollster = "0.4.0"
-env_logger = "0.11.5"
+env_logger = "0.11.6"
 rand = "0.8.5"
 nalgebra = "0.33.2"
 
