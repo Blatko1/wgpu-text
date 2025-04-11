@@ -80,14 +80,14 @@ impl Camera {
         self.update_global_matrix();
     }
 
-    pub fn input(&mut self, event: &winit::event::DeviceEvent) {
-        self.controller.process_input(event);
+    pub fn _input(&mut self, event: &winit::event::DeviceEvent) {
+        self.controller._process_input(event);
     }
 }
 
 pub struct CameraController {
     speed: f32,
-    sensitivity: f64,
+    _sensitivity: f64,
     forward: f32,
     backward: f32,
     left: f32,
@@ -104,7 +104,7 @@ impl CameraController {
     pub fn new() -> Self {
         CameraController {
             speed: 0.4,
-            sensitivity: 0.1,
+            _sensitivity: 0.1,
             forward: 0.,
             backward: 0.,
             left: 0.,
@@ -123,7 +123,7 @@ impl CameraController {
         self.yaw = 270.0 + 20.0 * time.to_radians().sin() as f32;
     }
 
-    pub fn process_input(&mut self, event: &winit::event::DeviceEvent) {
+    pub fn _process_input(&mut self, _event: &winit::event::DeviceEvent) {
         /*match event {
             DeviceEvent::MouseMotion { delta } => {
                 self.yaw += (delta.0 * self.sensitivity) as f32;

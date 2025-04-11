@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.9.3
+
+- `wgpu` crate version -> 25.0.0
+- `glyph_brush` crate version -> 0.7.12
+- `log` crate version -> 0.4.27
+- `bytemuck` crate version -> 1.22.0
+- Minor example updates to fix the `clippy` warnings and adapt to the new `wgpu` version
+
 ## v0.9.2
 
 - `wgpu` crate version -> 24.0.0

@@ -24,10 +24,12 @@ impl Ctx {
             backend_options: wgpu::BackendOptions {
                 gl: wgpu::GlBackendOptions {
                     gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
+                    fence_behavior: wgpu::GlFenceBehavior::default(),
                 },
                 dx12: wgpu::Dx12BackendOptions {
                     shader_compiler: wgpu::Dx12Compiler::Fxc,
                 },
+                noop: wgpu::NoopBackendOptions::from_env_or_default(),
             },
         });
         let surface = instance.create_surface(window).unwrap();
@@ -44,8 +46,8 @@ impl Ctx {
                 required_features: wgpu::Features::empty(),
                 required_limits: wgpu::Limits::default(),
                 memory_hints: wgpu::MemoryHints::default(),
+                trace: wgpu::Trace::Off,
             },
-            None,
         ))
         .unwrap();
 
