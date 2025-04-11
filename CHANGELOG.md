@@ -7,6 +7,7 @@
 - `log` crate version -> 0.4.27
 - `bytemuck` crate version -> 1.22.0
 - Minor example updates to fix the `clippy` warnings and adapt to the new `wgpu` version
+- Upgraded to the newer `2024` Rust edition (from the `2021` edition)
 
 ## v0.9.2
 

@@ -1,8 +1,8 @@
 [package]
 name = "wgpu_text"
 authors = ["Leon (Blatko1)"]
-version = "0.9.2"
-edition = "2021"
+version = "0.9.3"
+edition = "2024"
 description = "A simple 2D text renderer for wgpu."
 license = "MIT"
 readme = "README.md"
