@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.0.0
+
+- `wgpu` crate version -> 26.0.1
+- `bytemuck` crate version -> 1.23.1
+- from now on using `wgpu` style versioning - by @VladasZ in [#39](https://github.com/Blatko1/wgpu-text/pull/39)
+
 ## v0.9.3
 
 - `wgpu` crate version -> 25.0.0

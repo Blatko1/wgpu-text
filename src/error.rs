@@ -17,12 +17,11 @@ impl Display for BrushError {
                 f,
                 "While trying to resize the \
                 cache texture, the 'wgpu::Limits {{ max_texture_dimension_2d }}' \
-                limit of {} was crossed!\n\
+                limit of {dimensions} was crossed!\n\
                 Resizing the cache texture should be avoided \
                 from the start by building TextBrush with \
                 BrushBuilder::initial_cache_size() and providing bigger cache \
-                texture dimensions.",
-                dimensions
+                texture dimensions."
             ),
         }
     }
