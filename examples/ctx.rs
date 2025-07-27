@@ -21,6 +21,7 @@ impl Ctx {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends,
             flags: wgpu::InstanceFlags::default(),
+            memory_budget_thresholds: Default::default(),
             backend_options: wgpu::BackendOptions {
                 gl: wgpu::GlBackendOptions {
                     gles_minor_version: wgpu::Gles3MinorVersion::Automatic,

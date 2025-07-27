@@ -357,6 +357,7 @@ impl ApplicationHandler for State<'_> {
                             label: Some("Custom Surface Render Pass"),
                             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                                 view: self.texture_view.as_ref().unwrap(),
+                                depth_slice: None,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
@@ -378,6 +379,7 @@ impl ApplicationHandler for State<'_> {
                             label: Some("Custom Surface Render Pass"),
                             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                                 view: &view,
+                                depth_slice: None,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Clear(wgpu::Color {
