@@ -133,7 +133,7 @@ where
 
     /// Draws all sections queued with [`queue`](#method.queue) function.
     #[inline]
-    pub fn draw<'pass>(&'pass self, rpass: &mut wgpu::RenderPass<'pass>) {
+    pub fn draw(&self, rpass: &mut wgpu::RenderPass) {
         self.pipeline.draw(rpass)
     }
 
