@@ -89,7 +89,7 @@ impl Pipeline {
     }
 
     /// Raw draw.
-    pub fn draw<'pass>(&'pass self, rpass: &mut wgpu::RenderPass<'pass>) {
+    pub fn draw(&self, rpass: &mut wgpu::RenderPass) {
         if self.vertices != 0 {
             rpass.set_pipeline(&self.inner);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
