@@ -27,9 +27,7 @@ impl Ctx {
                     gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
                     fence_behavior: wgpu::GlFenceBehavior::default(),
                 },
-                dx12: wgpu::Dx12BackendOptions {
-                    shader_compiler: wgpu::Dx12Compiler::Fxc,
-                },
+                dx12: wgpu::Dx12BackendOptions::default(),
                 noop: wgpu::NoopBackendOptions::from_env_or_default(),
             },
         });
@@ -48,6 +46,7 @@ impl Ctx {
                 required_limits: wgpu::Limits::default(),
                 memory_hints: wgpu::MemoryHints::default(),
                 trace: wgpu::Trace::Off,
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
             },
         ))
         .unwrap();

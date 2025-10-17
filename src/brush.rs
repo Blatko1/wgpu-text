@@ -191,7 +191,7 @@ impl BrushBuilder<()> {
     }
 
     /// Creates a [`BrushBuilder`] with font byte data.
-    pub fn using_font_bytes(data: &[u8]) -> Result<BrushBuilder<FontRef>, InvalidFont> {
+    pub fn using_font_bytes(data: &[u8]) -> Result<BrushBuilder<FontRef<'_>>, InvalidFont> {
         let font = FontRef::try_from_slice(data)?;
         Ok(BrushBuilder::using_fonts(vec![font]))
     }
@@ -199,7 +199,7 @@ impl BrushBuilder<()> {
     /// Creates a [`BrushBuilder`] with multiple fonts byte data.
     pub fn using_font_bytes_vec(
         data: &[u8],
-    ) -> Result<BrushBuilder<FontRef>, InvalidFont> {
+    ) -> Result<BrushBuilder<FontRef<'_>>, InvalidFont> {
         let font = FontRef::try_from_slice(data)?;
         Ok(BrushBuilder::using_fonts(vec![font]))
     }

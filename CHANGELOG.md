@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+## v27.0.1
 
 - Remove no longer needed lifetime constraints in draw functions - by @wohe in [#40](https://github.com/Blatko1/wgpu-text/pull/40)
+- Small fixes of `clippy warnings`
+- `wgpu` crate version -> 27.0.1
+- `log` crate version -> 0.4.28
+- `bytemuck` crate version -> 1.24.0
+- Minor example updates following the new `wgpu` version
 
 ## v26.0.0
 
