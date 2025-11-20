@@ -282,15 +282,16 @@ impl ApplicationHandler for State<'_> {
 
     fn new_events(&mut self, _elwt: &ActiveEventLoop, _cause: winit::event::StartCause) {
         if self.target_framerate <= self.delta_time.elapsed() {
-            self.window.clone().unwrap().request_redraw();
-            self.delta_time = Instant::now();
-            self.fps += 1;
-            if self.fps_update_time.elapsed().as_millis() > 1000 {
-                let window = self.window.as_mut().unwrap();
-                window
-                    .set_title(&format!("wgpu-text: 'depth' example, FPS: {}", self.fps));
-                self.fps = 0;
-                self.fps_update_time = Instant::now();
+            if let Some(window) = self.window.clone().as_mut() {
+                window.request_redraw();
+                self.delta_time = Instant::now();
+                self.fps += 1;
+                if self.fps_update_time.elapsed().as_millis() > 1000 {
+                    window
+                        .set_title(&format!("wgpu-text: 'depth' example, FPS: {}", self.fps));
+                    self.fps = 0;
+                    self.fps_update_time = Instant::now();
+                }
             }
         }
     }
