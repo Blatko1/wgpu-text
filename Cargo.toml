@@ -1,7 +1,7 @@
 [package]
 name = "wgpu_text"
 authors = ["Leon (Blatko1)"]
-version = "27.0.1"
+version = "28.0.0"
 edition = "2024"
 description = "A simple 2D text renderer for wgpu."
 license = "MIT"
@@ -12,13 +12,13 @@ categories = ["graphics", "rendering"]
 include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 
 [dependencies]
-wgpu = "27.0.1"
+wgpu = "28.0.0"
 glyph_brush = "0.7.12"
 log = "0.4.28"
 bytemuck = { version = "1.24.0", features = ["derive"] }
 
 [dev-dependencies]
-wgpu = { version = "27.0.1", features = ["spirv"] }
+wgpu = { version = "28.0.0", features = ["spirv"] }
 winit = "0.30.12"
 pollster = "0.4.0"
 env_logger = "0.11.8"

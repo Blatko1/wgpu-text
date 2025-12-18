@@ -2,8 +2,8 @@
 mod ctx;
 
 use ctx::Ctx;
-use glyph_brush::ab_glyph::FontRef;
 use glyph_brush::OwnedSection;
+use glyph_brush::ab_glyph::FontRef;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use wgpu_text::glyph_brush::{
@@ -241,6 +241,7 @@ impl ApplicationHandler for State<'_> {
                             depth_stencil_attachment: None,
                             timestamp_writes: None,
                             occlusion_query_set: None,
+                            multiview_mask: None,
                         });
 
                     brush.draw(&mut rpass);
@@ -279,7 +280,9 @@ impl ApplicationHandler for State<'_> {
 // TODO text layout of characters like 'š, ć, ž, đ' doesn't work correctly.
 fn main() {
     if std::env::var("RUST_LOG").is_err() {
-        unsafe { std::env::set_var("RUST_LOG", "error"); }
+        unsafe {
+            std::env::set_var("RUST_LOG", "error");
+        }
     }
     env_logger::init();
 

@@ -39,7 +39,7 @@ pub fn create_pipeline(
     let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Custom Surface Render Pipeline Layout"),
         bind_group_layouts,
-        push_constant_ranges: &[],
+        immediate_size: 0,
     });
 
     let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -74,7 +74,7 @@ pub fn create_pipeline(
             })],
             compilation_options: Default::default(),
         }),
-        multiview: None,
+        multiview_mask: None,
         cache: None,
     });
     pipeline

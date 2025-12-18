@@ -2,8 +2,8 @@
 mod ctx;
 
 use ctx::Ctx;
-use glyph_brush::ab_glyph::FontRef;
 use glyph_brush::OwnedSection;
+use glyph_brush::ab_glyph::FontRef;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use wgpu::{DepthStencilState, TextureView};
@@ -268,6 +268,7 @@ impl ApplicationHandler for State<'_> {
                             ),
                             timestamp_writes: None,
                             occlusion_query_set: None,
+                            multiview_mask: None,
                         });
 
                     brush.draw(&mut rpass);
@@ -287,8 +288,10 @@ impl ApplicationHandler for State<'_> {
                 self.delta_time = Instant::now();
                 self.fps += 1;
                 if self.fps_update_time.elapsed().as_millis() > 1000 {
-                    window
-                        .set_title(&format!("wgpu-text: 'depth' example, FPS: {}", self.fps));
+                    window.set_title(&format!(
+                        "wgpu-text: 'depth' example, FPS: {}",
+                        self.fps
+                    ));
                     self.fps = 0;
                     self.fps_update_time = Instant::now();
                 }
@@ -303,7 +306,9 @@ impl ApplicationHandler for State<'_> {
 
 fn main() {
     if std::env::var("RUST_LOG").is_err() {
-        unsafe { std::env::set_var("RUST_LOG", "error"); }
+        unsafe {
+            std::env::set_var("RUST_LOG", "error");
+        }
     }
     env_logger::init();
 
