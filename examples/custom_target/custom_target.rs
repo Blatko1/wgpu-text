@@ -7,7 +7,7 @@ use camera::Camera;
 use ctx::Ctx;
 use glyph_brush::ab_glyph::FontRef;
 use glyph_brush::{OwnedSection, OwnedText, VerticalAlign};
-use pipeline::{create_pipeline, Vertex};
+use pipeline::{Vertex, create_pipeline};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use wgpu::util::DeviceExt;
@@ -121,7 +121,7 @@ impl ApplicationHandler for State<'_> {
             address_mode_w: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::MipmapFilterMode::Linear,
             ..Default::default()
         });
         self.texture_view = Some(texture.create_view(&Default::default()));
@@ -367,6 +367,7 @@ impl ApplicationHandler for State<'_> {
                             depth_stencil_attachment: None,
                             timestamp_writes: None,
                             occlusion_query_set: None,
+                            multiview_mask: None,
                         });
 
                     brush.draw(&mut rpass);
@@ -394,6 +395,7 @@ impl ApplicationHandler for State<'_> {
                             depth_stencil_attachment: None,
                             timestamp_writes: None,
                             occlusion_query_set: None,
+                            multiview_mask: None,
                         });
 
                     rpass.set_pipeline(self.pipeline.as_ref().unwrap());
@@ -440,7 +442,9 @@ impl ApplicationHandler for State<'_> {
 
 fn main() {
     if std::env::var("RUST_LOG").is_err() {
-        unsafe { std::env::set_var("RUST_LOG", "error"); }
+        unsafe {
+            std::env::set_var("RUST_LOG", "error");
+        }
     }
     env_logger::init();
 

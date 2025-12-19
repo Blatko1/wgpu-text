@@ -1,12 +1,12 @@
 use std::num::NonZeroU32;
 
 use glyph_brush::{
-    ab_glyph::{point, Rect},
     Rectangle,
+    ab_glyph::{Rect, point},
 };
 use wgpu::util::DeviceExt;
 
-use crate::{cache::Cache, Matrix};
+use crate::{Matrix, cache::Cache};
 
 /// Responsible for drawing text.
 #[derive(Debug)]
@@ -25,7 +25,7 @@ impl Pipeline {
         render_format: wgpu::TextureFormat,
         depth_stencil: Option<wgpu::DepthStencilState>,
         multisample: wgpu::MultisampleState,
-        multiview: Option<NonZeroU32>,
+        multiview_mask: Option<NonZeroU32>,
         tex_dimensions: (u32, u32),
         matrix: Matrix,
     ) -> Pipeline {
@@ -45,7 +45,7 @@ impl Pipeline {
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("wgpu-text Render Pipeline Layout"),
                 bind_group_layouts: &[&cache.bind_group_layout],
-                push_constant_ranges: &[],
+                immediate_size: 0,
             });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -74,8 +74,8 @@ impl Pipeline {
                 })],
                 compilation_options: Default::default(),
             }),
-            multiview,
             cache: None,
+            multiview_mask,
         });
 
         Self {
