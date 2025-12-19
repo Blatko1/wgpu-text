@@ -16,8 +16,7 @@ pub struct Ctx {
 impl Ctx {
     pub fn new(window: Arc<winit::window::Window>) -> Self {
         let size = window.inner_size();
-        let backends =
-            wgpu::Backends::from_env().unwrap_or_else(wgpu::Backends::all);
+        let backends = wgpu::Backends::from_env().unwrap_or_else(wgpu::Backends::all);
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends,
             flags: wgpu::InstanceFlags::default(),
@@ -39,16 +38,14 @@ impl Ctx {
         }))
         .expect("No adapters found!");
 
-        let (device, queue) = block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor {
-                label: Some("Device"),
-                required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::default(),
-                memory_hints: wgpu::MemoryHints::default(),
-                trace: wgpu::Trace::Off,
-                experimental_features: wgpu::ExperimentalFeatures::disabled(),
-            },
-        ))
+        let (device, queue) = block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+            label: Some("Device"),
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::default(),
+            memory_hints: wgpu::MemoryHints::default(),
+            trace: wgpu::Trace::Off,
+            experimental_features: wgpu::ExperimentalFeatures::disabled(),
+        }))
         .unwrap();
 
         let config = surface

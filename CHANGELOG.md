@@ -1,5 +1,11 @@
 # Changelog
 
+## v28.0.0
+
+- `wgpu` crate version -> 28.0.0
+- `log` crate version -> 0.4.29
+- Minor example updates following the new `wgpu` version
+
 ## v27.0.1
 
 - Remove no longer needed lifetime constraints in draw functions - by @wohe in [#40](https://github.com/Blatko1/wgpu-text/pull/40)

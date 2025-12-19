@@ -1,13 +1,13 @@
 use std::num::NonZeroU32;
 
 use crate::{
+    Matrix,
     error::BrushError,
     pipeline::{Pipeline, Vertex},
-    Matrix,
 };
 use glyph_brush::{
-    ab_glyph::{Font, FontArc, FontRef, InvalidFont, Rect},
     BrushAction, DefaultSectionHasher, Extra, GlyphCruncher, Section, SectionGlyphIter,
+    ab_glyph::{Font, FontArc, FontRef, InvalidFont, Rect},
 };
 
 /// Wrapper over [`glyph_brush::GlyphBrush`]. In charge of drawing text.
@@ -68,7 +68,7 @@ where
                             self.pipeline.update_vertex_buffer(vertices, device, queue)
                         }
                         BrushAction::ReDraw => (),
-                    }
+                    };
                 }
 
                 Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
@@ -191,7 +191,9 @@ impl BrushBuilder<()> {
     }
 
     /// Creates a [`BrushBuilder`] with font byte data.
-    pub fn using_font_bytes(data: &[u8]) -> Result<BrushBuilder<FontRef<'_>>, InvalidFont> {
+    pub fn using_font_bytes(
+        data: &[u8],
+    ) -> Result<BrushBuilder<FontRef<'_>>, InvalidFont> {
         let font = FontRef::try_from_slice(data)?;
         Ok(BrushBuilder::using_fonts(vec![font]))
     }
