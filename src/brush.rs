@@ -200,10 +200,12 @@ impl BrushBuilder<()> {
 
     /// Creates a [`BrushBuilder`] with multiple fonts byte data.
     pub fn using_font_bytes_vec(
-        data: &[u8],
+        data_vec: Vec<&[u8]>,
     ) -> Result<BrushBuilder<FontRef<'_>>, InvalidFont> {
-        let font = FontRef::try_from_slice(data)?;
-        Ok(BrushBuilder::using_fonts(vec![font]))
+        let fonts = data_vec.iter().map(|data| 
+            FontRef::try_from_slice(data)
+        ).collect::<Result<Vec<FontRef>, InvalidFont>>()?;
+        Ok(BrushBuilder::using_fonts(fonts))
     }
 
     /// Creates a [`BrushBuilder`] with multiple [`Font`].
