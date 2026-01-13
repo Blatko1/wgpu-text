@@ -1,5 +1,10 @@
 # Changelog
 
+## v28.0.1
+
+- Fixed the `using_font_bytes_vec()` function which was incomplete
+- Added a new `fonts.rs` example which shows how to utilize multiple fonts
+
 ## v28.0.0
 
 - `wgpu` crate version -> 28.0.0
