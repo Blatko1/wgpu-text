@@ -209,13 +209,12 @@ impl ApplicationHandler for State<'_> {
                     wgpu::CurrentSurfaceTexture::Occluded => return,
                     _ => {
                         surface.configure(device, config);
-                        let wgpu::CurrentSurfaceTexture::Success(frame) =
-                            surface.get_current_texture()
-                        else {
-                            panic!("Failed to acquire next surface texture!");
-                        };
-
-                        frame
+                        match surface.get_current_texture() {
+                            wgpu::CurrentSurfaceTexture::Success(s) => s,
+                            e => {
+                                panic!("Failed to acquire next surface texture: {:?}", e)
+                            }
+                        }
                     }
                 };
                 let view = frame

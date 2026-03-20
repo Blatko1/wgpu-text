@@ -2,11 +2,12 @@
 
 ## v29.0.0
 
+Changes by @VladasZ:
 - `wgpu` crate version -> 29.0.0
 - `bytemuck` crate version -> 1.25.0
-- `rand` crate version -> 0.10.0
-- `winit` crate version -> 0.30.13
-- `env_logger` crate version -> 0.11.9
+- `rand` crate version in examples -> 0.10.0
+- `winit` crate version in examples -> 0.30.13
+- `env_logger` crate version in examples -> 0.11.9
 - Minor example updates following the new `wgpu` version
 
 ## v28.0.1
