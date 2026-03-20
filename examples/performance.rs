@@ -3,7 +3,7 @@ mod ctx;
 
 use ctx::Ctx;
 use glyph_brush::ab_glyph::FontRef;
-use rand::Rng;
+use rand::RngExt;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use wgpu_text::glyph_brush::{BuiltInLineBreaker, Layout, Section, Text};
@@ -163,12 +163,17 @@ impl ApplicationHandler for State<'_> {
                 };
 
                 let frame = match surface.get_current_texture() {
-                    Ok(frame) => frame,
-                    Err(_) => {
+                    wgpu::CurrentSurfaceTexture::Success(frame) => frame,
+                    wgpu::CurrentSurfaceTexture::Occluded => return,
+                    _ => {
                         surface.configure(device, config);
-                        surface
-                            .get_current_texture()
-                            .expect("Failed to acquire next surface texture!")
+                        let wgpu::CurrentSurfaceTexture::Success(frame) =
+                            surface.get_current_texture()
+                        else {
+                            panic!("Failed to acquire next surface texture!");
+                        };
+
+                        frame
                     }
                 };
                 let view = frame

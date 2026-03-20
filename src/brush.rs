@@ -202,9 +202,10 @@ impl BrushBuilder<()> {
     pub fn using_font_bytes_vec(
         data_vec: Vec<&[u8]>,
     ) -> Result<BrushBuilder<FontRef<'_>>, InvalidFont> {
-        let fonts = data_vec.iter().map(|data| 
-            FontRef::try_from_slice(data)
-        ).collect::<Result<Vec<FontRef>, InvalidFont>>()?;
+        let fonts = data_vec
+            .iter()
+            .map(|data| FontRef::try_from_slice(data))
+            .collect::<Result<Vec<FontRef>, InvalidFont>>()?;
         Ok(BrushBuilder::using_fonts(fonts))
     }
 

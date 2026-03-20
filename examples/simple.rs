@@ -203,12 +203,17 @@ impl ApplicationHandler for State<'_> {
                 };
 
                 let frame = match surface.get_current_texture() {
-                    Ok(frame) => frame,
-                    Err(_) => {
+                    wgpu::CurrentSurfaceTexture::Success(frame) => frame,
+                    wgpu::CurrentSurfaceTexture::Occluded => return,
+                    _ => {
                         surface.configure(device, config);
-                        surface
-                            .get_current_texture()
-                            .expect("Failed to acquire next surface texture!")
+                        let wgpu::CurrentSurfaceTexture::Success(frame) =
+                            surface.get_current_texture()
+                        else {
+                            panic!("Failed to acquire next surface texture!");
+                        };
+
+                        frame
                     }
                 };
                 let view = frame

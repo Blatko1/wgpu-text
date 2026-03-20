@@ -44,7 +44,7 @@ impl Pipeline {
         let pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("wgpu-text Render Pipeline Layout"),
-                bind_group_layouts: &[&cache.bind_group_layout],
+                bind_group_layouts: &[Some(&cache.bind_group_layout)],
                 immediate_size: 0,
             });
 

@@ -17,7 +17,7 @@ impl Ctx {
     pub fn new(window: Arc<winit::window::Window>) -> Self {
         let size = window.inner_size();
         let backends = wgpu::Backends::from_env().unwrap_or_else(wgpu::Backends::all);
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends,
             flags: wgpu::InstanceFlags::default(),
             memory_budget_thresholds: Default::default(),
@@ -25,10 +25,12 @@ impl Ctx {
                 gl: wgpu::GlBackendOptions {
                     gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
                     fence_behavior: wgpu::GlFenceBehavior::default(),
+                    debug_fns: wgpu::GlDebugFns::Auto,
                 },
                 dx12: wgpu::Dx12BackendOptions::default(),
                 noop: wgpu::NoopBackendOptions::from_env_or_default(),
             },
+            display: None,
         });
         let surface = instance.create_surface(window).unwrap();
 

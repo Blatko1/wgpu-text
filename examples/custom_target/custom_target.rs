@@ -201,7 +201,8 @@ impl ApplicationHandler for State<'_> {
                 },
             ],
         }));
-        self.pipeline = Some(create_pipeline(device, &[&bind_group_layout], config));
+        self.pipeline =
+            Some(create_pipeline(device, &[Some(&bind_group_layout)], config));
 
         self.section = Some(
             Section::default()
@@ -333,12 +334,17 @@ impl ApplicationHandler for State<'_> {
                 };
 
                 let frame = match surface.get_current_texture() {
-                    Ok(frame) => frame,
-                    Err(_) => {
+                    wgpu::CurrentSurfaceTexture::Success(frame) => frame,
+                    wgpu::CurrentSurfaceTexture::Occluded => return,
+                    _ => {
                         surface.configure(device, config);
-                        surface
-                            .get_current_texture()
-                            .expect("Failed to acquire next surface texture!")
+                        let wgpu::CurrentSurfaceTexture::Success(frame) =
+                            surface.get_current_texture()
+                        else {
+                            panic!("Failed to acquire next surface texture!");
+                        };
+
+                        frame
                     }
                 };
                 let view = frame
@@ -416,11 +422,14 @@ impl ApplicationHandler for State<'_> {
 
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {
         if self.target_framerate <= self.delta_time.elapsed() {
-            self.window.clone().unwrap().request_redraw();
+            let Some(window) = self.window.clone() else {
+                return;
+            };
+
+            window.request_redraw();
             self.delta_time = Instant::now();
             self.fps += 1;
             if self.fps_update_time.elapsed().as_millis() > 1000 {
-                let window = self.window.as_mut().unwrap();
                 window.set_title(&format!(
                     "wgpu-text: 'custom_target' example, FPS: {}",
                     self.fps

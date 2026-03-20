@@ -28,7 +28,7 @@ impl Vertex {
 
 pub fn create_pipeline(
     device: &wgpu::Device,
-    bind_group_layouts: &[&wgpu::BindGroupLayout],
+    bind_group_layouts: &[Option<&wgpu::BindGroupLayout>],
     config: &wgpu::SurfaceConfiguration,
 ) -> wgpu::RenderPipeline {
     let vertex_module =

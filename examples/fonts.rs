@@ -2,8 +2,8 @@
 mod ctx;
 
 use ctx::Ctx;
-use glyph_brush::{FontId, OwnedSection};
 use glyph_brush::ab_glyph::FontRef;
+use glyph_brush::{FontId, OwnedSection};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use wgpu_text::glyph_brush::{
@@ -54,12 +54,11 @@ impl ApplicationHandler for State<'_> {
         let device = &ctx.device;
         let config = &ctx.config;
 
-        self.brush = Some(BrushBuilder::using_font_bytes_vec(vec![self.font1, self.font2]).unwrap().build(
-            device,
-            config.width,
-            config.height,
-            config.format,
-        ));
+        self.brush = Some(
+            BrushBuilder::using_font_bytes_vec(vec![self.font1, self.font2])
+                .unwrap()
+                .build(device, config.width, config.height, config.format),
+        );
 
         self.section_0 = Some(
             Section::default()
@@ -206,12 +205,17 @@ impl ApplicationHandler for State<'_> {
                 };
 
                 let frame = match surface.get_current_texture() {
-                    Ok(frame) => frame,
-                    Err(_) => {
+                    wgpu::CurrentSurfaceTexture::Success(frame) => frame,
+                    wgpu::CurrentSurfaceTexture::Occluded => return,
+                    _ => {
                         surface.configure(device, config);
-                        surface
-                            .get_current_texture()
-                            .expect("Failed to acquire next surface texture!")
+                        let wgpu::CurrentSurfaceTexture::Success(frame) =
+                            surface.get_current_texture()
+                        else {
+                            panic!("Failed to acquire next surface texture!");
+                        };
+
+                        frame
                     }
                 };
                 let view = frame
