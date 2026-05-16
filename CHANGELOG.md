@@ -1,5 +1,9 @@
 # Changelog
 
+## v29.0.3
+
+- `wgpu` crate version -> 29.0.3
+
 ## v29.0.0
 
 Changes by @VladasZ:
