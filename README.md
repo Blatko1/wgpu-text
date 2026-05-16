@@ -21,7 +21,7 @@ Add the following to your `Cargo.toml` file:
 [dependencies]
 wgpu_text = "29.0.3"
 ```
-
+ 
 ## **Usage**
 
 ```rust
