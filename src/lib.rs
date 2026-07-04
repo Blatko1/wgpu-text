@@ -13,7 +13,7 @@
 //! To learn about GPU texture caching, see
 //! [`caching behaviour`](https://docs.rs/glyph_brush/latest/glyph_brush/struct.GlyphBrush.html#caching-behaviour)
 //!
-//! > Look trough [`examples`](https://github.com/Blatko1/wgpu_text/tree/master/examples).
+//! > Look through [`examples`](https://github.com/Blatko1/wgpu_text/tree/master/examples).
 
 // TODO fix VULKAN error when running examples
 mod brush;

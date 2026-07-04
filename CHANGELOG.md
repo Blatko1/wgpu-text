@@ -1,5 +1,15 @@
 # Changelog
 
+## v30.0.0
+
+Changes by @maxwag9:
+- `wgpu` crate version -> 30.0.0
+- `log` crate version -> 0.4.33
+- `rand` crate version in examples -> 0.10.2
+- `nalgebra` crate version in examples -> 0.35.0
+- `env_logger` crate version in examples -> 0.11.11
+- Minor example updates following the new `wgpu` version
+
 ## v29.0.3
 
 - `wgpu` crate version -> 29.0.3

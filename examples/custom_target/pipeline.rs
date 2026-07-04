@@ -48,7 +48,7 @@ pub fn create_pipeline(
         vertex: wgpu::VertexState {
             module: &vertex_module,
             entry_point: Some("main"),
-            buffers: &[Vertex::buffer_layout()],
+            buffers: &[Some(Vertex::buffer_layout())],
             compilation_options: Default::default(),
         },
         primitive: wgpu::PrimitiveState {
