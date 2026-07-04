@@ -14,14 +14,14 @@ include = ["src/**/*", "LICENSE", "Cargo.toml", "README.md", ".gitignore"]
 [dependencies]
 wgpu = "30.0.0"
 glyph_brush = "0.7.12"
-log = "0.4.33"
-bytemuck = { version = "1.25.0", features = ["derive"] }
+log = "^0.4.30"
+bytemuck = { version = "^1.20.0", features = ["derive"] }
 
 [dev-dependencies]
 wgpu = { version = "30.0.0", features = ["spirv"] }
 winit = "0.30.13"
 pollster = "0.4.0"
-env_logger = "0.11.11"
+env_logger = "^0.11.0"
 rand = "0.10.2"
 nalgebra = "0.35.0"
 
