@@ -19,7 +19,7 @@ Add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-wgpu_text = "29.0.3"
+wgpu_text = "30.0.0"
 ```
  
 ## **Usage**

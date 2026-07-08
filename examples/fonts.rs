@@ -254,7 +254,7 @@ impl ApplicationHandler for State<'_> {
                 }
 
                 queue.submit([encoder.finish()]);
-                frame.present();
+                queue.present(frame);
             }
             _ => (),
         }
