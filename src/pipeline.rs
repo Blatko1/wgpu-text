@@ -55,7 +55,7 @@ impl Pipeline {
                 module: &shader,
                 entry_point: Some("vs_main"),
                 buffers: &[Some(Vertex::buffer_layout())],
-                compilation_options: Default::default()
+                compilation_options: Default::default(),
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleStrip,
