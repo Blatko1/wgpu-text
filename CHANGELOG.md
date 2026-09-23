@@ -1,5 +1,11 @@
 # Changelog
 
+## v30.0.1
+
+- expose custom layout queueing and bounds - by @VladasZ in [#47](https://github.com/Blatko1/wgpu-text/pull/47)
+- `wgpu` crate version -> 30.0.1
+- Minor example updates using `cargo clippy`
+
 ## v30.0.0
 
 Changes by @maxwag9:

@@ -74,7 +74,7 @@ impl ApplicationHandler for State<'_> {
                     )
                     .with_scale(self.font_size)
                     .with_color([0.9, 0.5, 0.5, 1.0])
-                    .with_z(0.08), // In range 0.0 - 1.0 bigger number means it's more at the back
+                    .with_z(0.08f32), // In range 0.0 - 1.0 bigger number means it's more at the back
                 )
                 .with_bounds((config.width as f32 / 2.0, config.height as f32))
                 .with_layout(
@@ -92,7 +92,7 @@ impl ApplicationHandler for State<'_> {
                     Text::new("Other section")
                         .with_scale(80.0)
                         .with_color([0.2, 0.5, 0.8, 1.0])
-                        .with_z(0.1), // In range 0.0 - 1.0 bigger number means it's more at the back
+                        .with_z(0.1f32), // In range 0.0 - 1.0 bigger number means it's more at the back
                 )
                 .with_bounds((config.width as f32 / 2.0, config.height as f32))
                 .with_layout(
@@ -177,14 +177,14 @@ impl ApplicationHandler for State<'_> {
                                 OwnedText::default()
                                     .with_scale(self.font_size)
                                     .with_color([0.9, 0.5, 0.5, 1.0])
-                                    .with_z(0.08),
+                                    .with_z(0.08f32),
                             );
                         }
                         section_0.text.push(
                             OwnedText::new(c.to_string())
                                 .with_scale(self.font_size)
                                 .with_color([0.9, 0.5, 0.5, 1.0])
-                                .with_z(0.08),
+                                .with_z(0.08f32),
                         );
                     }
                 }
