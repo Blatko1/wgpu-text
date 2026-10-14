@@ -55,6 +55,29 @@ where
         self.process_queued(device, queue)
     }
 
+    /// Like [`queue`](#method.queue), but keeps the vertices of the earlier
+    /// batches of this frame, so every batch can have its own
+    /// [`draw`](#method.draw) call, for example with a different scissor rect.
+    ///
+    /// The first batch of a frame goes through [`queue`](#method.queue) and
+    /// every later one through this method.
+    #[inline]
+    pub fn queue_append<'a, S, I: IntoIterator<Item = S>>(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        sections: I,
+    ) -> Result<(), BrushError>
+    where
+        S: Into<std::borrow::Cow<'a, Section<'a>>>,
+    {
+        for s in sections {
+            self.inner.queue(s);
+        }
+
+        self.process_queued_append(device, queue)
+    }
+
     /// Queues a single section positioned by a custom layout, any type that
     /// implements [`glyph_brush::GlyphPositioner`]. Call
     /// [`process_queued`](#method.process_queued) once after all sections
@@ -73,27 +96,72 @@ where
     ///
     /// [`queue`](#method.queue) does this automatically. Sections queued with
     /// [`queue_custom_layout`](#method.queue_custom_layout) need an explicit call.
+    #[inline]
     pub fn process_queued(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Result<(), BrushError> {
+        self.process(device, queue, false)
+    }
+
+    /// Like [`process_queued`](#method.process_queued), but keeps the vertices
+    /// of the earlier batches of this frame, see
+    /// [`queue_append`](#method.queue_append).
+    #[inline]
+    pub fn process_queued_append(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> Result<(), BrushError> {
+        self.process(device, queue, true)
+    }
+
+    fn process(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        append: bool,
+    ) -> Result<(), BrushError> {
+        if !append {
+            let max_image_dimension = device.limits().max_texture_dimension_2d;
+            if let Some((width, height)) =
+                self.pipeline.take_cache_growth(max_image_dimension)
+            {
+                self.pipeline.resize_texture(device, (width, height));
+                self.inner.resize_texture(width, height);
+            }
+        }
+
+        // Texture writes of an appending batch, applied after processing.
+        let mut writes = Vec::new();
+
         // Process sections:
         loop {
             // Contains BrushAction enum which marks for
             // drawing or redrawing (using old data).
             let brush_action = self.inner.process_queued(
-                |rect, data| self.pipeline.update_texture(rect, data, queue),
+                |rect, data| {
+                    if append {
+                        writes.push((rect, data.to_vec()));
+                    } else {
+                        self.pipeline.update_texture(rect, data, queue);
+                    }
+                },
                 Vertex::to_vertex,
             );
 
             match brush_action {
                 Ok(action) => {
+                    if append {
+                        self.pipeline.update_texture_append(&writes, device, queue);
+                    }
+
                     break match action {
-                        BrushAction::Draw(vertices) => {
-                            self.pipeline.update_vertex_buffer(vertices, device, queue)
-                        }
-                        BrushAction::ReDraw => (),
+                        BrushAction::Draw(vertices) => self
+                            .pipeline
+                            .update_vertex_buffer(vertices, device, queue, append),
+                        BrushAction::ReDraw => self.pipeline.redraw(append),
                     };
                 }
 
@@ -124,6 +192,8 @@ where
                     };
                     self.pipeline.resize_texture(device, (width, height));
                     self.inner.resize_texture(width, height);
+                    // The cache is empty again, these writes are stale.
+                    writes.clear();
                 }
             }
         }

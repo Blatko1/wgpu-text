@@ -1,10 +1,9 @@
-use std::num::NonZeroU32;
+use std::{num::NonZeroU32, ops::Range};
 
 use glyph_brush::{
     Rectangle,
     ab_glyph::{Rect, point},
 };
-use wgpu::util::DeviceExt;
 
 use crate::{Matrix, cache::Cache};
 
@@ -15,8 +14,17 @@ pub struct Pipeline {
     cache: Cache,
 
     vertex_buffer: wgpu::Buffer,
-    vertex_buffer_len: usize,
+    /// Where the next vertex write of this frame goes.
+    cursor: u64,
+    /// Bytes of the last written vertices.
+    range: Range<u64>,
     vertices: u32,
+
+    /// Vertices of every batch of this frame, to know which glyphs of the
+    /// cache texture are still drawn.
+    batches: Vec<Vec<Vertex>>,
+    /// The batches of a frame did not fit the cache texture together.
+    grow_cache: bool,
 }
 
 impl Pipeline {
@@ -83,8 +91,12 @@ impl Pipeline {
             cache,
 
             vertex_buffer,
-            vertex_buffer_len: 0,
+            cursor: 0,
+            range: 0..0,
             vertices: 0,
+
+            batches: Vec::new(),
+            grow_cache: false,
         }
     }
 
@@ -92,35 +104,113 @@ impl Pipeline {
     pub fn draw(&self, rpass: &mut wgpu::RenderPass) {
         if self.vertices != 0 {
             rpass.set_pipeline(&self.inner);
-            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(self.range.clone()));
             rpass.set_bind_group(0, &self.cache.bind_group, &[]);
 
             rpass.draw(0..4, 0..self.vertices);
         }
     }
-    // TODO look into preallocating the vertex buffer instead of constantly reallocating
+
+    /// `wgpu` runs all buffer writes before any render pass, so an appending
+    /// write goes after the earlier batches and a plain one starts over.
     pub fn update_vertex_buffer(
         &mut self,
         vertices: Vec<Vertex>,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        append: bool,
     ) {
+        if !append {
+            self.cursor = 0;
+            self.batches.clear();
+        }
+
         self.vertices = vertices.len() as u32;
-        let data: &[u8] = bytemuck::cast_slice(&vertices);
 
-        if vertices.len() > self.vertex_buffer_len {
-            self.vertex_buffer_len = vertices.len();
-
-            self.vertex_buffer =
-                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("wgpu-text Vertex Buffer"),
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                    contents: data,
-                });
-
+        if vertices.is_empty() {
+            self.range = self.cursor..self.cursor;
+            self.batches.push(vertices);
             return;
         }
-        queue.write_buffer(&self.vertex_buffer, 0, data);
+
+        let data: &[u8] = bytemuck::cast_slice(&vertices);
+        let size = data.len() as u64;
+
+        if self.cursor + size > self.vertex_buffer.size() {
+            self.vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("wgpu-text Vertex Buffer"),
+                size: size.max(self.vertex_buffer.size() * 2).max(4096),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            self.cursor = 0;
+        }
+
+        queue.write_buffer(&self.vertex_buffer, self.cursor, data);
+        self.range = self.cursor..self.cursor + size;
+        self.cursor = self.range.end.next_multiple_of(wgpu::COPY_BUFFER_ALIGNMENT);
+        self.batches.push(vertices);
+    }
+
+    /// Draws the last vertices again, a later appending write goes after them.
+    pub fn redraw(&mut self, append: bool) {
+        let end = self.range.end.next_multiple_of(wgpu::COPY_BUFFER_ALIGNMENT);
+        self.cursor = if append { self.cursor.max(end) } else { end };
+
+        if !append {
+            let earlier = self.batches.len().saturating_sub(1);
+            self.batches.drain(..earlier);
+        }
+    }
+
+    /// Texture writes run before any render pass too, and a full cache reuses
+    /// the space of glyphs the batch does not need. If an earlier batch still
+    /// draws one of them, the writes go into a copy of the texture.
+    pub fn update_texture_append(
+        &mut self,
+        writes: &[(Rectangle<u32>, Vec<u8>)],
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        if writes.iter().any(|(rect, _)| self.is_drawn(rect)) {
+            self.cache.fork_texture(device, queue);
+            self.batches.clear();
+            self.grow_cache = true;
+        }
+
+        for (rect, data) in writes {
+            self.cache.update_texture(*rect, data, queue);
+        }
+    }
+
+    /// Whether a batch of this frame draws a glyph from `rect`, with 1 texel
+    /// around it for the linear filter.
+    fn is_drawn(&self, rect: &Rectangle<u32>) -> bool {
+        let (width, height) = self.cache.texture_dimensions();
+        let (width, height) = (width as f32, height as f32);
+        let min = [rect.min[0] as f32, rect.min[1] as f32];
+        let max = [rect.max[0] as f32, rect.max[1] as f32];
+
+        self.batches.iter().flatten().any(|v| {
+            v.tex_top_left[0] * width - 1.0 < max[0]
+                && v.tex_bottom_right[0] * width + 1.0 > min[0]
+                && v.tex_top_left[1] * height - 1.0 < max[1]
+                && v.tex_bottom_right[1] * height + 1.0 > min[1]
+        })
+    }
+
+    /// The cache texture size to start the frame with, if it has to grow.
+    pub fn take_cache_growth(&mut self, max_dimension: u32) -> Option<(u32, u32)> {
+        if !std::mem::take(&mut self.grow_cache) {
+            return None;
+        }
+
+        let (width, height) = self.cache.texture_dimensions();
+        let grown = (
+            (width * 2).min(max_dimension),
+            (height * 2).min(max_dimension),
+        );
+        (grown != (width, height)).then_some(grown)
     }
 
     #[inline]
@@ -136,6 +226,8 @@ impl Pipeline {
     #[inline]
     pub fn resize_texture(&mut self, device: &wgpu::Device, tex_dimensions: (u32, u32)) {
         self.cache.recreate_texture(device, tex_dimensions);
+        // Recorded draws keep the old texture.
+        self.batches.clear();
     }
 }
 

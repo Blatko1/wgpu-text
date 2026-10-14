@@ -112,7 +112,32 @@ impl Cache {
         device: &wgpu::Device,
         tex_dimensions: (u32, u32),
     ) {
-        self.texture = Self::create_cache_texture(device, tex_dimensions);
+        self.set_texture(device, Self::create_cache_texture(device, tex_dimensions));
+    }
+
+    /// Replaces the texture with a copy of itself, recorded draws keep the
+    /// old one.
+    pub fn fork_texture(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        let texture = Self::create_cache_texture(device, self.texture_dimensions());
+        let mut encoder =
+            device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("wgpu-text Cache Texture Copy"),
+            });
+        encoder.copy_texture_to_texture(
+            self.texture.as_image_copy(),
+            texture.as_image_copy(),
+            self.texture.size(),
+        );
+        queue.submit([encoder.finish()]);
+        self.set_texture(device, texture);
+    }
+
+    pub fn texture_dimensions(&self) -> (u32, u32) {
+        (self.texture.width(), self.texture.height())
+    }
+
+    fn set_texture(&mut self, device: &wgpu::Device, texture: wgpu::Texture) {
+        self.texture = texture;
         self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("wgpu-text Bind Group"),
             layout: &self.bind_group_layout,
@@ -183,7 +208,9 @@ impl Cache {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::R8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         })
     }
