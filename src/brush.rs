@@ -341,6 +341,41 @@ where
     // Default `BrushBuilder` functions:
     glyph_brush::delegate_glyph_brush_builder_fns!(inner);
 
+    /// Sets the section hasher used to tell sections apart.
+    ///
+    /// Defaults to [`DefaultSectionHasher`], which is seeded per process, so
+    /// the same sections hash to different values in two runs of the same
+    /// program. Pass a hasher that is not seeded per process when a run has to
+    /// draw the same pixels twice, for example when rendering frames to a file.
+    ///
+    /// Has to be delegated by hand rather than through
+    /// `delegate_glyph_brush_builder_fns!`, since it changes the builder's
+    /// hasher type.
+    ///
+    /// # Example
+    /// ```
+    /// # use wgpu_text::BrushBuilder;
+    /// # use wgpu_text::glyph_brush::ab_glyph::FontArc;
+    /// # fn x(font: FontArc) {
+    /// type Fixed = std::hash::BuildHasherDefault<std::hash::DefaultHasher>;
+    ///
+    /// BrushBuilder::using_font(font).section_hasher(Fixed::default())
+    /// # ;
+    /// # }
+    /// ```
+    pub fn section_hasher<T: std::hash::BuildHasher>(
+        self,
+        section_hasher: T,
+    ) -> BrushBuilder<F, T> {
+        BrushBuilder {
+            inner: self.inner.section_hasher(section_hasher),
+            depth_stencil: self.depth_stencil,
+            multisample: self.multisample,
+            multiview: self.multiview,
+            matrix: self.matrix,
+        }
+    }
+
     /// Uses the provided `matrix` when rendering.
     ///
     /// To update the render matrix use [`TextBrush::update_matrix()`].
